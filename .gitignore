@@ -1,0 +1,27 @@
+# Binarios nativos de dependencias (nunca versionar)
+*.node
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Next.js
+.next
+out
+
+# Env / local
+.env
+.env*.local
+
+# Debug / OS
+npm-debug.log*
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
+
+# IDE
+.idea
+.vscode
