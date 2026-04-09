@@ -24,7 +24,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/10 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-4 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-3" onClick={() => setOpen(false)}>
           <Image
             src="/logo-redalia.png"
@@ -36,31 +36,33 @@ export function Navbar() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Principal">
-          {mainLinks.map(({ href, label }) => {
-            const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-brand-navy-soft text-brand-navy"
-                    : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
+        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-1 lg:flex" aria-label="Principal">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {mainLinks.map(({ href, label }) => {
+              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-brand-navy-soft text-brand-navy"
+                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
 
           <div
-            className="ml-2 flex items-center gap-2 border-l border-brand-navy/15 pl-3"
+            className="ml-2 flex items-center gap-5 border-l border-brand-navy/15 pl-4"
             aria-label="Accesos destacados"
           >
             <Link
               href="/propiedades"
-              className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold shadow-md transition ${
+              className={`inline-flex items-center rounded-full px-5 py-2.5 text-[0.9375rem] font-semibold leading-none shadow-md transition ${
                 propiedadesActive
                   ? "bg-brand-navy text-white ring-2 ring-brand-gold/70 ring-offset-2 ring-offset-white"
                   : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e] hover:shadow-lg"
@@ -72,7 +74,7 @@ export function Navbar() {
               href={KITEPROP_LOGIN}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-navy/40 hover:bg-brand-navy-soft/50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-navy/40 hover:bg-brand-navy-soft/50"
             >
               Miembros
               <span className="sr-only">(abre en nueva pestaña)</span>
@@ -88,12 +90,12 @@ export function Navbar() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
-            href="/contacto"
-            className="hidden rounded-full border border-brand-gold/50 bg-brand-navy px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy-mid sm:inline-flex"
+            href="/unete"
+            className="hidden rounded-full border border-brand-navy/20 bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-brand-navy shadow-sm transition hover:border-brand-gold/50 hover:bg-brand-navy-soft/60 sm:inline-flex"
           >
-            Agendar conversación
+            Únete
           </Link>
           <button
             type="button"
@@ -138,7 +140,7 @@ export function Navbar() {
             <div className="mt-3 space-y-2 border-t border-brand-navy/10 pt-3">
               <Link
                 href="/propiedades"
-                className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-sm font-semibold shadow-md transition ${
+                className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-[0.9375rem] font-semibold shadow-md transition ${
                   propiedadesActive
                     ? "bg-brand-navy text-white ring-2 ring-brand-gold/60"
                     : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e]"
@@ -167,11 +169,11 @@ export function Navbar() {
             </div>
 
             <Link
-              href="/contacto"
-              className="mt-3 rounded-full bg-brand-navy px-4 py-3 text-center text-sm font-semibold text-white"
+              href="/unete"
+              className="mt-2 rounded-full border border-brand-navy/20 bg-white px-4 py-2.5 text-center text-xs font-semibold text-brand-navy"
               onClick={() => setOpen(false)}
             >
-              Agendar conversación
+              Únete
             </Link>
           </nav>
         </div>

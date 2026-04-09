@@ -126,6 +126,23 @@ function normalizeAgency(raw: unknown): PropertyAgency | null {
   };
 }
 
+/** `agent` / `sub_agent` como corredora (objeto o nombre); no mezclar con la lista `agents` de nombres sueltos. */
+function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyAgency | null {
+  for (const k of keys) {
+    const v = raw[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (s) return { id: null, name: s, logoUrl: null };
+    }
+    if (isRecord(v)) {
+      const a = normalizeAgency(v);
+      if (a) return a;
+    }
+  }
+  return null;
+}
+
 /** Socio / anunciante (no confundir con `agency` ni con la lista de agentes asociados). */
 function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
   const nested =
@@ -314,6 +331,19 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
 
   const agency = normalizeAgency(raw.agency ?? raw.corredora ?? raw.inmobiliaria);
   const advertiser = normalizeAdvertiser(raw);
+  const agentAgency = normalizeAgentOffice(raw, [
+    "agent",
+    "main_agent",
+    "mainAgent",
+    "listing_agent",
+    "listingAgent",
+  ]);
+  const subAgentAgency = normalizeAgentOffice(raw, [
+    "sub_agent",
+    "subAgent",
+    "sub_agente",
+    "subagent",
+  ]);
   const associatedAgentsLabel = normalizeAssociatedAgentsLabel(raw);
 
   const { iso: lastUpdate, ms: lastUpdateMs } = parseLastUpdate(raw);
@@ -338,6 +368,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     typeKey,
     agency?.name,
     advertiser?.name,
+    agentAgency?.name,
+    subAgentAgency?.name,
     associatedAgentsLabel,
   ]
     .filter(Boolean)
@@ -376,6 +408,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     advertiser,
     associatedAgentsLabel,
     agency,
+    agentAgency,
+    subAgentAgency,
     lastUpdate,
     lastUpdateMs,
     fitForCredit,

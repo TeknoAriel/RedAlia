@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { kitePrimaryCorredora } from "@/lib/agencies";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -19,6 +20,10 @@ export function PropertyCard({
   const img = property.images[0];
   const opLabel = labelForOperation(property.operation);
   const showCompare = Boolean(onToggleCompare);
+  const primaryCorredora = kitePrimaryCorredora(property);
+  const advCard = property.advertiser?.name?.trim().toLowerCase() ?? "";
+  const priCard = primaryCorredora?.name?.trim().toLowerCase() ?? "";
+  const showAnuncianteExtra = Boolean(advCard && priCard && advCard !== priCard);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
@@ -86,25 +91,20 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
-        {(property.advertiser?.name ||
-          property.agency?.name ||
-          property.associatedAgentsLabel) && (
+        {(primaryCorredora?.name || property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
-            {property.advertiser?.name && (
+            {primaryCorredora?.name && (
               <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">Socio · </span>
+                <span className="font-medium text-brand-navy/60">Agencia · </span>
+                {primaryCorredora.name}
+              </p>
+            )}
+            {showAnuncianteExtra && property.advertiser?.name && (
+              <p className="text-brand-navy/90">
+                <span className="font-medium text-brand-navy/60">Anunciante · </span>
                 {property.advertiser.name}
               </p>
             )}
-            {property.agency?.name &&
-              (!property.advertiser?.name ||
-                property.agency.name.trim().toLowerCase() !==
-                  property.advertiser.name.trim().toLowerCase()) && (
-                <p className="text-brand-navy/85">
-                  <span className="font-medium text-brand-navy/60">Agencia · </span>
-                  {property.agency.name}
-                </p>
-              )}
             {property.associatedAgentsLabel && (
               <p className="line-clamp-2 text-[11px] leading-snug text-muted">
                 <span className="font-medium text-brand-navy/50">Agentes asociados · </span>

@@ -57,6 +57,10 @@ export interface NormalizedProperty {
   /** Texto armado desde `associated_agents` / `agentes_asociados` si viene en el JSON */
   associatedAgentsLabel: string | null;
   agency: PropertyAgency | null;
+  /** Empresa u oficina desde `agent` / `listing_agent` cuando viene como objeto en el JSON */
+  agentAgency: PropertyAgency | null;
+  /** Desde `sub_agent` / `subAgent` / `sub_agente` */
+  subAgentAgency: PropertyAgency | null;
   /** ISO string desde last_update del feed */
   lastUpdate: string | null;
   lastUpdateMs: number | null;

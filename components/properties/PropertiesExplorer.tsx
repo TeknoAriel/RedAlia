@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { NormalizedProperty } from "@/types/property";
 import type { PropertyOperation } from "@/types/property";
+import { propertyMatchesPartnerKey } from "@/lib/agencies";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyCompareModal } from "@/components/properties/PropertyCompareModal";
 
@@ -81,6 +84,9 @@ function sortProperties(list: NormalizedProperty[], sort: SortKey): NormalizedPr
 }
 
 export function PropertiesExplorer({ properties }: Props) {
+  const searchParams = useSearchParams();
+  const socioKey = searchParams.get("socio")?.trim() ?? "";
+
   const [q, setQ] = useState("");
   const [operation, setOperation] = useState<"" | PropertyOperation>("");
   const [typeKey, setTypeKey] = useState("");
@@ -141,6 +147,7 @@ export function PropertiesExplorer({ properties }: Props) {
     const terMin = m2TerrainMin ? parseFloat(m2TerrainMin.replace(",", ".")) : null;
 
     return properties.filter((p) => {
+      if (socioKey && !propertyMatchesPartnerKey(p, socioKey)) return false;
       if (needle && !p.searchBlob.includes(needle) && !p.title.toLowerCase().includes(needle)) {
         return false;
       }
@@ -183,6 +190,7 @@ export function PropertiesExplorer({ properties }: Props) {
     });
   }, [
     properties,
+    socioKey,
     q,
     operation,
     typeKey,
@@ -229,6 +237,25 @@ export function PropertiesExplorer({ properties }: Props) {
 
   return (
     <div>
+      {socioKey && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-brand-gold/35 bg-brand-navy-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-brand-navy">
+            <span className="font-medium">Filtro activo:</span> solo publicaciones de esta corredora en el feed
+            (misma lógica que en{" "}
+            <Link href="/socios" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
+              Miembros y socios
+            </Link>
+            ).
+          </p>
+          <Link
+            href="/propiedades"
+            className="inline-flex shrink-0 items-center justify-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-xs font-semibold text-brand-navy shadow-sm transition hover:bg-white/90"
+          >
+            Ver todo el catálogo
+          </Link>
+        </div>
+      )}
+
       <div className="mb-8 overflow-hidden rounded-2xl border border-brand-navy/12 bg-card/95 shadow-lg backdrop-blur-sm tech-panel-glow">
         <div className="border-b border-brand-navy/10 bg-brand-navy-soft/40 px-4 py-3 sm:px-6">
           <p className="text-xs text-muted">

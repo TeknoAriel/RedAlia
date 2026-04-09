@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { getPropertyById } from "@/lib/get-properties";
+import { kitePrimaryCorredora } from "@/lib/agencies";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
 
@@ -29,6 +30,10 @@ export default async function PropertyDetailPage({ params }: Props) {
   if (!p) notFound();
 
   const op = labelForOperation(p.operation);
+  const primaryCorredora = kitePrimaryCorredora(p);
+  const advNorm = p.advertiser?.name?.trim().toLowerCase() ?? "";
+  const priNorm = primaryCorredora?.name?.trim().toLowerCase() ?? "";
+  const showAnuncianteExtra = Boolean(advNorm && priNorm && advNorm !== priNorm);
 
   return (
     <div className="pb-16">
@@ -73,53 +78,51 @@ export default async function PropertyDetailPage({ params }: Props) {
             </div>
           </div>
           <aside className="tech-panel-glow rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm ring-1 ring-brand-navy/5">
-            {(p.advertiser?.name || p.agency?.name || p.associatedAgentsLabel) && (
+            {(primaryCorredora || p.associatedAgentsLabel) && (
               <div className="mb-6 space-y-5 border-b border-brand-navy/10 pb-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
-                  Agencia y publicación
+                  Agencia (KiteProp)
                 </h2>
-                {p.advertiser?.name && (
+                {primaryCorredora?.name && (
                   <div className="flex items-start gap-3">
-                    {p.advertiser.logoUrl ? (
+                    {primaryCorredora.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={p.advertiser.logoUrl}
+                        src={primaryCorredora.logoUrl}
                         alt=""
                         className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
                       />
                     ) : (
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                        {primaryCorredora.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Corredora / agencia</p>
+                      <p className="text-sm font-semibold text-brand-navy">{primaryCorredora.name}</p>
+                    </div>
+                  </div>
+                )}
+                {showAnuncianteExtra && p.advertiser?.name && (
+                  <div className="flex items-start gap-3 border-t border-brand-navy/10 pt-4">
+                    {p.advertiser.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.advertiser.logoUrl}
+                        alt=""
+                        className="h-11 w-11 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-[10px] font-bold text-brand-navy/50">
                         {p.advertiser.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Socio · anunciante</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Anunciante</p>
                       <p className="text-sm font-semibold text-brand-navy">{p.advertiser.name}</p>
                     </div>
                   </div>
                 )}
-                {p.agency?.name &&
-                  (!p.advertiser?.name ||
-                    p.agency.name.trim().toLowerCase() !== p.advertiser.name.trim().toLowerCase()) && (
-                    <div className="flex items-start gap-3">
-                      {p.agency.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.agency.logoUrl}
-                          alt=""
-                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                          {p.agency.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agencia</p>
-                        <p className="text-sm font-semibold text-brand-navy">{p.agency.name}</p>
-                      </div>
-                    </div>
-                  )}
                 {p.associatedAgentsLabel && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agentes asociados</p>

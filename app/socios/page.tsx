@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
 import { extractPartnerAgencies } from "@/lib/agencies";
 import { getProperties } from "@/lib/get-properties";
 
 export const metadata: Metadata = {
-  title: "Socios",
+  title: "Miembros y socios",
   description:
-    "Socios de Redalia: agencias y corredoras conectadas por datos reales, alineadas a la plataforma líder en tecnología inmobiliaria en Latinoamérica, KiteProp.",
+    "Corredoras y agencias de la red Redalia, unificadas desde agency, anunciante, agent y sub_agent del feed KiteProp.",
 };
 
 function initials(name: string): string {
@@ -25,16 +26,17 @@ export default async function SociosPage() {
     <div className="bg-background">
       <section className="border-b border-brand-navy/10 bg-brand-navy text-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Socios</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Redalia</p>
           <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
-            Profesionales y agencias unidos en torno a resultados reales
+            Miembros y socios
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/88">
-            Los socios aparecen desde el objeto <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">agency</code> del
-            feed JSON: nombre, identificador y logo cuando el origen lo publica. Buscamos, con criterio comercial,{" "}
-            <strong className="font-semibold text-white">mejores resultados reales</strong> en cada publicación. La
-            operación se apoya en <strong className="font-semibold text-white">KiteProp</strong>, referente
-            tecnológico en la región.
+            Listado de corredoras que aparecen en el catálogo. En KiteProp suele verse como{" "}
+            <strong className="font-semibold text-white">agencia</strong>; en el JSON también pueden venir como{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">anunciante</code>,{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">agent</code> o{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">sub_agent</code>: los unificamos para que
+            coincidan con la ficha de cada propiedad.
           </p>
         </div>
       </section>
@@ -46,23 +48,23 @@ export default async function SociosPage() {
         />
         <div className="prose prose-slate mt-8 max-w-none text-muted">
           <p>
-            Redalia es la red líder en tecnología y resultados reales para quienes ejecutan en terreno: menos ruido,
-            más gestión. El catálogo y los logos de agencia se integran de forma transparente con el ecosistema{" "}
+            Redalia es la red líder en tecnología y resultados reales para quienes ejecutan en terreno. Las fichas
+            muestran la misma corredora que ves acá, en línea con{" "}
             <strong className="text-brand-navy">KiteProp</strong>.
           </p>
         </div>
       </section>
 
-      <section className="border-y border-brand-navy/10 bg-white py-14 sm:py-18">
+      <section className="border-y border-brand-navy/10 bg-[linear-gradient(180deg,#f1f5f9_0%,#fff_45%,#f8fafc_100%)] py-14 sm:py-18">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
-            eyebrow="Agencias en el feed"
-            title="Red de socios"
+            eyebrow="Corredoras en el feed"
+            title="Empresas anunciantes"
             description={
               result.ok && partners.length > 0
-                ? "Agrupamos por agencia según las propiedades visibles en tu JSON de difusión. El logo se muestra cuando viene en el feed."
-                : "Cuando el feed incluya el bloque agency en cada publicación, aquí verás automáticamente nombre, logo y volumen de fichas."
+                ? "Nombre y logo según el JSON de difusión. Desde cada tarjeta podés abrir solo las publicaciones de esa corredora."
+                : "Cuando el feed traiga agency, anunciante, agent o sub_agent con nombre, aparecerán automáticamente en esta grilla."
             }
           />
 
@@ -74,27 +76,29 @@ export default async function SociosPage() {
 
           {result.ok && partners.length === 0 && (
             <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted">
-              Aún no hay agencias con nombre en el catálogo actual. Verificá que cada ítem traiga{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code> con al menos{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">name</code> o <code className="rounded bg-brand-navy-soft px-1 text-xs">id</code>.
+              Aún no hay corredoras identificables en el catálogo. Verificá que cada ítem traiga al menos uno de:{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code>,{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">advertiser</code> /{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">anunciante</code>,{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">agent</code> o{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">sub_agent</code>.
             </p>
           )}
 
           {partners.length > 0 && (
-            <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {partners.map((p) => (
                 <li
                   key={p.key}
-                  className="flex flex-col rounded-2xl border border-brand-navy/10 bg-brand-navy-soft/35 p-6 text-center shadow-sm tech-panel-glow"
+                  className="flex flex-col rounded-2xl border border-brand-navy/10 bg-white p-5 text-center shadow-sm tech-panel-glow transition hover:border-brand-gold/30"
                 >
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-brand-navy/10 bg-white">
+                  <div className="mx-auto flex h-[4.5rem] w-full max-w-[7rem] items-center justify-center overflow-hidden rounded-xl border border-brand-navy/10 bg-white">
                     {p.logoUrl ? (
-                      // Logos vienen de distintos hosts del feed; <img> evita acoplar remotePatterns por cada CDN.
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.logoUrl}
                         alt=""
-                        className="h-full w-full object-contain p-1"
+                        className="h-full w-full object-contain p-2"
                         loading="lazy"
                         decoding="async"
                       />
@@ -104,14 +108,19 @@ export default async function SociosPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-brand-navy">{p.name}</h3>
-                  <p className="mt-2 text-sm text-muted">
+                  <h3 className="mt-4 min-h-[2.75rem] text-sm font-semibold leading-snug text-brand-navy sm:text-base">
+                    {p.name}
+                  </h3>
+                  <p className="mt-2 text-xs text-muted">
                     {p.propertyCount}{" "}
-                    {p.propertyCount === 1 ? "publicación" : "publicaciones"} en el catálogo actual
+                    {p.propertyCount === 1 ? "publicación" : "publicaciones"}
                   </p>
-                  <span className="mt-3 inline-flex justify-center rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-navy ring-1 ring-brand-navy/10">
-                    Socio / agencia
-                  </span>
+                  <Link
+                    href={`/propiedades?socio=${encodeURIComponent(p.key)}`}
+                    className="mt-4 inline-flex items-center justify-center text-sm font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline"
+                  >
+                    Ver propiedades
+                  </Link>
                 </li>
               ))}
             </ul>

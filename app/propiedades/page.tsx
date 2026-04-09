@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
 
@@ -51,7 +52,16 @@ export default async function PropiedadesPage() {
           </div>
         )}
         {result.ok && result.properties.length > 0 && (
-          <PropertiesExplorer properties={result.properties} />
+          <Suspense
+            fallback={
+              <div
+                className="mx-auto max-w-6xl animate-pulse rounded-2xl border border-brand-navy/10 bg-brand-navy-soft/40"
+                style={{ minHeight: "12rem" }}
+              />
+            }
+          >
+            <PropertiesExplorer properties={result.properties} />
+          </Suspense>
         )}
       </section>
     </div>
