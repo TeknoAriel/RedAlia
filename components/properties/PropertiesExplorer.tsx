@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { NormalizedProperty } from "@/types/property";
 import type { PropertyOperation } from "@/types/property";
 import { PropertyCard } from "@/components/properties/PropertyCard";
@@ -210,9 +210,8 @@ export function PropertiesExplorer({ properties }: Props) {
     return compareIds.map((id) => map.get(id)).filter(Boolean) as NormalizedProperty[];
   }, [properties, compareIds]);
 
-  useEffect(() => {
-    if (compareOpen && compareIds.length < 2) setCompareOpen(false);
-  }, [compareOpen, compareIds.length]);
+  /** Evita setState en useEffect (regla react-hooks/set-state-in-effect): el modal solo está “abierto” si hay 2+ ítems. */
+  const compareModalOpen = compareOpen && compareIds.length >= 2;
 
   function toggleCompare(id: string) {
     setCompareIds((prev) => {
@@ -578,7 +577,7 @@ export function PropertiesExplorer({ properties }: Props) {
       )}
 
       <PropertyCompareModal
-        open={compareOpen}
+        open={compareModalOpen}
         onClose={() => setCompareOpen(false)}
         properties={compareProperties}
         onRemove={(id) => {

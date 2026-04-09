@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --max-warnings 0",
+    "sync": "git fetch origin --prune && git pull --rebase origin main && git push origin main"
   },
   "dependencies": {
     "next": "16.2.2",
