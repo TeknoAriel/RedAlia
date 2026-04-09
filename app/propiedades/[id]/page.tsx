@@ -72,27 +72,60 @@ export default async function PropertyDetailPage({ params }: Props) {
               {p.description || p.summary}
             </div>
           </div>
-          <aside className="rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm">
-            {p.agency?.name && (
-              <div className="mb-6 flex items-center gap-3 border-b border-brand-navy/10 pb-5">
-                {p.agency.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.agency.logoUrl}
-                    alt=""
-                    className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                    {p.agency.name.slice(0, 2).toUpperCase()}
+          <aside className="tech-panel-glow rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm ring-1 ring-brand-navy/5">
+            {(p.advertiser?.name || p.agency?.name || p.associatedAgentsLabel) && (
+              <div className="mb-6 space-y-5 border-b border-brand-navy/10 pb-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
+                  Agencia y publicación
+                </h2>
+                {p.advertiser?.name && (
+                  <div className="flex items-start gap-3">
+                    {p.advertiser.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.advertiser.logoUrl}
+                        alt=""
+                        className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                        {p.advertiser.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Socio · anunciante</p>
+                      <p className="text-sm font-semibold text-brand-navy">{p.advertiser.name}</p>
+                    </div>
                   </div>
                 )}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold-deep">
-                    Socio / agencia
-                  </p>
-                  <p className="text-sm font-semibold text-brand-navy">{p.agency.name}</p>
-                </div>
+                {p.agency?.name &&
+                  (!p.advertiser?.name ||
+                    p.agency.name.trim().toLowerCase() !== p.advertiser.name.trim().toLowerCase()) && (
+                    <div className="flex items-start gap-3">
+                      {p.agency.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.agency.logoUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                          {p.agency.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agencia</p>
+                        <p className="text-sm font-semibold text-brand-navy">{p.agency.name}</p>
+                      </div>
+                    </div>
+                  )}
+                {p.associatedAgentsLabel && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agentes asociados</p>
+                    <p className="mt-1 text-sm leading-snug text-brand-navy/90">{p.associatedAgentsLabel}</p>
+                  </div>
+                )}
               </div>
             )}
             <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">

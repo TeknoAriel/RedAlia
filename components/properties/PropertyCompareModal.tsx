@@ -55,6 +55,10 @@ function cell(p: NormalizedProperty, key: string): ReactNode {
       return fmtBool(p.acceptBarter);
     case "new":
       return fmtBool(p.isNewConstruction);
+    case "advertiser":
+      return p.advertiser?.name ?? "—";
+    case "agents":
+      return p.associatedAgentsLabel ?? "—";
     case "agency":
       return p.agency?.name ?? "—";
     case "ref":
@@ -80,7 +84,9 @@ const rows: { key: string; label: string }[] = [
   { key: "credit", label: "Apto crédito" },
   { key: "barter", label: "Acepta permuta" },
   { key: "new", label: "Nuevo / a estrenar" },
-  { key: "agency", label: "Socio / agencia" },
+  { key: "advertiser", label: "Socio (anunciante)" },
+  { key: "agency", label: "Agencia" },
+  { key: "agents", label: "Agentes asociados" },
   { key: "ref", label: "Referencia" },
 ];
 

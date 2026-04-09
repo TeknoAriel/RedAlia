@@ -58,7 +58,19 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-8 text-xs text-white/55 sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} {siteConfig.name}. Todos los derechos reservados.</p>
-          <p>Las imágenes y fichas de propiedades pueden provenir de socios de la red.</p>
+          <p className="max-w-md text-right sm:text-left">
+            Las imágenes y fichas pueden provenir de socios de la red.
+          </p>
+        </div>
+        <div className="mt-6 border-t border-white/10 pt-6 text-center">
+          <a
+            href="https://www.kiteprop.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium tracking-wide text-white/70 transition hover:text-brand-gold"
+          >
+            Powered by KiteProp CRM
+          </a>
         </div>
       </div>
     </footer>

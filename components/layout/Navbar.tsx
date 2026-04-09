@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const KITEPROP_LOGIN = "https://www.kiteprop.com/login";
+const KITEPROP_LOGIN = "https://www.kiteprop.com/auth/login";
 
 const mainLinks = [
   { href: "/", label: "Home" },

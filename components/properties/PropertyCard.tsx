@@ -86,6 +86,33 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
+        {(property.advertiser?.name ||
+          property.agency?.name ||
+          property.associatedAgentsLabel) && (
+          <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
+            {property.advertiser?.name && (
+              <p className="text-brand-navy">
+                <span className="font-medium text-brand-navy/60">Socio · </span>
+                {property.advertiser.name}
+              </p>
+            )}
+            {property.agency?.name &&
+              (!property.advertiser?.name ||
+                property.agency.name.trim().toLowerCase() !==
+                  property.advertiser.name.trim().toLowerCase()) && (
+                <p className="text-brand-navy/85">
+                  <span className="font-medium text-brand-navy/60">Agencia · </span>
+                  {property.agency.name}
+                </p>
+              )}
+            {property.associatedAgentsLabel && (
+              <p className="line-clamp-2 text-[11px] leading-snug text-muted">
+                <span className="font-medium text-brand-navy/50">Agentes asociados · </span>
+                {property.associatedAgentsLabel}
+              </p>
+            )}
+          </div>
+        )}
         <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-brand-navy/10 pt-4 text-xs text-muted">
           <div>
             <dt className="sr-only">Precio</dt>

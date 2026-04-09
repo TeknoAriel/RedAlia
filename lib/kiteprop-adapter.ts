@@ -1,6 +1,7 @@
 import type {
   NormalizedProperty,
   PropertyAgency,
+  PropertyAdvertiser,
   PropertyCurrency,
   PropertyOperation,
 } from "@/types/property";
@@ -125,6 +126,82 @@ function normalizeAgency(raw: unknown): PropertyAgency | null {
   };
 }
 
+/** Socio / anunciante (no confundir con `agency` ni con la lista de agentes asociados). */
+function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
+  const nested =
+    raw.advertiser ??
+    raw.anunciante ??
+    raw.socio ??
+    raw.publisher ??
+    raw.announcer;
+
+  if (typeof nested === "string") {
+    const s = nested.trim();
+    if (s) return { id: null, name: s, logoUrl: null };
+  }
+  if (nested && isRecord(nested)) {
+    const a = normalizeAgency(nested);
+    if (a) return a;
+  }
+
+  const name = pickString(raw, [
+    "advertiser_name",
+    "advertiserName",
+    "nombre_anunciante",
+    "socio_nombre",
+    "nombre_socio",
+  ]);
+  const logoUrl = pickString(raw, [
+    "advertiser_logo",
+    "advertiserLogo",
+    "logo_anunciante",
+    "logo_socio",
+  ]);
+  const id = pickNumber(raw, ["advertiser_id", "advertiserId", "socio_id", "anunciante_id"]);
+  if (!name && id === null) return null;
+  return {
+    id: id !== null ? Math.round(id) : null,
+    name: name ?? (id !== null ? `Socio ${id}` : null),
+    logoUrl,
+  };
+}
+
+function normalizeAssociatedAgentsLabel(raw: UnknownRecord): string | null {
+  const candidates = [
+    raw.associated_agents,
+    raw.associatedAgents,
+    raw.agentes_asociados,
+    raw.agents,
+    raw.agentes,
+  ];
+  for (const v of candidates) {
+    if (!Array.isArray(v) || v.length === 0) continue;
+    const names: string[] = [];
+    for (const item of v) {
+      if (typeof item === "string") {
+        const s = item.trim();
+        if (s) names.push(s);
+        continue;
+      }
+      if (isRecord(item)) {
+        const n =
+          pickString(item, [
+            "name",
+            "nombre",
+            "full_name",
+            "fullName",
+            "title",
+            "display_name",
+            "displayName",
+          ]) ?? null;
+        if (n) names.push(n);
+      }
+    }
+    if (names.length) return names.join(" · ");
+  }
+  return null;
+}
+
 function parseLastUpdate(raw: UnknownRecord): { iso: string | null; ms: number | null } {
   const s = pickString(raw, ["last_update", "lastUpdate", "updated_at", "updatedAt"]);
   if (!s) return { iso: null, ms: null };
@@ -236,6 +313,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
   const ref = pickString(raw, ["reference", "referencia", "codigo_ref"]) ?? `KP${idNum}`;
 
   const agency = normalizeAgency(raw.agency ?? raw.corredora ?? raw.inmobiliaria);
+  const advertiser = normalizeAdvertiser(raw);
+  const associatedAgentsLabel = normalizeAssociatedAgentsLabel(raw);
 
   const { iso: lastUpdate, ms: lastUpdateMs } = parseLastUpdate(raw);
 
@@ -258,6 +337,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     ref,
     typeKey,
     agency?.name,
+    advertiser?.name,
+    associatedAgentsLabel,
   ]
     .filter(Boolean)
     .join(" ")
@@ -292,6 +373,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     sourceUrl,
     referenceCode: ref,
     hidePrices,
+    advertiser,
+    associatedAgentsLabel,
     agency,
     lastUpdate,
     lastUpdateMs,

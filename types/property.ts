@@ -10,12 +10,17 @@ export type PropertyOperation =
 
 export type PropertyCurrency = "uf" | "clp" | "usd" | "otro";
 
-/** Agencia / socio según objeto `agency` del feed KiteProp */
+/** Agencia u oficina según objeto `agency` del feed KiteProp */
 export interface PropertyAgency {
   id: number | null;
   name: string | null;
   logoUrl: string | null;
 }
+
+/**
+ * Socio / anunciante que publica (distinto de la agencia y de los agentes asociados en muchos JSON).
+ */
+export type PropertyAdvertiser = PropertyAgency;
 
 export interface NormalizedProperty {
   id: string;
@@ -47,6 +52,10 @@ export interface NormalizedProperty {
   sourceUrl: string | null;
   referenceCode: string;
   hidePrices: boolean;
+  /** Quién publica / socio anunciante (`advertiser`, `anunciante`, `socio`, etc.) */
+  advertiser: PropertyAdvertiser | null;
+  /** Texto armado desde `associated_agents` / `agentes_asociados` si viene en el JSON */
+  associatedAgentsLabel: string | null;
   agency: PropertyAgency | null;
   /** ISO string desde last_update del feed */
   lastUpdate: string | null;
