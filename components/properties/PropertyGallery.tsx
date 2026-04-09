@@ -23,14 +23,16 @@ export function PropertyGallery({ images, title }: Props) {
   return (
     <div className="space-y-3">
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-brand-navy-soft">
-        <Image
-          src={main}
-          alt=""
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 896px"
-          priority
-        />
+        <span className="img-tech-wrap relative block h-full w-full">
+          <Image
+            src={main}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 896px"
+            priority
+          />
+        </span>
       </div>
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">

@@ -5,29 +5,47 @@ import { labelForOperation } from "@/lib/operation-labels";
 
 type PropertyCardProps = {
   property: NormalizedProperty;
+  compareSelected?: boolean;
+  compareDisabled?: boolean;
+  onToggleCompare?: () => void;
 };
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({
+  property,
+  compareSelected = false,
+  compareDisabled = false,
+  onToggleCompare,
+}: PropertyCardProps) {
   const img = property.images[0];
   const opLabel = labelForOperation(property.operation);
+  const showCompare = Boolean(onToggleCompare);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
-      <Link href={`/propiedades/${property.id}`} className="relative aspect-[16/10] overflow-hidden bg-brand-navy-soft">
-        {img ? (
-        <Image
-          src={img}
-          alt=""
-          fill
-          className="object-cover transition duration-500 group-hover:scale-[1.02]"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
-        ) : (
-          <div className="flex h-full min-h-[200px] items-center justify-center text-sm font-medium text-brand-navy/35">
-            Sin imagen
-          </div>
-        )}
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+      <div className="relative aspect-[16/10] overflow-hidden bg-brand-navy-soft">
+        <Link
+          href={`/propiedades/${property.id}`}
+          className="absolute inset-0 z-0 block"
+          aria-label={`Ver ${property.title}`}
+        >
+          <span className="img-tech-wrap relative block h-full w-full">
+            {img ? (
+              <Image
+                src={img}
+                alt=""
+                fill
+                className="object-cover transition duration-500 group-hover:scale-[1.02]"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            ) : (
+              <div className="flex h-full min-h-[200px] items-center justify-center text-sm font-medium text-brand-navy/35">
+                Sin imagen
+              </div>
+            )}
+          </span>
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-navy/25 via-transparent to-brand-navy/10" />
+        </Link>
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
           <span className="rounded-full bg-brand-navy/90 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
             {opLabel}
           </span>
@@ -35,7 +53,27 @@ export function PropertyCard({ property }: PropertyCardProps) {
             {property.propertyTypeLabel}
           </span>
         </div>
-      </Link>
+        {showCompare && (
+          <div className="absolute right-3 top-3 z-20">
+            <button
+              type="button"
+              disabled={compareDisabled}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleCompare?.();
+              }}
+              className={`pointer-events-auto rounded-full px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-md transition ${
+                compareSelected
+                  ? "bg-brand-gold text-brand-navy ring-2 ring-white/80"
+                  : "bg-white/90 text-brand-navy hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              }`}
+            >
+              {compareSelected ? "En comparación" : "Comparar"}
+            </button>
+          </div>
+        )}
+      </div>
       <div className="flex flex-1 flex-col p-5">
         <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-brand-navy">
           <Link href={`/propiedades/${property.id}`} className="hover:text-brand-navy-mid">

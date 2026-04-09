@@ -20,8 +20,10 @@ export default async function PropiedadesPage() {
             Oportunidades conectadas a la red
           </h1>
           <p className="mt-4 max-w-2xl text-muted">
-            Con <code className="rounded bg-brand-navy-soft px-1 text-xs">KITEPROP_PROPERTIES_URL</code> en
-            Vercel cargás el feed real; sin URL se muestran solo fichas de muestra desde el repo.
+            Catálogo orientado a <strong className="font-medium text-brand-navy">resultados reales</strong>: datos
+            desde el JSON de difusión de <strong className="font-medium text-brand-navy">KiteProp</strong>. Con{" "}
+            <code className="rounded bg-brand-navy-soft px-1 text-xs">KITEPROP_PROPERTIES_URL</code> en Vercel
+            cargás el feed completo; sin URL, fichas de muestra desde el repo.
           </p>
         </div>
       </section>

@@ -37,7 +37,7 @@ export default function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-brand-navy text-white">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 img-tech-wrap">
           <Image
             src={heroImage}
             alt=""
@@ -46,16 +46,18 @@ export default function HomePage() {
             priority
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-navy via-brand-navy/95 to-brand-navy/80" />
+          <div className="absolute inset-0 z-[2] bg-gradient-to-r from-brand-navy via-brand-navy/95 to-brand-navy/80" />
         </div>
-        <div className="bg-mesh relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+        <div className="relative z-10 mx-auto max-w-6xl bg-mesh px-4 py-24 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand-gold">Red de alianzas inmobiliarias</p>
           <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             Una red diseñada para acercar negocios reales a corredoras y agentes
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/90">
             Redalia combina relaciones profesionales, tecnología y visibilidad comercial para potenciar
-            alianzas estratégicas —con foco en resultados concretos, no en promesas vacías.
+            alianzas estratégicas, con foco en <strong className="font-semibold text-white">resultados reales</strong>.
+            Operamos en sintonía con <strong className="font-semibold text-white">KiteProp</strong>, plataforma líder
+            en tecnología inmobiliaria en Latinoamérica.
           </p>
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -83,20 +85,22 @@ export default function HomePage() {
               description="Redalia es una red de alianzas inmobiliarias: un espacio donde corredoras y agentes comparten criterio, oportunidades y herramientas. El foco está en acercar negocios y dar estructura a la relación entre oferta, demanda y profesionales que ejecutan."
             />
             <p className="mt-6 text-base leading-relaxed text-muted">
-              No se trata solo de una vitrina: es una red orientada a oportunidades reales, con
-              acompañamiento y tecnología al servicio del negocio —para que la colaboración se traduzca
-              en gestión y visibilidad.
+              No se trata solo de una vitrina: es una red orientada a oportunidades reales y a mejores
+              resultados medibles, con tecnología al servicio del negocio y estándares acordes al ecosistema{" "}
+              <strong className="text-brand-navy">KiteProp</strong>.
             </p>
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-xl">
-            <Image
-              src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=82"
-              alt="Equipo profesional en entorno corporativo moderno"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
-            <div className="absolute inset-0 ring-1 ring-inset ring-brand-navy/10" />
+            <span className="img-tech-wrap relative block h-full w-full">
+              <Image
+                src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=82"
+                alt="Equipo profesional en entorno corporativo moderno"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </span>
+            <div className="absolute inset-0 z-[2] ring-1 ring-inset ring-brand-navy/10" />
           </div>
         </div>
       </section>
@@ -127,13 +131,15 @@ export default function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl lg:order-2">
-            <Image
-              src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=82"
-              alt="Reunión estratégica y networking profesional"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-            />
+            <span className="img-tech-wrap relative block h-full w-full">
+              <Image
+                src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=82"
+                alt="Reunión estratégica y networking profesional"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </span>
           </div>
           <div className="lg:order-1">
             <SectionHeader

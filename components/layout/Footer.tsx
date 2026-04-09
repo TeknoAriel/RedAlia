@@ -22,8 +22,9 @@ export function Footer() {
               </p>
             </Link>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-white/80">
-              Una estructura pensada para acercar negocios, potenciar alianzas y dar visibilidad
-              comercial con respaldo tecnológico y cercanía profesional.
+              Red líder en tecnología y resultados reales para el mercado inmobiliario, con operación
+              alineada a <strong className="font-semibold text-white/95">KiteProp</strong>, referente
+              tecnológico en la región.
             </p>
           </div>
           <div>

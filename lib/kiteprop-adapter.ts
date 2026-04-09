@@ -1,5 +1,6 @@
 import type {
   NormalizedProperty,
+  PropertyAgency,
   PropertyCurrency,
   PropertyOperation,
 } from "@/types/property";
@@ -102,6 +103,36 @@ function inferOperation(obj: UnknownRecord): PropertyOperation {
   return "desconocido";
 }
 
+function normalizeAgency(raw: unknown): PropertyAgency | null {
+  if (!isRecord(raw)) return null;
+  const name = pickString(raw, ["name", "nombre", "title", "razon_social"]);
+  const id = pickNumber(raw, ["id", "ID", "agency_id"]);
+  const logoUrl = pickString(raw, [
+    "logo",
+    "logo_url",
+    "logoUrl",
+    "image",
+    "avatar",
+    "url_logo",
+    "brand_image",
+    "picture",
+  ]);
+  if (!name && id === null) return null;
+  return {
+    id: id !== null ? Math.round(id) : null,
+    name: name ?? (id !== null ? `Agencia ${id}` : null),
+    logoUrl,
+  };
+}
+
+function parseLastUpdate(raw: UnknownRecord): { iso: string | null; ms: number | null } {
+  const s = pickString(raw, ["last_update", "lastUpdate", "updated_at", "updatedAt"]);
+  if (!s) return { iso: null, ms: null };
+  const ms = Date.parse(s);
+  if (!Number.isFinite(ms)) return { iso: s, ms: null };
+  return { iso: s, ms };
+}
+
 function summaryFromDescription(desc: string, max = 180): string {
   const oneLine = desc.replace(/\s+/g, " ").trim();
   if (oneLine.length <= max) return oneLine;
@@ -179,11 +210,15 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
   const address = pickString(raw, ["address", "direccion", "calle"]);
   const country = pickString(raw, ["country", "pais"]);
 
-  const bedrooms =
-    pickNumber(raw, ["bedrooms", "dormitorios", "dorms"]) ??
-    pickNumber(raw, ["rooms", "habitaciones"]);
+  const bedrooms = pickNumber(raw, ["bedrooms", "dormitorios", "dorms"]);
 
   const bathrooms = pickNumber(raw, ["bathrooms", "banos", "baños"]);
+
+  const totalRooms =
+    pickNumber(raw, ["total_rooms", "totalRooms", "ambientes", "environments"]) ??
+    pickNumber(raw, ["rooms", "habitaciones"]);
+
+  const parkings = pickNumber(raw, ["parkings", "parking", "estacionamientos", "cocheras"]);
 
   const surfaceM2 =
     pickNumber(raw, ["total_meters", "totalMeters", "superficie", "m2_total"]) ??
@@ -200,6 +235,18 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
 
   const ref = pickString(raw, ["reference", "referencia", "codigo_ref"]) ?? `KP${idNum}`;
 
+  const agency = normalizeAgency(raw.agency ?? raw.corredora ?? raw.inmobiliaria);
+
+  const { iso: lastUpdate, ms: lastUpdateMs } = parseLastUpdate(raw);
+
+  const fitForCredit = pickBool(raw, ["fit_for_credit", "fitForCredit", "apto_credito"]);
+  const acceptBarter = pickBool(raw, ["accept_barter", "acceptBarter", "acepta_permuta"]);
+  const isNewConstruction = pickBool(raw, [
+    "is_new_construction",
+    "isNewConstruction",
+    "nuevo",
+  ]);
+
   const searchBlob = [
     title,
     description,
@@ -210,6 +257,7 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     address,
     ref,
     typeKey,
+    agency?.name,
   ]
     .filter(Boolean)
     .join(" ")
@@ -235,6 +283,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     country,
     bedrooms: bedrooms !== null ? Math.round(bedrooms) : null,
     bathrooms: bathrooms !== null ? Math.round(bathrooms) : null,
+    totalRooms: totalRooms !== null ? Math.round(totalRooms) : null,
+    parkings: parkings !== null ? Math.round(parkings) : null,
     surfaceM2,
     coveredM2,
     terrainM2,
@@ -242,6 +292,12 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     sourceUrl,
     referenceCode: ref,
     hidePrices,
+    agency,
+    lastUpdate,
+    lastUpdateMs,
+    fitForCredit,
+    acceptBarter,
+    isNewConstruction,
     searchBlob,
   };
 }

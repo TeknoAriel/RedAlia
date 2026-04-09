@@ -3,7 +3,7 @@ export const siteConfig = {
   name: "Redalia",
   tagline: "Red de Alianzas Inmobiliarias",
   description:
-    "Redalia conecta corredoras y agentes inmobiliarios con oportunidades reales, visibilidad comercial y networking profesional, con tecnología y acompañamiento.",
+    "Redalia conecta corredoras y agentes con oportunidades reales y visibilidad comercial: red líder en tecnología y resultados reales, alineada al ecosistema KiteProp en Latinoamérica.",
   /** Canónica: en Vercel suele ser https://redalia.vercel.app; sobreescribible con NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://redalia.vercel.app",
   contact: {

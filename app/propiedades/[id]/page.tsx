@@ -73,6 +73,28 @@ export default async function PropertyDetailPage({ params }: Props) {
             </div>
           </div>
           <aside className="rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm">
+            {p.agency?.name && (
+              <div className="mb-6 flex items-center gap-3 border-b border-brand-navy/10 pb-5">
+                {p.agency.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.agency.logoUrl}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                    {p.agency.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold-deep">
+                    Socio / agencia
+                  </p>
+                  <p className="text-sm font-semibold text-brand-navy">{p.agency.name}</p>
+                </div>
+              </div>
+            )}
             <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
               Datos principales
             </h2>
