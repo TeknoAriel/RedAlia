@@ -4,14 +4,12 @@ import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getPropertyById } from "@/lib/get-properties";
-import {
-  partnersRoughlyEqual,
-  propertyFichaConsultarRow,
-  scopedPartnerKey,
-  socioScopeLabelEs,
-} from "@/lib/agencies";
+import { propertyFichaConsultarRow, scopedPartnerKey, socioScopeLabelEs } from "@/lib/agencies";
+import { partnerIsMatrizGlobalizadora } from "@/lib/master-agency";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
+
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -44,14 +42,15 @@ export default async function PropertyDetailPage({ params }: Props) {
 
   const op = labelForOperation(p.operation);
   const consultar = propertyFichaConsultarRow(p);
-  const showMarca = Boolean(
-    p.masterAgency?.name?.trim() &&
-      !(p.agency?.name?.trim() && partnersRoughlyEqual(p.masterAgency, p.agency)),
+  const showInmobiliaria = Boolean(
+    p.agency?.name?.trim() && !partnerIsMatrizGlobalizadora(p.agency, p),
   );
-  const showInmobiliaria = Boolean(p.agency?.name?.trim());
   const hasPublisherSection =
-    showMarca || showInmobiliaria || Boolean(consultar) || Boolean(p.associatedAgentsLabel);
-  const consultMailto = consultar?.email?.trim() ?? siteConfig.contact.email;
+    showInmobiliaria || Boolean(consultar) || Boolean(p.associatedAgentsLabel);
+  const consultMailto =
+    consultar?.email?.trim() ??
+    (showInmobiliaria ? p.agency?.email?.trim() : undefined) ??
+    siteConfig.contact.email;
 
   return (
     <div className="pb-16">
@@ -102,35 +101,8 @@ export default async function PropertyDetailPage({ params }: Props) {
                   Agencia y contacto
                 </h2>
 
-                {showMarca && p.masterAgency?.name && (
-                  <div className="space-y-3">
-                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
-                      Marca
-                    </span>
-                    <div className="flex items-start gap-3">
-                      {p.masterAgency.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.masterAgency.logoUrl}
-                          alt=""
-                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                          {p.masterAgency.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-navy">{p.masterAgency.name}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {showInmobiliaria && p.agency?.name && (
-                  <div
-                    className={`space-y-3 ${showMarca ? "border-t border-brand-navy/10 pt-4" : ""}`}
-                  >
+                  <div className="space-y-3">
                     <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
                       Inmobiliaria
                     </span>
@@ -157,6 +129,14 @@ export default async function PropertyDetailPage({ params }: Props) {
                         >
                           Ver propiedades de esta agencia
                         </Link>
+                        <PartnerContactLinks
+                          email={p.agency.email}
+                          phone={p.agency.phone}
+                          mobile={p.agency.mobile}
+                          whatsapp={p.agency.whatsapp}
+                          webUrl={p.agency.webUrl}
+                          className="mt-3"
+                        />
                       </div>
                     </div>
                   </div>
@@ -164,7 +144,7 @@ export default async function PropertyDetailPage({ params }: Props) {
 
                 {consultar && (
                   <div
-                    className={`space-y-3 ${showMarca || showInmobiliaria ? "border-t border-brand-navy/10 pt-4" : ""}`}
+                    className={`space-y-3 ${showInmobiliaria ? "border-t border-brand-navy/10 pt-4" : ""}`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-block rounded-full bg-brand-gold/25 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy">

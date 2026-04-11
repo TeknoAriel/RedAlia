@@ -1,4 +1,9 @@
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
+import {
+  buildMasterExclusionFingerprints,
+  partnerIsMatrizGlobalizadora,
+  rowMatchesMasterExclusion,
+} from "@/lib/master-agency";
 
 export type PartnerScope = "agency" | "advertiser" | "agent" | "sub_agent";
 
@@ -154,28 +159,16 @@ export function extractAgenciasCatalog(properties: NormalizedProperty[]): SocioC
   return extractSociosCatalog(properties).filter((e) => e.scope === "agency");
 }
 
-/** Grilla /socios: segundo nivel bajo la matriz — `agency` y quien publica (`advertiser`). Omite `agent`/`sub_agent`. Si en un ítem `agency` coincide con `masterAgency`, no cuenta esa fila (evita duplicar la matriz). */
+/** Grilla /socios: capa operativa — `agency` e `advertiser`. Omite matriz globalizadora (Aina): huellas del feed + alias en `lib/master-agency` y env `KITEPROP_MASTER_AGENCY_*`. */
 export function extractSociosGridCatalog(properties: NormalizedProperty[]): SocioCatalogEntry[] {
   const map = new Map<string, SocioCatalogEntry>();
+  const masterFp = buildMasterExclusionFingerprints(properties);
   for (const p of properties) {
     for (const row of distinctScopedPartnersOnProperty(p)) {
       if (row.scope !== "agency" && row.scope !== "advertiser") continue;
-      if (
-        row.scope === "agency" &&
-        p.masterAgency?.name?.trim() &&
-        partnersRoughlyEqual(p.masterAgency, {
-          id: row.id,
-          name: row.name,
-          logoUrl: row.logoUrl,
-          email: row.email,
-          phone: row.phone,
-          mobile: row.mobile,
-          whatsapp: row.whatsapp,
-          webUrl: row.webUrl,
-        })
-      ) {
-        continue;
-      }
+      if (row.scope === "agency" && p.agency && partnerIsMatrizGlobalizadora(p.agency, p)) continue;
+      if (row.scope === "advertiser" && p.advertiser && partnerIsMatrizGlobalizadora(p.advertiser, p)) continue;
+      if (rowMatchesMasterExclusion(row, masterFp)) continue;
       const cur = map.get(row.key);
       if (!cur) {
         map.set(row.key, {
@@ -219,7 +212,7 @@ export function sociosGridLinkLabel(scope: PartnerScope): string {
 }
 
 /**
- * Ficha: quién recibe el “Consultar” — agente, si no anunciante, si no la misma inmobiliaria (tel/mail).
+ * Ficha: quién recibe el “Consultar” — agente, si no anunciante, si no inmobiliaria; se omite la matriz globalizadora (Aina).
  */
 export function propertyFichaConsultarRow(p: NormalizedProperty): ScopedPartnerOnProperty | null {
   const order: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [
@@ -230,6 +223,7 @@ export function propertyFichaConsultarRow(p: NormalizedProperty): ScopedPartnerO
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
+    if (partnerIsMatrizGlobalizadora(data, p)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),
@@ -293,7 +287,7 @@ export function kitePrimaryCorredora(p: NormalizedProperty): PartnerEntity | nul
   return { id: full.id, name: full.name, logoUrl: full.logoUrl };
 }
 
-/** Mismo orden que la vista KiteProp, con todos los campos (contacto, etc.). */
+/** Mismo orden que la vista KiteProp, con todos los campos (contacto, etc.). Omite `agency` si es la matriz globalizadora. */
 export function kitePrimaryPartnerRecord(p: NormalizedProperty): (PropertyPartner & { name: string }) | null {
   const chain: (PropertyPartner | null)[] = [
     p.agency,
@@ -301,9 +295,12 @@ export function kitePrimaryPartnerRecord(p: NormalizedProperty): (PropertyPartne
     p.subAgentAgency,
     p.advertiser,
   ];
-  for (const c of chain) {
+  for (let i = 0; i < chain.length; i++) {
+    const c = chain[i];
     const n = c?.name?.trim();
-    if (n && c) return { ...c, name: n };
+    if (!n || !c) continue;
+    if (i === 0 && partnerIsMatrizGlobalizadora(c, p)) continue;
+    return { ...c, name: n };
   }
   return null;
 }
@@ -317,13 +314,12 @@ export function partnersRoughlyEqual(
   return a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
 }
 
-/** Marca en ficha: `masterAgency` si hay; si no, la operativa `agency` (nombre + logo, sin mezclar con contacto). */
+/** Marca visible en sitio: solo inmobiliaria operativa; la matriz (Aina) no se expone — Redalia reemplaza esa capa. */
 export function propertyBrandPartner(p: NormalizedProperty): (PropertyPartner & { name: string }) | null {
-  const m = p.masterAgency?.name?.trim();
-  if (m && p.masterAgency) return { ...p.masterAgency, name: m };
   const a = p.agency?.name?.trim();
-  if (a && p.agency) return { ...p.agency, name: a };
-  return null;
+  if (!a || !p.agency) return null;
+  if (partnerIsMatrizGlobalizadora(p.agency, p)) return null;
+  return { ...p.agency, name: a };
 }
 
 /**
@@ -339,6 +335,7 @@ export function propertyContactScopedRow(p: NormalizedProperty): ScopedPartnerOn
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
+    if (partnerIsMatrizGlobalizadora(data, p)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),
@@ -355,7 +352,7 @@ export function propertyContactScopedRow(p: NormalizedProperty): ScopedPartnerOn
   return null;
 }
 
-/** Primera entidad en orden KiteProp (agency → agent → sub_agent → advertiser) con clave de filtro. */
+/** Primera entidad en orden KiteProp (agency → agent → sub_agent → advertiser) con clave de filtro. Omite matriz en `agency`. */
 export function kitePrimaryScopedRow(p: NormalizedProperty): ScopedPartnerOnProperty | null {
   const order: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [
     { scope: "agency", data: p.agency },
@@ -366,6 +363,7 @@ export function kitePrimaryScopedRow(p: NormalizedProperty): ScopedPartnerOnProp
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
+    if (partnerIsMatrizGlobalizadora(data, p)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),

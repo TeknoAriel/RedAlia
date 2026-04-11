@@ -10,10 +10,12 @@ import {
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties } from "@/lib/get-properties";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Miembros y socios",
   description:
-    "Inmobiliarias y anunciantes del catálogo Redalia (segundo nivel bajo la marca; alineado con KiteProp).",
+    "Inmobiliarias (agency) y anunciantes (advertiser) del catálogo Redalia. La capa matriz/globalizadora del feed no se lista acá.",
 };
 
 function initials(name: string): string {
@@ -36,14 +38,15 @@ export default async function SociosPage() {
             Miembros y socios
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/88">
-            La <strong className="font-semibold text-white">marca</strong> (p. ej.{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">aina</code>) no aparece acá. Mostramos el{" "}
-            <strong className="font-semibold text-white">segundo nivel</strong>: cada{" "}
+            La red <strong className="font-semibold text-white">globalizadora</strong> del JSON (p. ej.{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">aina</code> / matriz){" "}
+            <strong className="font-semibold text-white">no se muestra</strong>: en el sitio la representa Redalia.
+            Acá va el <strong className="font-semibold text-white">siguiente nivel</strong>: cada{" "}
             <strong className="font-semibold text-white">inmobiliaria</strong> (
             <code className="rounded bg-white/10 px-1 text-xs">agency</code>) y cada{" "}
-            <strong className="font-semibold text-white">anunciante</strong> que publica (
-            <code className="rounded bg-white/10 px-1 text-xs">advertiser</code>), con logo, datos y enlace a sus
-            publicaciones. El agente y el contacto directo están en la ficha de cada propiedad.
+            <strong className="font-semibold text-white">anunciante</strong> (
+            <code className="rounded bg-white/10 px-1 text-xs">advertiser</code>), con logo, contacto y enlace a
+            sus publicaciones. En cada ficha verás también la inmobiliaria asignada y quién consultar.
           </p>
         </div>
       </section>
@@ -70,7 +73,7 @@ export default async function SociosPage() {
             title="Inmobiliarias y anunciantes"
             description={
               result.ok && partners.length > 0
-                ? "Tarjetas por `agency` (inmobiliaria) y por `advertiser` (quien publica). Si `agency` coincide con la matriz en un ítem, no se duplica en el conteo. Logo y contacto vienen del JSON."
+                ? "Tarjetas por `agency` (inmobiliaria) y por `advertiser` (anunciante). La matriz/globalizadora del feed queda fuera. Logo y contacto vienen del JSON."
                 : "Necesitamos `agency` / `corredora` / `inmobiliaria` y/o `advertiser` / `anunciante` con nombre en el feed."
             }
           />
@@ -83,9 +86,10 @@ export default async function SociosPage() {
 
           {result.ok && partners.length === 0 && (
             <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted">
-              Aún no hay filas de segundo nivel. Verificá <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code>{" "}
-              o <code className="rounded bg-brand-navy-soft px-1 text-xs">advertiser</code> en el JSON (la matriz en{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">aina</code> no se lista acá).
+              Aún no hay inmobiliarias ni anunciantes listables. Verificá{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code> /{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">advertiser</code> en el JSON (la matriz no se
+              cuenta en esta grilla).
             </p>
           )}
 

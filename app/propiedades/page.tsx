@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Propiedades",
   description:

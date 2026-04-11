@@ -59,8 +59,6 @@ function cell(p: NormalizedProperty, key: string): ReactNode {
       return p.advertiser?.name ?? "—";
     case "agents":
       return p.associatedAgentsLabel ?? "—";
-    case "master_agency":
-      return p.masterAgency?.name ?? "—";
     case "agency":
       return p.agency?.name ?? "—";
     case "ref":
@@ -87,7 +85,6 @@ const rows: { key: string; label: string }[] = [
   { key: "barter", label: "Acepta permuta" },
   { key: "new", label: "Nuevo / a estrenar" },
   { key: "advertiser", label: "Socio (anunciante)" },
-  { key: "master_agency", label: "Agencia matriz (red)" },
   { key: "agency", label: "Inmobiliaria / agencia" },
   { key: "agents", label: "Agentes asociados" },
   { key: "ref", label: "Referencia" },
