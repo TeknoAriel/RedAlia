@@ -49,6 +49,12 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 - **Build:** `npm run build` · **Install:** `npm ci` (`vercel.json`).
 - Variable **`KITEPROP_PROPERTIES_URL`** para el JSON en runtime.
 
+## Los cambios no aparecen en la web
+
+1. **¿Están en GitHub?** Si solo editaste en local, Vercel no ve nada hasta **`git push`**. Comprobá en [github.com/TeknoAriel/RedAlia](https://github.com/TeknoAriel/RedAlia) que el último commit sea el tuyo.
+2. **Vercel:** en el dashboard del proyecto, pestaña **Deployments**: debe aparecer un build para ese commit (1–3 minutos).
+3. **Preview de PR:** las URLs `*.vercel.app` de revisión se generan al abrir/actualizar el PR contra `main`, no por commits solo locales.
+
 ## Checklist rápido
 
 - [ ] Ruleset en `main` exige **`CI — listo para merge`**.
