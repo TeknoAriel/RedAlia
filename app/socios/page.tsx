@@ -129,7 +129,7 @@ export default async function SociosPage() {
                     href={`/propiedades?socio=${encodeURIComponent(p.key)}`}
                     className="mt-4 inline-flex items-center justify-center text-sm font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline"
                   >
-                    Ver propiedades
+                    Ver propiedades de esta agencia
                   </Link>
                 </li>
               ))}

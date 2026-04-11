@@ -225,6 +225,44 @@ export function partnersRoughlyEqual(
   return a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
 }
 
+/** Marca en ficha: `masterAgency` si hay; si no, la operativa `agency` (nombre + logo, sin mezclar con contacto). */
+export function propertyBrandPartner(p: NormalizedProperty): (PropertyPartner & { name: string }) | null {
+  const m = p.masterAgency?.name?.trim();
+  if (m && p.masterAgency) return { ...p.masterAgency, name: m };
+  const a = p.agency?.name?.trim();
+  if (a && p.agency) return { ...p.agency, name: a };
+  return null;
+}
+
+/**
+ * Quién aparece en “Consultar”: agente → anunciante → subagente → agencia (último recurso).
+ */
+export function propertyContactScopedRow(p: NormalizedProperty): ScopedPartnerOnProperty | null {
+  const order: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [
+    { scope: "agent", data: p.agentAgency },
+    { scope: "advertiser", data: p.advertiser },
+    { scope: "sub_agent", data: p.subAgentAgency },
+    { scope: "agency", data: p.agency },
+  ];
+  for (const { scope, data } of order) {
+    const row = partnerFromProperty(scope, data);
+    if (!row) continue;
+    return {
+      scope,
+      key: scopedPartnerKey(scope, row.id, row.name),
+      id: row.id,
+      name: row.name,
+      logoUrl: row.logoUrl,
+      email: row.email,
+      phone: row.phone,
+      mobile: row.mobile,
+      whatsapp: row.whatsapp,
+      webUrl: row.webUrl,
+    };
+  }
+  return null;
+}
+
 /** Primera entidad en orden KiteProp (agency → agent → sub_agent → advertiser) con clave de filtro. */
 export function kitePrimaryScopedRow(p: NormalizedProperty): ScopedPartnerOnProperty | null {
   const order: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [

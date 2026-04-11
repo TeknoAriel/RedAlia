@@ -7,12 +7,20 @@ import { useState } from "react";
 
 const KITEPROP_LOGIN = "https://www.kiteprop.com/auth/login";
 
-const mainLinks = [
+/** Orden: Home → Socios → Planes → Contacto; Únete se renderiza aparte con énfasis sutil. */
+const navTextLinks = [
   { href: "/", label: "Home" },
   { href: "/socios", label: "Socios" },
   { href: "/planes", label: "Planes" },
   { href: "/contacto", label: "Contacto" },
 ];
+
+const uneteSubtleClass = (active: boolean) =>
+  `rounded-lg px-2.5 py-2 text-sm font-semibold transition-colors ${
+    active
+      ? "bg-brand-gold/20 text-brand-navy ring-1 ring-brand-gold/50"
+      : "text-brand-navy/85 ring-1 ring-brand-gold/25 ring-offset-0 hover:bg-brand-gold/12 hover:ring-brand-gold/40"
+  }`;
 
 export function Navbar() {
   const pathname = usePathname();
@@ -20,6 +28,10 @@ export function Navbar() {
 
   const propiedadesActive =
     pathname === "/propiedades" || pathname.startsWith("/propiedades/");
+  const uneteActive = pathname === "/unete" || pathname.startsWith("/unete/");
+
+  const linkActive = (href: string) =>
+    pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/10 bg-white/95 backdrop-blur-md">
@@ -35,8 +47,33 @@ export function Navbar() {
           />
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-3 lg:flex" aria-label="Principal">
-          <div className="flex flex-wrap items-center justify-end gap-3" aria-label="Accesos destacados">
+        <nav
+          className="hidden min-w-0 flex-1 items-center justify-between gap-4 lg:flex"
+          aria-label="Principal"
+        >
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            {navTextLinks.map(({ href, label }) => {
+              const active = linkActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-brand-navy-soft text-brand-navy"
+                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <Link href="/unete" className={uneteSubtleClass(uneteActive)}>
+              Únete
+            </Link>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3" aria-label="Accesos destacados">
             <Link
               href="/propiedades"
               className={`inline-flex items-center rounded-full px-5 py-2.5 text-[0.9375rem] font-semibold leading-none shadow-md transition ${
@@ -65,25 +102,6 @@ export function Navbar() {
               </svg>
             </a>
           </div>
-
-          <div className="flex flex-wrap items-center justify-end gap-1 border-l border-brand-navy/15 pl-4">
-            {mainLinks.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-brand-navy-soft text-brand-navy"
-                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -111,7 +129,32 @@ export function Navbar() {
       {open && (
         <div className="border-t border-brand-navy/10 bg-white px-4 py-4 lg:hidden">
           <nav className="flex flex-col gap-1" aria-label="Móvil">
-            <div className="space-y-2 pb-3">
+            <div className="flex flex-col gap-1 border-b border-brand-navy/10 pb-3">
+              {navTextLinks.map(({ href, label }) => {
+                const active = linkActive(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`rounded-lg px-3 py-3 text-base font-medium ${
+                      active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
+                    }`}
+                    onClick={() => setOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+              <Link
+                href="/unete"
+                className={`${uneteSubtleClass(uneteActive)} px-3 py-3 text-base`}
+                onClick={() => setOpen(false)}
+              >
+                Únete
+              </Link>
+            </div>
+
+            <div className="space-y-2 pt-3">
               <Link
                 href="/propiedades"
                 className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-[0.9375rem] font-semibold shadow-md transition ${
@@ -140,24 +183,6 @@ export function Navbar() {
                   />
                 </svg>
               </a>
-            </div>
-
-            <div className="border-t border-brand-navy/10 pt-2">
-              {mainLinks.map(({ href, label }) => {
-                const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`rounded-lg px-3 py-3 text-base font-medium ${
-                      active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
-                    }`}
-                    onClick={() => setOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                );
-              })}
             </div>
           </nav>
         </div>

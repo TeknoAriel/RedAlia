@@ -1,6 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { kitePrimaryCorredora, partnersRoughlyEqual } from "@/lib/agencies";
+import {
+  partnersRoughlyEqual,
+  propertyBrandPartner,
+  propertyContactScopedRow,
+} from "@/lib/agencies";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -20,21 +24,27 @@ export function PropertyCard({
   const img = property.images[0];
   const opLabel = labelForOperation(property.operation);
   const showCompare = Boolean(onToggleCompare);
-  const primaryCorredora = kitePrimaryCorredora(property);
-  const advCard = property.advertiser?.name?.trim().toLowerCase() ?? "";
-  const priCard = primaryCorredora?.name?.trim().toLowerCase() ?? "";
-  const showAnuncianteExtra = Boolean(advCard && priCard && advCard !== priCard);
-  const showMasterOnCard =
-    Boolean(property.masterAgency?.name?.trim()) &&
-    !partnersRoughlyEqual(property.masterAgency, property.agency) &&
-    !partnersRoughlyEqual(property.masterAgency, property.agentAgency);
-  const corredoraLineLabel =
-    showMasterOnCard &&
-    property.agency?.name &&
-    primaryCorredora?.name &&
-    property.agency.name.trim().toLowerCase() === primaryCorredora.name.trim().toLowerCase()
-      ? "Inmobiliaria · "
-      : "Agencia · ";
+  const brand = propertyBrandPartner(property);
+  const contact = propertyContactScopedRow(property);
+  const brandIsMaster = Boolean(
+    property.masterAgency?.name?.trim() &&
+      brand &&
+      partnersRoughlyEqual(property.masterAgency, brand),
+  );
+  const mergedBrandContact = Boolean(
+    brand &&
+      contact &&
+      partnersRoughlyEqual(brand, {
+        id: contact.id,
+        name: contact.name,
+        logoUrl: contact.logoUrl,
+        email: contact.email,
+        phone: contact.phone,
+        mobile: contact.mobile,
+        whatsapp: contact.whatsapp,
+        webUrl: contact.webUrl,
+      }),
+  );
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
@@ -102,26 +112,29 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
-        {(showMasterOnCard ||
-          primaryCorredora?.name ||
+        {(mergedBrandContact ||
+          brand?.name ||
+          (!mergedBrandContact && contact?.name) ||
           property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
-            {showMasterOnCard && property.masterAgency?.name && (
+            {mergedBrandContact && contact && (
               <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">Matriz · </span>
-                {property.masterAgency.name}
+                <span className="font-medium text-brand-navy/60">Inmobiliaria · </span>
+                {contact.name}
               </p>
             )}
-            {primaryCorredora?.name && (
+            {!mergedBrandContact && brand?.name && (
               <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">{corredoraLineLabel}</span>
-                {primaryCorredora.name}
+                <span className="font-medium text-brand-navy/60">
+                  {brandIsMaster ? "Marca · " : "Inmobiliaria · "}
+                </span>
+                {brand.name}
               </p>
             )}
-            {showAnuncianteExtra && property.advertiser?.name && (
+            {!mergedBrandContact && contact?.name && (
               <p className="text-brand-navy/90">
-                <span className="font-medium text-brand-navy/60">Anunciante · </span>
-                {property.advertiser.name}
+                <span className="font-medium text-brand-navy/60">Consultar · </span>
+                {contact.name}
               </p>
             )}
             {property.associatedAgentsLabel && (
