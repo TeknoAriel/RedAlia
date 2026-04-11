@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
+import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getPropertyById } from "@/lib/get-properties";
-import { kitePrimaryCorredora } from "@/lib/agencies";
+import {
+  kitePrimaryPartnerRecord,
+  kitePrimaryScopedRow,
+  partnersRoughlyEqual,
+  scopedPartnerKey,
+  socioScopeLabelEs,
+} from "@/lib/agencies";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
 
@@ -30,10 +37,38 @@ export default async function PropertyDetailPage({ params }: Props) {
   if (!p) notFound();
 
   const op = labelForOperation(p.operation);
-  const primaryCorredora = kitePrimaryCorredora(p);
-  const advNorm = p.advertiser?.name?.trim().toLowerCase() ?? "";
-  const priNorm = primaryCorredora?.name?.trim().toLowerCase() ?? "";
-  const showAnuncianteExtra = Boolean(advNorm && priNorm && advNorm !== priNorm);
+  const primaryRow = kitePrimaryScopedRow(p);
+  const primaryFull = kitePrimaryPartnerRecord(p);
+  const showAnuncianteExtra = Boolean(
+    p.advertiser?.name?.trim() && primaryFull && !partnersRoughlyEqual(p.advertiser, primaryFull),
+  );
+
+  const showAgentBlock =
+    p.agentAgency?.name?.trim() && !partnersRoughlyEqual(p.agentAgency, p.agency);
+  const showSubAgentBlock =
+    p.subAgentAgency?.name?.trim() &&
+    !partnersRoughlyEqual(p.subAgentAgency, p.agency) &&
+    !partnersRoughlyEqual(p.subAgentAgency, p.agentAgency);
+
+  const showMasterBlock =
+    Boolean(p.masterAgency?.name?.trim()) &&
+    !partnersRoughlyEqual(p.masterAgency, p.agency) &&
+    !partnersRoughlyEqual(p.masterAgency, p.agentAgency);
+
+  const hasPublisherSection =
+    showMasterBlock ||
+    primaryRow ||
+    showAgentBlock ||
+    showSubAgentBlock ||
+    showAnuncianteExtra ||
+    Boolean(p.associatedAgentsLabel);
+
+  const primaryScopeLabel =
+    primaryRow?.scope === "agency" && p.masterAgency?.name?.trim()
+      ? "Inmobiliaria"
+      : primaryRow
+        ? socioScopeLabelEs[primaryRow.scope]
+        : "";
 
   return (
     <div className="pb-16">
@@ -78,31 +113,168 @@ export default async function PropertyDetailPage({ params }: Props) {
             </div>
           </div>
           <aside className="tech-panel-glow rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm ring-1 ring-brand-navy/5">
-            {(primaryCorredora || p.associatedAgentsLabel) && (
+            {hasPublisherSection && (
               <div className="mb-6 space-y-5 border-b border-brand-navy/10 pb-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
-                  Agencia (KiteProp)
+                  Agencia y contacto
                 </h2>
-                {primaryCorredora?.name && (
-                  <div className="flex items-start gap-3">
-                    {primaryCorredora.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={primaryCorredora.logoUrl}
-                        alt=""
-                        className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                        {primaryCorredora.name.slice(0, 2).toUpperCase()}
+
+                {showMasterBlock && p.masterAgency?.name && (
+                  <div className="space-y-3">
+                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
+                      Agencia matriz
+                    </span>
+                    <div className="flex items-start gap-3">
+                      {p.masterAgency.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.masterAgency.logoUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-[10px] font-bold text-brand-navy/50">
+                          {p.masterAgency.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-brand-navy">{p.masterAgency.name}</p>
+                        <PartnerContactLinks
+                          email={p.masterAgency.email}
+                          phone={p.masterAgency.phone}
+                          mobile={p.masterAgency.mobile}
+                          whatsapp={p.masterAgency.whatsapp}
+                          webUrl={p.masterAgency.webUrl}
+                          className="mt-2"
+                        />
                       </div>
-                    )}
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">Corredora / agencia</p>
-                      <p className="text-sm font-semibold text-brand-navy">{primaryCorredora.name}</p>
                     </div>
                   </div>
                 )}
+
+                {primaryRow && (
+                  <div
+                    className={`space-y-3 ${showMasterBlock ? "border-t border-brand-navy/10 pt-4" : ""}`}
+                  >
+                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
+                      {primaryScopeLabel}
+                    </span>
+                    <div className="flex items-start gap-3">
+                      {primaryRow.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={primaryRow.logoUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                          {primaryRow.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-brand-navy">{primaryRow.name}</p>
+                        <PartnerContactLinks
+                          email={primaryRow.email}
+                          phone={primaryRow.phone}
+                          mobile={primaryRow.mobile}
+                          whatsapp={primaryRow.whatsapp}
+                          webUrl={primaryRow.webUrl}
+                          className="mt-2"
+                        />
+                        <Link
+                          href={`/propiedades?socio=${encodeURIComponent(primaryRow.key)}`}
+                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                        >
+                          Ver publicaciones de este socio
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {showAgentBlock && p.agentAgency?.name && (
+                  <div className="space-y-3 border-t border-brand-navy/10 pt-4">
+                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
+                      {socioScopeLabelEs.agent}
+                    </span>
+                    <div className="flex items-start gap-3">
+                      {p.agentAgency.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.agentAgency.logoUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-[10px] font-bold text-brand-navy/50">
+                          {p.agentAgency.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-brand-navy">{p.agentAgency.name}</p>
+                        <PartnerContactLinks
+                          email={p.agentAgency.email}
+                          phone={p.agentAgency.phone}
+                          mobile={p.agentAgency.mobile}
+                          whatsapp={p.agentAgency.whatsapp}
+                          webUrl={p.agentAgency.webUrl}
+                          className="mt-2"
+                        />
+                        <Link
+                          href={`/propiedades?socio=${encodeURIComponent(
+                            scopedPartnerKey("agent", p.agentAgency.id, p.agentAgency.name),
+                          )}`}
+                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                        >
+                          Ver publicaciones del agente
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {showSubAgentBlock && p.subAgentAgency?.name && (
+                  <div className="space-y-3 border-t border-brand-navy/10 pt-4">
+                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
+                      {socioScopeLabelEs.sub_agent}
+                    </span>
+                    <div className="flex items-start gap-3">
+                      {p.subAgentAgency.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.subAgentAgency.logoUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-[10px] font-bold text-brand-navy/50">
+                          {p.subAgentAgency.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-brand-navy">{p.subAgentAgency.name}</p>
+                        <PartnerContactLinks
+                          email={p.subAgentAgency.email}
+                          phone={p.subAgentAgency.phone}
+                          mobile={p.subAgentAgency.mobile}
+                          whatsapp={p.subAgentAgency.whatsapp}
+                          webUrl={p.subAgentAgency.webUrl}
+                          className="mt-2"
+                        />
+                        <Link
+                          href={`/propiedades?socio=${encodeURIComponent(
+                            scopedPartnerKey("sub_agent", p.subAgentAgency.id, p.subAgentAgency.name),
+                          )}`}
+                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                        >
+                          Ver publicaciones del subagente
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {showAnuncianteExtra && p.advertiser?.name && (
                   <div className="flex items-start gap-3 border-t border-brand-navy/10 pt-4">
                     {p.advertiser.logoUrl ? (
@@ -117,14 +289,31 @@ export default async function PropertyDetailPage({ params }: Props) {
                         {p.advertiser.name.slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted">Anunciante</p>
                       <p className="text-sm font-semibold text-brand-navy">{p.advertiser.name}</p>
+                      <PartnerContactLinks
+                        email={p.advertiser.email}
+                        phone={p.advertiser.phone}
+                        mobile={p.advertiser.mobile}
+                        whatsapp={p.advertiser.whatsapp}
+                        webUrl={p.advertiser.webUrl}
+                        className="mt-2"
+                      />
+                      <Link
+                        href={`/propiedades?socio=${encodeURIComponent(
+                          scopedPartnerKey("advertiser", p.advertiser.id, p.advertiser.name),
+                        )}`}
+                        className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                      >
+                        Ver publicaciones del anunciante
+                      </Link>
                     </div>
                   </div>
                 )}
+
                 {p.associatedAgentsLabel && (
-                  <div>
+                  <div className="border-t border-brand-navy/10 pt-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agentes asociados</p>
                     <p className="mt-1 text-sm leading-snug text-brand-navy/90">{p.associatedAgentsLabel}</p>
                   </div>

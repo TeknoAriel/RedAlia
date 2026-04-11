@@ -1,24 +1,104 @@
+# Un solo job de calidad + build (un npm ci, menos cola y menos minutos).
+# Verificación alineada al deploy: .github/workflows/verify-deployment.yml (deployment_status).
+# Reglas: .github/DEPLOYMENT.md
+
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "20"
+
 jobs:
-  build:
+  ci:
+    name: CI — listo para merge
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Install dependencies
+      - name: Instalar dependencias
         run: npm ci
-      - name: Lint
+      - name: ESLint (0 warnings)
         run: npm run lint
-      - name: Production build
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Build producción
         run: npm run build
+
+  vercel-cli-deploy:
+    name: Vercel CLI (opcional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: vercel-production-deploy
+      cancel-in-progress: false
+    environment:
+      name: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar secretos Vercel
+        id: gate
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Sin secretos Vercel completos: deploy por Actions omitido (usá integración Git de Vercel o configurá VERCEL_*)."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.deploy == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependencias
+        if: steps.gate.outputs.deploy == 'true'
+        run: npm ci
+
+      - name: Desplegar a Vercel (prod)
+        if: steps.gate.outputs.deploy == 'true'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
+
+      - name: Smoke tras deploy CLI (sin demoras artificiales)
+        if: steps.gate.outputs.deploy == 'true'
+        env:
+          SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          if [ -z "$SMOKE_URL" ]; then
+            echo "::notice::PRODUCTION_URL no definida: omitiendo smoke post-CLI."
+            exit 0
+          fi
+          echo "Probando $SMOKE_URL (tras despliegue CLI)…"
+          curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors -o /dev/null "$SMOKE_URL"
+          echo "OK"

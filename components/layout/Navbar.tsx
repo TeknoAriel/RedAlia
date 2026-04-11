@@ -11,7 +11,6 @@ const mainLinks = [
   { href: "/", label: "Home" },
   { href: "/socios", label: "Socios" },
   { href: "/planes", label: "Planes" },
-  { href: "/unete", label: "Únete" },
   { href: "/contacto", label: "Contacto" },
 ];
 
@@ -36,30 +35,8 @@ export function Navbar() {
           />
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-1 lg:flex" aria-label="Principal">
-          <div className="flex flex-wrap items-center justify-end gap-1">
-            {mainLinks.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-brand-navy-soft text-brand-navy"
-                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div
-            className="ml-2 flex items-center gap-5 border-l border-brand-navy/15 pl-4"
-            aria-label="Accesos destacados"
-          >
+        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-3 lg:flex" aria-label="Principal">
+          <div className="flex flex-wrap items-center justify-end gap-3" aria-label="Accesos destacados">
             <Link
               href="/propiedades"
               className={`inline-flex items-center rounded-full px-5 py-2.5 text-[0.9375rem] font-semibold leading-none shadow-md transition ${
@@ -88,15 +65,28 @@ export function Navbar() {
               </svg>
             </a>
           </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-1 border-l border-brand-navy/15 pl-4">
+            {mainLinks.map(({ href, label }) => {
+              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-brand-navy-soft text-brand-navy"
+                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/unete"
-            className="hidden rounded-full border border-brand-navy/20 bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-brand-navy shadow-sm transition hover:border-brand-gold/50 hover:bg-brand-navy-soft/60 sm:inline-flex"
-          >
-            Únete
-          </Link>
           <button
             type="button"
             className="inline-flex rounded-lg p-2 text-brand-navy lg:hidden"
@@ -121,23 +111,7 @@ export function Navbar() {
       {open && (
         <div className="border-t border-brand-navy/10 bg-white px-4 py-4 lg:hidden">
           <nav className="flex flex-col gap-1" aria-label="Móvil">
-            {mainLinks.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-lg px-3 py-3 text-base font-medium ${
-                    active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
-                  }`}
-                  onClick={() => setOpen(false)}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-
-            <div className="mt-3 space-y-2 border-t border-brand-navy/10 pt-3">
+            <div className="space-y-2 pb-3">
               <Link
                 href="/propiedades"
                 className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-[0.9375rem] font-semibold shadow-md transition ${
@@ -168,13 +142,23 @@ export function Navbar() {
               </a>
             </div>
 
-            <Link
-              href="/unete"
-              className="mt-2 rounded-full border border-brand-navy/20 bg-white px-4 py-2.5 text-center text-xs font-semibold text-brand-navy"
-              onClick={() => setOpen(false)}
-            >
-              Únete
-            </Link>
+            <div className="border-t border-brand-navy/10 pt-2">
+              {mainLinks.map(({ href, label }) => {
+                const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`rounded-lg px-3 py-3 text-base font-medium ${
+                      active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
+                    }`}
+                    onClick={() => setOpen(false)}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
         </div>
       )}

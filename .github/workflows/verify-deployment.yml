@@ -1,0 +1,30 @@
+# Se dispara cuando GitHub recibe un estado de deployment (p. ej. Vercel tras integración Git).
+# Alinea la verificación HTTP con el deploy real, sin correr antes que el hosting.
+
+name: Verificar deploy
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  smoke-deployment-url:
+    name: Smoke URL del deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.deployment_status.state == 'success'
+    steps:
+      - name: HTTP al environment_url
+        env:
+          URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::notice::Sin environment_url en el evento; omitido (normal en algunos integradores)."
+            exit 0
+          fi
+          echo "Probando $URL …"
+          curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors -o /dev/null "$URL"
+          echo "OK"

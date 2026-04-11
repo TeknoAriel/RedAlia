@@ -10,17 +10,27 @@ export type PropertyOperation =
 
 export type PropertyCurrency = "uf" | "clp" | "usd" | "otro";
 
-/** Agencia u oficina según objeto `agency` del feed KiteProp */
-export interface PropertyAgency {
+/**
+ * Agencia, anunciante, agente o subagente con datos de contacto si vienen en el JSON.
+ */
+export interface PropertyPartner {
   id: number | null;
   name: string | null;
   logoUrl: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  whatsapp: string | null;
+  webUrl: string | null;
 }
+
+/** Alias semántico: en KiteProp suele exponerse como agencia. */
+export type PropertyAgency = PropertyPartner;
 
 /**
  * Socio / anunciante que publica (distinto de la agencia y de los agentes asociados en muchos JSON).
  */
-export type PropertyAdvertiser = PropertyAgency;
+export type PropertyAdvertiser = PropertyPartner;
 
 export interface NormalizedProperty {
   id: string;
@@ -56,6 +66,12 @@ export interface NormalizedProperty {
   advertiser: PropertyAdvertiser | null;
   /** Texto armado desde `associated_agents` / `agentes_asociados` si viene en el JSON */
   associatedAgentsLabel: string | null;
+  /**
+   * Red o agencia matriz (ej. Aina): `aina`, `master_agency`, `network_agency`, etc.
+   * No participa del filtro `?socio=` ni de la grilla de socios; es solo capa de marca.
+   */
+  masterAgency: PropertyPartner | null;
+  /** Inmobiliaria / corredora operativa: `agency`, `corredora`, `inmobiliaria`, `office`… */
   agency: PropertyAgency | null;
   /** Empresa u oficina desde `agent` / `listing_agent` cuando viene como objeto en el JSON */
   agentAgency: PropertyAgency | null;

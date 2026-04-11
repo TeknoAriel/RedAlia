@@ -1,9 +1,9 @@
 import type {
   NormalizedProperty,
-  PropertyAgency,
   PropertyAdvertiser,
   PropertyCurrency,
   PropertyOperation,
+  PropertyPartner,
 } from "@/types/property";
 import { labelForPropertyType } from "@/lib/property-labels";
 
@@ -104,10 +104,34 @@ function inferOperation(obj: UnknownRecord): PropertyOperation {
   return "desconocido";
 }
 
-function normalizeAgency(raw: unknown): PropertyAgency | null {
+function pickPartnerContacts(obj: UnknownRecord): Pick<
+  PropertyPartner,
+  "email" | "phone" | "mobile" | "whatsapp" | "webUrl"
+> {
+  return {
+    email: pickString(obj, ["email", "mail", "correo", "e_mail", "e-mail", "contact_email"]),
+    phone: pickString(obj, ["phone", "telefono", "tel", "telefono_fijo", "phone_number", "fono"]),
+    mobile: pickString(obj, ["mobile", "celular", "movil", "cellphone", "phone_mobile", "telefono_movil"]),
+    whatsapp: pickString(obj, ["whatsapp", "whats_app", "wa", "whatsapp_number", "whats"]),
+    webUrl: pickString(obj, ["web", "website", "url", "site", "sitio", "web_url", "homepage"]),
+  };
+}
+
+const nullContacts: Pick<
+  PropertyPartner,
+  "email" | "phone" | "mobile" | "whatsapp" | "webUrl"
+> = {
+  email: null,
+  phone: null,
+  mobile: null,
+  whatsapp: null,
+  webUrl: null,
+};
+
+function normalizePartnerRecord(raw: unknown): PropertyPartner | null {
   if (!isRecord(raw)) return null;
-  const name = pickString(raw, ["name", "nombre", "title", "razon_social"]);
-  const id = pickNumber(raw, ["id", "ID", "agency_id"]);
+  const name = pickString(raw, ["name", "nombre", "title", "razon_social", "full_name", "fullName"]);
+  const id = pickNumber(raw, ["id", "ID", "agency_id", "agent_id", "user_id"]);
   const logoUrl = pickString(raw, [
     "logo",
     "logo_url",
@@ -117,26 +141,64 @@ function normalizeAgency(raw: unknown): PropertyAgency | null {
     "url_logo",
     "brand_image",
     "picture",
+    "photo",
+    "foto",
   ]);
+  const contacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;
   return {
     id: id !== null ? Math.round(id) : null,
-    name: name ?? (id !== null ? `Agencia ${id}` : null),
+    name: name ?? (id !== null ? `Contacto ${id}` : null),
     logoUrl,
+    ...contacts,
   };
 }
 
+/** Agencia matriz / red (ej. Aina). No usar `main_agent` aquí (es el agente de la publicación). */
+function normalizeMasterAgency(raw: UnknownRecord): PropertyPartner | null {
+  return normalizeAgentOffice(raw, [
+    "aina",
+    "master_agency",
+    "masterAgency",
+    "agencia_master",
+    "network_agency",
+    "networkAgency",
+    "parent_agency",
+    "parentAgency",
+    "red_agencia",
+    "head_agency",
+    "headAgency",
+  ]);
+}
+
+/** Corredora u oficina que opera la publicación (un escalón bajo la matriz, si existe). */
+function normalizeOperatingAgency(raw: UnknownRecord): PropertyPartner | null {
+  return normalizePartnerRecord(
+    raw.agency ??
+      raw.corredora ??
+      raw.inmobiliaria ??
+      raw.operating_agency ??
+      raw.operatingAgency ??
+      raw.agencia_operativa ??
+      raw.office ??
+      raw.branch_agency ??
+      raw.branchAgency ??
+      raw.local_agency ??
+      raw.localAgency,
+  );
+}
+
 /** `agent` / `sub_agent` como corredora (objeto o nombre); no mezclar con la lista `agents` de nombres sueltos. */
-function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyAgency | null {
+function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyPartner | null {
   for (const k of keys) {
     const v = raw[k];
     if (v === undefined || v === null) continue;
     if (typeof v === "string") {
       const s = v.trim();
-      if (s) return { id: null, name: s, logoUrl: null };
+      if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
     }
     if (isRecord(v)) {
-      const a = normalizeAgency(v);
+      const a = normalizePartnerRecord(v);
       if (a) return a;
     }
   }
@@ -154,10 +216,10 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
 
   if (typeof nested === "string") {
     const s = nested.trim();
-    if (s) return { id: null, name: s, logoUrl: null };
+    if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
   }
   if (nested && isRecord(nested)) {
-    const a = normalizeAgency(nested);
+    const a = normalizePartnerRecord(nested);
     if (a) return a;
   }
 
@@ -175,11 +237,17 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     "logo_socio",
   ]);
   const id = pickNumber(raw, ["advertiser_id", "advertiserId", "socio_id", "anunciante_id"]);
+  const flatContacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;
   return {
     id: id !== null ? Math.round(id) : null,
     name: name ?? (id !== null ? `Socio ${id}` : null),
     logoUrl,
+    email: flatContacts.email,
+    phone: flatContacts.phone,
+    mobile: flatContacts.mobile,
+    whatsapp: flatContacts.whatsapp,
+    webUrl: flatContacts.webUrl,
   };
 }
 
@@ -329,7 +397,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
 
   const ref = pickString(raw, ["reference", "referencia", "codigo_ref"]) ?? `KP${idNum}`;
 
-  const agency = normalizeAgency(raw.agency ?? raw.corredora ?? raw.inmobiliaria);
+  const masterAgency = normalizeMasterAgency(raw);
+  const agency = normalizeOperatingAgency(raw);
   const advertiser = normalizeAdvertiser(raw);
   const agentAgency = normalizeAgentOffice(raw, [
     "agent",
@@ -366,10 +435,21 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     address,
     ref,
     typeKey,
+    masterAgency?.name,
+    masterAgency?.email,
+    masterAgency?.phone,
     agency?.name,
     advertiser?.name,
     agentAgency?.name,
     subAgentAgency?.name,
+    agency?.email,
+    agency?.phone,
+    agency?.mobile,
+    agentAgency?.email,
+    agentAgency?.phone,
+    agentAgency?.mobile,
+    subAgentAgency?.email,
+    subAgentAgency?.phone,
     associatedAgentsLabel,
   ]
     .filter(Boolean)
@@ -407,6 +487,7 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     hidePrices,
     advertiser,
     associatedAgentsLabel,
+    masterAgency,
     agency,
     agentAgency,
     subAgentAgency,

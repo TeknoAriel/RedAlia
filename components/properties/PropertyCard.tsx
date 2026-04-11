@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { kitePrimaryCorredora } from "@/lib/agencies";
+import { kitePrimaryCorredora, partnersRoughlyEqual } from "@/lib/agencies";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -24,6 +24,17 @@ export function PropertyCard({
   const advCard = property.advertiser?.name?.trim().toLowerCase() ?? "";
   const priCard = primaryCorredora?.name?.trim().toLowerCase() ?? "";
   const showAnuncianteExtra = Boolean(advCard && priCard && advCard !== priCard);
+  const showMasterOnCard =
+    Boolean(property.masterAgency?.name?.trim()) &&
+    !partnersRoughlyEqual(property.masterAgency, property.agency) &&
+    !partnersRoughlyEqual(property.masterAgency, property.agentAgency);
+  const corredoraLineLabel =
+    showMasterOnCard &&
+    property.agency?.name &&
+    primaryCorredora?.name &&
+    property.agency.name.trim().toLowerCase() === primaryCorredora.name.trim().toLowerCase()
+      ? "Inmobiliaria · "
+      : "Agencia · ";
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
@@ -91,11 +102,19 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
-        {(primaryCorredora?.name || property.associatedAgentsLabel) && (
+        {(showMasterOnCard ||
+          primaryCorredora?.name ||
+          property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
+            {showMasterOnCard && property.masterAgency?.name && (
+              <p className="text-brand-navy">
+                <span className="font-medium text-brand-navy/60">Matriz · </span>
+                {property.masterAgency.name}
+              </p>
+            )}
             {primaryCorredora?.name && (
               <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">Agencia · </span>
+                <span className="font-medium text-brand-navy/60">{corredoraLineLabel}</span>
                 {primaryCorredora.name}
               </p>
             )}

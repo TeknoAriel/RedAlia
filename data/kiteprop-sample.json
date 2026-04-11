@@ -27,14 +27,25 @@
     "fit_for_credit": true,
     "accept_barter": false,
     "is_new_construction": false,
+    "aina": {
+      "id": 100,
+      "name": "Aina",
+      "logo": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=128&h=128&q=80",
+      "web": "https://example.com/aina"
+    },
     "agency": {
       "id": 501,
       "name": "Corredora Demo Norte",
-      "logo": "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=128&h=128&q=80"
+      "logo": "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=128&h=128&q=80",
+      "email": "contacto@corredora-demo-norte.cl",
+      "phone": "+56221234567",
+      "web": "https://example.com/corredora-demo-norte"
     },
     "advertiser": {
       "id": 7001,
-      "name": "María Pérez"
+      "name": "María Pérez",
+      "email": "maria.perez@example.com",
+      "mobile": "+56987654321"
     },
     "associated_agents": [
       { "name": "Juan Soto" },
@@ -123,7 +134,9 @@
     },
     "agent": {
       "name": "Equipo comercial RM",
-      "id": 8801
+      "id": 8801,
+      "email": "rm@corredora-demo-norte.cl",
+      "whatsapp": "+56911112222"
     },
     "images": [
       "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=82"
