@@ -154,6 +154,98 @@ export function extractAgenciasCatalog(properties: NormalizedProperty[]): SocioC
   return extractSociosCatalog(properties).filter((e) => e.scope === "agency");
 }
 
+/** Grilla /socios: segundo nivel bajo la matriz — `agency` y quien publica (`advertiser`). Omite `agent`/`sub_agent`. Si en un ítem `agency` coincide con `masterAgency`, no cuenta esa fila (evita duplicar la matriz). */
+export function extractSociosGridCatalog(properties: NormalizedProperty[]): SocioCatalogEntry[] {
+  const map = new Map<string, SocioCatalogEntry>();
+  for (const p of properties) {
+    for (const row of distinctScopedPartnersOnProperty(p)) {
+      if (row.scope !== "agency" && row.scope !== "advertiser") continue;
+      if (
+        row.scope === "agency" &&
+        p.masterAgency?.name?.trim() &&
+        partnersRoughlyEqual(p.masterAgency, {
+          id: row.id,
+          name: row.name,
+          logoUrl: row.logoUrl,
+          email: row.email,
+          phone: row.phone,
+          mobile: row.mobile,
+          whatsapp: row.whatsapp,
+          webUrl: row.webUrl,
+        })
+      ) {
+        continue;
+      }
+      const cur = map.get(row.key);
+      if (!cur) {
+        map.set(row.key, {
+          key: row.key,
+          scope: row.scope,
+          id: row.id,
+          name: row.name,
+          logoUrl: row.logoUrl,
+          email: row.email,
+          phone: row.phone,
+          mobile: row.mobile,
+          whatsapp: row.whatsapp,
+          webUrl: row.webUrl,
+          propertyCount: 1,
+        });
+      } else {
+        cur.propertyCount += 1;
+        mergeContact(cur, row);
+      }
+    }
+  }
+  const scopeOrder: PartnerScope[] = ["agency", "advertiser"];
+  return Array.from(map.values()).sort((x, y) => {
+    const ox = scopeOrder.indexOf(x.scope);
+    const oy = scopeOrder.indexOf(y.scope);
+    if (ox !== oy) return ox - oy;
+    return x.name.localeCompare(y.name, "es");
+  });
+}
+
+/** Etiqueta en tarjeta de socios (grilla). */
+export const sociosCardRoleLabelEs: Record<"agency" | "advertiser", string> = {
+  agency: "Inmobiliaria",
+  advertiser: "Anunciante",
+};
+
+export function sociosGridLinkLabel(scope: PartnerScope): string {
+  if (scope === "agency") return "Ver propiedades de esta agencia";
+  if (scope === "advertiser") return "Ver propiedades de este anunciante";
+  return "Ver propiedades";
+}
+
+/**
+ * Ficha: quién recibe el “Consultar” — agente, si no anunciante, si no la misma inmobiliaria (tel/mail).
+ */
+export function propertyFichaConsultarRow(p: NormalizedProperty): ScopedPartnerOnProperty | null {
+  const order: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [
+    { scope: "agent", data: p.agentAgency },
+    { scope: "advertiser", data: p.advertiser },
+    { scope: "agency", data: p.agency },
+  ];
+  for (const { scope, data } of order) {
+    const row = partnerFromProperty(scope, data);
+    if (!row) continue;
+    return {
+      scope,
+      key: scopedPartnerKey(scope, row.id, row.name),
+      id: row.id,
+      name: row.name,
+      logoUrl: row.logoUrl,
+      email: row.email,
+      phone: row.phone,
+      mobile: row.mobile,
+      whatsapp: row.whatsapp,
+      webUrl: row.webUrl,
+    };
+  }
+  return null;
+}
+
 /** @deprecated usar extractSociosCatalog o extractAgenciasCatalog */
 export const extractPartnerAgencies = extractSociosCatalog;
 

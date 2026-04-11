@@ -1,10 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  partnersRoughlyEqual,
-  propertyBrandPartner,
-  propertyContactScopedRow,
-} from "@/lib/agencies";
+import { partnersRoughlyEqual, propertyFichaConsultarRow } from "@/lib/agencies";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -24,26 +20,10 @@ export function PropertyCard({
   const img = property.images[0];
   const opLabel = labelForOperation(property.operation);
   const showCompare = Boolean(onToggleCompare);
-  const brand = propertyBrandPartner(property);
-  const contact = propertyContactScopedRow(property);
-  const brandIsMaster = Boolean(
+  const consultar = propertyFichaConsultarRow(property);
+  const showMarcaOnCard = Boolean(
     property.masterAgency?.name?.trim() &&
-      brand &&
-      partnersRoughlyEqual(property.masterAgency, brand),
-  );
-  const mergedBrandContact = Boolean(
-    brand &&
-      contact &&
-      partnersRoughlyEqual(brand, {
-        id: contact.id,
-        name: contact.name,
-        logoUrl: contact.logoUrl,
-        email: contact.email,
-        phone: contact.phone,
-        mobile: contact.mobile,
-        whatsapp: contact.whatsapp,
-        webUrl: contact.webUrl,
-      }),
+      !(property.agency?.name?.trim() && partnersRoughlyEqual(property.masterAgency, property.agency)),
   );
 
   return (
@@ -112,29 +92,27 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
-        {(mergedBrandContact ||
-          brand?.name ||
-          (!mergedBrandContact && contact?.name) ||
+        {(showMarcaOnCard ||
+          property.agency?.name ||
+          consultar?.name ||
           property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
-            {mergedBrandContact && contact && (
+            {showMarcaOnCard && property.masterAgency?.name && (
+              <p className="text-brand-navy">
+                <span className="font-medium text-brand-navy/60">Marca · </span>
+                {property.masterAgency.name}
+              </p>
+            )}
+            {property.agency?.name && (
               <p className="text-brand-navy">
                 <span className="font-medium text-brand-navy/60">Inmobiliaria · </span>
-                {contact.name}
+                {property.agency.name}
               </p>
             )}
-            {!mergedBrandContact && brand?.name && (
-              <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">
-                  {brandIsMaster ? "Marca · " : "Inmobiliaria · "}
-                </span>
-                {brand.name}
-              </p>
-            )}
-            {!mergedBrandContact && contact?.name && (
+            {consultar?.name && (
               <p className="text-brand-navy/90">
                 <span className="font-medium text-brand-navy/60">Consultar · </span>
-                {contact.name}
+                {consultar.name}
               </p>
             )}
             {property.associatedAgentsLabel && (

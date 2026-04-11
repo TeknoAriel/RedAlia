@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import { extractAgenciasCatalog } from "@/lib/agencies";
+import {
+  extractSociosGridCatalog,
+  sociosCardRoleLabelEs,
+  sociosGridLinkLabel,
+} from "@/lib/agencies";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties } from "@/lib/get-properties";
 
 export const metadata: Metadata = {
   title: "Miembros y socios",
   description:
-    "Agencias y corredoras del catálogo Redalia (capa de difusión del feed, alineada con KiteProp).",
+    "Inmobiliarias y anunciantes del catálogo Redalia (segundo nivel bajo la marca; alineado con KiteProp).",
 };
 
 function initials(name: string): string {
@@ -21,7 +25,7 @@ function initials(name: string): string {
 
 export default async function SociosPage() {
   const result = await getProperties();
-  const partners = result.ok ? extractAgenciasCatalog(result.properties) : [];
+  const partners = result.ok ? extractSociosGridCatalog(result.properties) : [];
 
   return (
     <div className="bg-background">
@@ -32,14 +36,14 @@ export default async function SociosPage() {
             Miembros y socios
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/88">
-            En el JSON, la <strong className="font-semibold text-white">agencia matriz</strong> (p. ej.{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">aina</code>,{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">master_agency</code>) es la red; un escalón
-            abajo, <strong className="font-semibold text-white">inmobiliaria</strong> y contacto suelen ir en{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">agency</code>,{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">corredora</code> o{" "}
-            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">inmobiliaria</code>. Esta grilla lista solo
-            esas corredoras operativas (no la matriz). Anunciante, agente y subagente se ven en cada ficha.
+            La <strong className="font-semibold text-white">marca</strong> (p. ej.{" "}
+            <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm">aina</code>) no aparece acá. Mostramos el{" "}
+            <strong className="font-semibold text-white">segundo nivel</strong>: cada{" "}
+            <strong className="font-semibold text-white">inmobiliaria</strong> (
+            <code className="rounded bg-white/10 px-1 text-xs">agency</code>) y cada{" "}
+            <strong className="font-semibold text-white">anunciante</strong> que publica (
+            <code className="rounded bg-white/10 px-1 text-xs">advertiser</code>), con logo, datos y enlace a sus
+            publicaciones. El agente y el contacto directo están en la ficha de cada propiedad.
           </p>
         </div>
       </section>
@@ -62,12 +66,12 @@ export default async function SociosPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
-            eyebrow="Agencias en el feed"
-            title="Corredoras asociadas"
+            eyebrow="Red de publicación"
+            title="Inmobiliarias y anunciantes"
             description={
               result.ok && partners.length > 0
-                ? "Una tarjeta por inmobiliaria operativa (`agency` / `corredora` / `inmobiliaria`). La agencia matriz (`aina`, etc.) no se duplica acá."
-                : "Cuando el feed traiga `agency`, `corredora` o `inmobiliaria` con nombre (y opcionalmente contacto), aparecerán aquí."
+                ? "Tarjetas por `agency` (inmobiliaria) y por `advertiser` (quien publica). Si `agency` coincide con la matriz en un ítem, no se duplica en el conteo. Logo y contacto vienen del JSON."
+                : "Necesitamos `agency` / `corredora` / `inmobiliaria` y/o `advertiser` / `anunciante` con nombre en el feed."
             }
           />
 
@@ -79,11 +83,9 @@ export default async function SociosPage() {
 
           {result.ok && partners.length === 0 && (
             <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted">
-              Aún no hay inmobiliarias identificables. Verificá que cada ítem traiga{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code>,{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">corredora</code> u{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">inmobiliaria</code> con nombre (la matriz en{" "}
-              <code className="rounded bg-brand-navy-soft px-1 text-xs">aina</code> no cuenta para esta grilla).
+              Aún no hay filas de segundo nivel. Verificá <code className="rounded bg-brand-navy-soft px-1 text-xs">agency</code>{" "}
+              o <code className="rounded bg-brand-navy-soft px-1 text-xs">advertiser</code> en el JSON (la matriz en{" "}
+              <code className="rounded bg-brand-navy-soft px-1 text-xs">aina</code> no se lista acá).
             </p>
           )}
 
@@ -110,7 +112,12 @@ export default async function SociosPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="mt-4 min-h-[2.5rem] text-sm font-semibold leading-snug text-brand-navy sm:text-base">
+                  <span className="mt-3 inline-flex rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/75">
+                    {p.scope === "agency" || p.scope === "advertiser"
+                      ? sociosCardRoleLabelEs[p.scope]
+                      : p.scope}
+                  </span>
+                  <h3 className="mt-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-brand-navy sm:text-base">
                     {p.name}
                   </h3>
                   <p className="mt-2 text-xs text-muted">
@@ -129,7 +136,7 @@ export default async function SociosPage() {
                     href={`/propiedades?socio=${encodeURIComponent(p.key)}`}
                     className="mt-4 inline-flex items-center justify-center text-sm font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline"
                   >
-                    Ver propiedades de esta agencia
+                    {sociosGridLinkLabel(p.scope)}
                   </Link>
                 </li>
               ))}
