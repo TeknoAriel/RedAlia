@@ -5,7 +5,10 @@ import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getPropertyById } from "@/lib/get-properties";
 import { propertyFichaConsultarRow, scopedPartnerKey, socioScopeLabelEs } from "@/lib/agencies";
-import { partnerMatchesStaticMatrizAliases } from "@/lib/master-agency";
+import {
+  partnerMatchesStaticMatrizAliases,
+  partnerShouldHideFromPublicaBlock,
+} from "@/lib/master-agency";
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
@@ -43,7 +46,7 @@ function fichaPublicaPartner(p: NormalizedProperty): {
   chip: string;
 } | null {
   const adv = p.advertiser;
-  if (adv?.name?.trim() && !partnerMatchesStaticMatrizAliases(adv)) {
+  if (adv?.name?.trim() && !partnerShouldHideFromPublicaBlock(adv, p)) {
     return {
       scope: "advertiser",
       row: { ...adv, name: adv.name.trim() },
@@ -51,7 +54,7 @@ function fichaPublicaPartner(p: NormalizedProperty): {
     };
   }
   const ag = p.agentAgency;
-  if (ag?.name?.trim() && !partnerMatchesStaticMatrizAliases(ag)) {
+  if (ag?.name?.trim() && !partnerShouldHideFromPublicaBlock(ag, p)) {
     return {
       scope: "agent",
       row: { ...ag, name: ag.name.trim() },

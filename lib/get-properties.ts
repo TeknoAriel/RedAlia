@@ -45,7 +45,12 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   try {
     const res = await fetch(url, {
       cache: "no-store",
-      headers: { Accept: "application/json" },
+      next: { revalidate: 0 },
+      headers: {
+        Accept: "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
     });
 
     if (!res.ok) {

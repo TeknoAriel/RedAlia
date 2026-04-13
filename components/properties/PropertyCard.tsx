@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { propertyFichaConsultarRow } from "@/lib/agencies";
-import { partnerMatchesStaticMatrizAliases } from "@/lib/master-agency";
+import {
+  partnerMatchesStaticMatrizAliases,
+  partnerShouldHideFromPublicaBlock,
+} from "@/lib/master-agency";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -26,9 +29,9 @@ export function PropertyCard({
     property.agency?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.agency),
   );
   const publicaCard =
-    property.advertiser?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.advertiser)
+    property.advertiser?.name?.trim() && !partnerShouldHideFromPublicaBlock(property.advertiser, property)
       ? { label: "Anunciante" as const, name: property.advertiser.name.trim() }
-      : property.agentAgency?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.agentAgency)
+      : property.agentAgency?.name?.trim() && !partnerShouldHideFromPublicaBlock(property.agentAgency, property)
         ? { label: "Agente" as const, name: property.agentAgency.name.trim() }
         : null;
 

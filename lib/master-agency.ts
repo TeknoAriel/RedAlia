@@ -59,6 +59,67 @@ function staticMasterNameNormSet(): Set<string> {
   return s;
 }
 
+function masterEmailDomains(): string[] {
+  const env = process.env.KITEPROP_MASTER_EMAIL_DOMAINS?.trim();
+  const extra = env
+    ? env
+        .split(/[,|]/)
+        .map((d) => d.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+  return ["aina.cl", "aina.com", ...extra];
+}
+
+function partnerEmailMatchesMatrizDomain(email: string | null | undefined): boolean {
+  const e = email?.trim().toLowerCase();
+  if (!e || !e.includes("@")) return false;
+  const at = e.lastIndexOf("@");
+  const domain = at >= 0 ? e.slice(at + 1) : "";
+  if (!domain) return false;
+  return masterEmailDomains().some((d) => domain === d || domain.endsWith(`.${d}`));
+}
+
+/**
+ * Señales de la matriz sin mirar `masterAgency` del ítem: ids/nombres env, nombre solo-letras `aina`
+ * (cubre "AINA .", "Aina!"), dominios de correo @aina.cl, etc.
+ */
+function matrizCorePartnerSignals(partner: PropertyPartner | null | undefined): boolean {
+  if (!partner) return false;
+  const hasKey =
+    Boolean(partner.name?.trim()) || partner.id != null || Boolean(partner.email?.trim());
+  if (!hasKey) return false;
+  if (partner.id != null && staticMasterIdSet().has(partner.id)) return true;
+  const n = partner.name?.trim();
+  if (n) {
+    const nn = normPartnerName(n);
+    if (staticMasterNameNormSet().has(nn)) return true;
+    const lettersOnly = nn.replace(/[^a-z]/g, "");
+    if (lettersOnly === "aina") return true;
+  }
+  if (partnerEmailMatchesMatrizDomain(partner.email)) return true;
+  return false;
+}
+
+/** Quitar del modelo `advertiser` / `agent` cuando es solo la capa globalizadora (feed real KiteProp). */
+export function nullIfMatrizFeedLayerPartner(
+  partner: PropertyPartner | null | undefined,
+  masterAgency: PropertyPartner | null | undefined,
+): PropertyPartner | null {
+  if (!partner) return null;
+  if (matrizCorePartnerSignals(partner)) return null;
+  if (masterAgency?.name?.trim() && partnersSameIdentity(masterAgency, partner)) return null;
+  return partner;
+}
+
+/** Ficha / tarjeta: no usar como bloque “anunciante/agente público” si es matriz o el mismo sujeto que `masterAgency`. */
+export function partnerShouldHideFromPublicaBlock(
+  partner: PropertyPartner | null | undefined,
+  property: NormalizedProperty,
+): boolean {
+  if (!partner) return true;
+  return nullIfMatrizFeedLayerPartner(partner, property.masterAgency) === null;
+}
+
 export function collectMasterFingerprints(properties: NormalizedProperty[]): MasterAgencyFingerprints {
   const ids = new Set<number>();
   const nameNorms = new Set<string>();
@@ -88,40 +149,42 @@ export function rowMatchesMasterExclusion(
   row: { id: number | null; name: string },
   fp: MasterAgencyFingerprints,
 ): boolean {
-  if (fp.ids.size === 0 && fp.nameNorms.size === 0) return false;
   if (row.id != null && fp.ids.has(row.id)) return true;
   const n = row.name?.trim();
   if (n && fp.nameNorms.has(normPartnerName(n))) return true;
+  const pseudo: PropertyPartner = {
+    id: row.id,
+    name: row.name,
+    logoUrl: null,
+    email: null,
+    phone: null,
+    mobile: null,
+    whatsapp: null,
+    webUrl: null,
+  };
+  if (matrizCorePartnerSignals(pseudo)) return true;
   return false;
 }
 
-/** Solo alias/env de la matriz (Aina). En fichas y tarjetas: ocultar solo esto, no cuando `agency` repite el mismo id que `masterAgency` (muy frecuente en el feed). */
+/** Alias/env + nombre tipo "AINA ." + mail @aina.cl. En fichas: no oculta `agency` solo por igualar id a `masterAgency`. */
 export function partnerMatchesStaticMatrizAliases(partner: PropertyPartner | null | undefined): boolean {
-  if (!partner?.name?.trim() && partner?.id == null) return false;
-  const ids = staticMasterIdSet();
-  const names = staticMasterNameNormSet();
-  if (partner.id != null && ids.has(partner.id)) return true;
-  const n = partner.name?.trim();
-  if (n && names.has(normPartnerName(n))) return true;
-  return false;
+  return matrizCorePartnerSignals(partner);
 }
 
 /**
- * Socio / fila que corresponde a la matriz globalizadora (Aina): coincide con `masterAgency` del ítem o con alias configurados.
- * No mostrar en UI ni contar como inmobiliaria/anunciante operativo.
+ * Socio / fila que corresponde a la matriz globalizadora (Aina): coincide con `masterAgency` del ítem o señales core.
+ * Grilla /socios y exclusiones fuertes.
  */
 export function partnerIsMatrizGlobalizadora(
   partner: PropertyPartner | null | undefined,
   property: NormalizedProperty,
 ): boolean {
-  if (!partner?.name?.trim() && partner?.id == null) return false;
+  if (!partner) return false;
+  const hasKey =
+    Boolean(partner.name?.trim()) || partner.id != null || Boolean(partner.email?.trim());
+  if (!hasKey) return false;
   if (property.masterAgency?.name?.trim() && partnersSameIdentity(property.masterAgency, partner)) {
     return true;
   }
-  const ids = staticMasterIdSet();
-  const names = staticMasterNameNormSet();
-  if (partner.id != null && ids.has(partner.id)) return true;
-  const n = partner.name?.trim();
-  if (n && names.has(normPartnerName(n))) return true;
-  return false;
+  return matrizCorePartnerSignals(partner);
 }

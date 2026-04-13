@@ -5,6 +5,7 @@ import type {
   PropertyOperation,
   PropertyPartner,
 } from "@/types/property";
+import { nullIfMatrizFeedLayerPartner } from "@/lib/master-agency";
 import { labelForPropertyType } from "@/lib/property-labels";
 
 type UnknownRecord = Record<string, unknown>;
@@ -275,21 +276,21 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     raw.socio,
     raw.publisher,
     raw.announcer,
-    raw.member,
-    raw.author,
     getPath(raw, "listing.advertiser"),
     getPath(raw, "listing.publisher"),
     getPath(raw, "property.advertiser"),
     getPath(raw, "data.advertiser"),
     getPath(raw, "publication.advertiser"),
     getPath(raw, "item.advertiser"),
-    getPath(raw, "user.profile"),
-    raw.user,
-    raw.contact,
+    raw.member,
+    raw.author,
     raw.posted_by,
     raw.postedBy,
     raw.seller,
     raw.vendor,
+    getPath(raw, "user.profile"),
+    raw.user,
+    raw.contact,
   ]);
   if (fromNested) {
     const flat = pickPartnerContacts(raw);
@@ -481,14 +482,16 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
 
   const masterAgency = normalizeMasterAgency(raw);
   const agency = normalizeOperatingAgency(raw);
-  const advertiser = normalizeAdvertiser(raw);
-  const agentAgency = normalizeAgentOffice(raw, [
+  let advertiser = normalizeAdvertiser(raw);
+  let agentAgency = normalizeAgentOffice(raw, [
     "agent",
     "main_agent",
     "mainAgent",
     "listing_agent",
     "listingAgent",
   ]);
+  advertiser = nullIfMatrizFeedLayerPartner(advertiser, masterAgency);
+  agentAgency = nullIfMatrizFeedLayerPartner(agentAgency, masterAgency);
   const subAgentAgency = normalizeAgentOffice(raw, [
     "sub_agent",
     "subAgent",
