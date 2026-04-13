@@ -1,11 +1,5 @@
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 
-/** Huellas de la agencia matriz / globalizadora (ej. Aina), para no listarla en socios ni mostrarla como inmobiliaria operativa. */
-export type MasterAgencyFingerprints = {
-  ids: Set<number>;
-  nameNorms: Set<string>;
-};
-
 function normPartnerName(s: string): string {
   return s
     .trim()
@@ -70,7 +64,7 @@ function masterEmailDomains(): string[] {
   return ["aina.cl", "aina.com", ...extra];
 }
 
-function partnerEmailMatchesMatrizDomain(email: string | null | undefined): boolean {
+export function partnerEmailMatchesMatrizDomain(email: string | null | undefined): boolean {
   const e = email?.trim().toLowerCase();
   if (!e || !e.includes("@")) return false;
   const at = e.lastIndexOf("@");
@@ -80,14 +74,12 @@ function partnerEmailMatchesMatrizDomain(email: string | null | undefined): bool
 }
 
 /**
- * Señales de la matriz sin mirar `masterAgency` del ítem: ids/nombres env, nombre solo-letras `aina`
- * (cubre "AINA .", "Aina!"), dominios de correo @aina.cl, etc.
+ * Marca matriz reconocible por nombre o por ids declarados en env — sin usar huellas del feed ni mail.
+ * No descarta inmobiliarias que comparten id numérico con `masterAgency` en KiteProp (muy frecuente).
  */
-function matrizCorePartnerSignals(partner: PropertyPartner | null | undefined): boolean {
+export function partnerIsObviousMatrizBrandForListing(partner: PropertyPartner | null | undefined): boolean {
   if (!partner) return false;
-  const hasKey =
-    Boolean(partner.name?.trim()) || partner.id != null || Boolean(partner.email?.trim());
-  if (!hasKey) return false;
+  if (!partner.name?.trim() && partner.id == null) return false;
   if (partner.id != null && staticMasterIdSet().has(partner.id)) return true;
   const n = partner.name?.trim();
   if (n) {
@@ -96,95 +88,49 @@ function matrizCorePartnerSignals(partner: PropertyPartner | null | undefined): 
     const lettersOnly = nn.replace(/[^a-z]/g, "");
     if (lettersOnly === "aina") return true;
   }
-  if (partnerEmailMatchesMatrizDomain(partner.email)) return true;
   return false;
 }
 
-/** Quitar del modelo `advertiser` / `agent` cuando es solo la capa globalizadora (feed real KiteProp). */
+/**
+ * Quitar `advertiser` / `agent` solo si el nombre o id (env) son claramente la marca matriz.
+ * No usa id del feed ni igualdad con `masterAgency` ni dominio de mail (muchas corredoras usan @aina.cl).
+ */
 export function nullIfMatrizFeedLayerPartner(
   partner: PropertyPartner | null | undefined,
-  masterAgency: PropertyPartner | null | undefined,
+  _masterAgency: PropertyPartner | null | undefined,
 ): PropertyPartner | null {
   if (!partner) return null;
-  if (matrizCorePartnerSignals(partner)) return null;
-  if (masterAgency?.name?.trim() && partnersSameIdentity(masterAgency, partner)) return null;
+  if (partnerIsObviousMatrizBrandForListing(partner)) return null;
   return partner;
 }
 
-/** Ficha / tarjeta: no usar como bloque “anunciante/agente público” si es matriz o el mismo sujeto que `masterAgency`. */
+/** Ficha: ocultar publica si es marca Aina por nombre, mail corporativo, o mismo sujeto que `masterAgency` en el ítem. */
 export function partnerShouldHideFromPublicaBlock(
   partner: PropertyPartner | null | undefined,
   property: NormalizedProperty,
 ): boolean {
   if (!partner) return true;
-  return nullIfMatrizFeedLayerPartner(partner, property.masterAgency) === null;
-}
-
-export function collectMasterFingerprints(properties: NormalizedProperty[]): MasterAgencyFingerprints {
-  const ids = new Set<number>();
-  const nameNorms = new Set<string>();
-  for (const p of properties) {
-    const m = p.masterAgency;
-    if (!m?.name?.trim()) continue;
-    if (m.id != null) ids.add(m.id);
-    nameNorms.add(normPartnerName(m.name));
+  if (partnerIsObviousMatrizBrandForListing(partner)) return true;
+  if (partnerEmailMatchesMatrizDomain(partner.email)) return true;
+  if (property.masterAgency?.name?.trim() && partnersSameIdentity(property.masterAgency, partner)) {
+    return true;
   }
-  return { ids, nameNorms };
-}
-
-export function mergeStaticMasterFingerprints(fp: MasterAgencyFingerprints): MasterAgencyFingerprints {
-  const ids = new Set(fp.ids);
-  const nameNorms = new Set(fp.nameNorms);
-  for (const id of staticMasterIdSet()) ids.add(id);
-  for (const n of staticMasterNameNormSet()) nameNorms.add(n);
-  return { ids, nameNorms };
-}
-
-/** Huellas del feed + alias fijos/env: para grilla de socios y exclusiones globales. */
-export function buildMasterExclusionFingerprints(properties: NormalizedProperty[]): MasterAgencyFingerprints {
-  return mergeStaticMasterFingerprints(collectMasterFingerprints(properties));
-}
-
-export function rowMatchesMasterExclusion(
-  row: { id: number | null; name: string },
-  fp: MasterAgencyFingerprints,
-): boolean {
-  if (row.id != null && fp.ids.has(row.id)) return true;
-  const n = row.name?.trim();
-  if (n && fp.nameNorms.has(normPartnerName(n))) return true;
-  const pseudo: PropertyPartner = {
-    id: row.id,
-    name: row.name,
-    logoUrl: null,
-    email: null,
-    phone: null,
-    mobile: null,
-    whatsapp: null,
-    webUrl: null,
-  };
-  if (matrizCorePartnerSignals(pseudo)) return true;
   return false;
 }
 
-/** Alias/env + nombre tipo "AINA ." + mail @aina.cl. En fichas: no oculta `agency` solo por igualar id a `masterAgency`. */
+/** Nombre/alias/env id de matriz (sin mail ni huellas del feed). Usado en listados, consultar e inmobiliaria en ficha. */
 export function partnerMatchesStaticMatrizAliases(partner: PropertyPartner | null | undefined): boolean {
-  return matrizCorePartnerSignals(partner);
+  return partnerIsObviousMatrizBrandForListing(partner);
 }
 
-/**
- * Socio / fila que corresponde a la matriz globalizadora (Aina): coincide con `masterAgency` del ítem o señales core.
- * Grilla /socios y exclusiones fuertes.
- */
+/** @deprecated Preferir `partnerIsObviousMatrizBrandForListing` o `partnerShouldHideFromPublicaBlock`. */
 export function partnerIsMatrizGlobalizadora(
   partner: PropertyPartner | null | undefined,
   property: NormalizedProperty,
 ): boolean {
   if (!partner) return false;
-  const hasKey =
-    Boolean(partner.name?.trim()) || partner.id != null || Boolean(partner.email?.trim());
-  if (!hasKey) return false;
   if (property.masterAgency?.name?.trim() && partnersSameIdentity(property.masterAgency, partner)) {
     return true;
   }
-  return matrizCorePartnerSignals(partner);
+  return partnerIsObviousMatrizBrandForListing(partner);
 }

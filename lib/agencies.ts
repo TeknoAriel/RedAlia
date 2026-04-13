@@ -1,9 +1,7 @@
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import {
-  buildMasterExclusionFingerprints,
-  partnerIsMatrizGlobalizadora,
+  partnerIsObviousMatrizBrandForListing,
   partnerMatchesStaticMatrizAliases,
-  rowMatchesMasterExclusion,
 } from "@/lib/master-agency";
 
 export type PartnerScope = "agency" | "advertiser" | "agent" | "sub_agent";
@@ -160,16 +158,23 @@ export function extractAgenciasCatalog(properties: NormalizedProperty[]): SocioC
   return extractSociosCatalog(properties).filter((e) => e.scope === "agency");
 }
 
-/** Grilla /socios: capa operativa — `agency` e `advertiser`. Omite matriz globalizadora (Aina): huellas del feed + alias en `lib/master-agency` y env `KITEPROP_MASTER_AGENCY_*`. */
+/** Grilla /socios: `agency` e `advertiser` del JSON. Solo se omite la fila si el nombre o id (env) son claramente la marca matriz — no por id compartido con `masterAgency` en el feed. */
 export function extractSociosGridCatalog(properties: NormalizedProperty[]): SocioCatalogEntry[] {
   const map = new Map<string, SocioCatalogEntry>();
-  const masterFp = buildMasterExclusionFingerprints(properties);
   for (const p of properties) {
     for (const row of distinctScopedPartnersOnProperty(p)) {
       if (row.scope !== "agency" && row.scope !== "advertiser") continue;
-      if (row.scope === "agency" && p.agency && partnerIsMatrizGlobalizadora(p.agency, p)) continue;
-      if (row.scope === "advertiser" && p.advertiser && partnerIsMatrizGlobalizadora(p.advertiser, p)) continue;
-      if (rowMatchesMasterExclusion(row, masterFp)) continue;
+      const rowPartner: PropertyPartner = {
+        id: row.id,
+        name: row.name,
+        logoUrl: row.logoUrl,
+        email: row.email,
+        phone: row.phone,
+        mobile: row.mobile,
+        whatsapp: row.whatsapp,
+        webUrl: row.webUrl,
+      };
+      if (partnerIsObviousMatrizBrandForListing(rowPartner)) continue;
       const cur = map.get(row.key);
       if (!cur) {
         map.set(row.key, {

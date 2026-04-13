@@ -73,7 +73,7 @@ export default async function SociosPage() {
             title="Inmobiliarias y anunciantes"
             description={
               result.ok && partners.length > 0
-                ? "Tarjetas por `agency` (inmobiliaria) y por `advertiser` (anunciante). La matriz/globalizadora del feed queda fuera. Logo y contacto vienen del JSON."
+                ? "Tarjetas por `agency` (inmobiliaria) y por `advertiser` (anunciante) tal como vienen en el JSON. Solo se oculta una fila si el nombre coincide con la marca matriz (p. ej. Aina) o ids en `KITEPROP_MASTER_AGENCY_IDS`."
                 : "Necesitamos `agency` / `corredora` / `inmobiliaria` y/o `advertiser` / `anunciante` con nombre en el feed."
             }
           />
