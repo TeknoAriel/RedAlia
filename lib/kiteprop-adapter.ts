@@ -154,6 +154,34 @@ function normalizePartnerRecord(raw: unknown): PropertyPartner | null {
   };
 }
 
+/** Accede a `listing.agency`, `data.advertiser`, etc. */
+function getPath(obj: UnknownRecord, dotted: string): unknown {
+  let cur: unknown = obj;
+  for (const part of dotted.split(".")) {
+    if (!isRecord(cur)) return undefined;
+    cur = cur[part];
+  }
+  return cur;
+}
+
+function tryLoosePartner(candidate: unknown): PropertyPartner | null {
+  if (candidate === undefined || candidate === null) return null;
+  if (typeof candidate === "string") {
+    const s = candidate.trim();
+    if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
+  }
+  if (isRecord(candidate)) return normalizePartnerRecord(candidate);
+  return null;
+}
+
+function firstPartnerFromCandidates(candidates: unknown[]): PropertyPartner | null {
+  for (const c of candidates) {
+    const p = tryLoosePartner(c);
+    if (p) return p;
+  }
+  return null;
+}
+
 /** Agencia matriz / red (ej. Aina). No usar `main_agent` aquí (es el agente de la publicación). */
 function normalizeMasterAgency(raw: UnknownRecord): PropertyPartner | null {
   return normalizeAgentOffice(raw, [
@@ -173,19 +201,53 @@ function normalizeMasterAgency(raw: UnknownRecord): PropertyPartner | null {
 
 /** Corredora u oficina que opera la publicación (un escalón bajo la matriz, si existe). */
 function normalizeOperatingAgency(raw: UnknownRecord): PropertyPartner | null {
-  return normalizePartnerRecord(
-    raw.agency ??
-      raw.corredora ??
-      raw.inmobiliaria ??
-      raw.operating_agency ??
-      raw.operatingAgency ??
-      raw.agencia_operativa ??
-      raw.office ??
-      raw.branch_agency ??
-      raw.branchAgency ??
-      raw.local_agency ??
-      raw.localAgency,
-  );
+  const fromObjects = firstPartnerFromCandidates([
+    raw.agency,
+    raw.corredora,
+    raw.inmobiliaria,
+    raw.operating_agency,
+    raw.operatingAgency,
+    raw.agencia_operativa,
+    raw.office,
+    raw.branch_agency,
+    raw.branchAgency,
+    raw.local_agency,
+    raw.localAgency,
+    raw.listing_agency,
+    raw.listingAgency,
+    raw.real_estate_agency,
+    raw.broker,
+    raw.brokerage,
+    raw.company,
+    raw.empresa,
+    raw.dealer,
+    getPath(raw, "listing.agency"),
+    getPath(raw, "listing.office"),
+    getPath(raw, "property.agency"),
+    getPath(raw, "data.agency"),
+    getPath(raw, "publication.agency"),
+    getPath(raw, "item.agency"),
+  ]);
+  if (fromObjects) return fromObjects;
+
+  const orgName = pickString(raw, [
+    "organization_name",
+    "organizationName",
+    "agency_name",
+    "agencyName",
+    "corredora_nombre",
+    "nombre_corredora",
+    "nombre_inmobiliaria",
+    "inmobiliaria_nombre",
+  ]);
+  if (!orgName) return null;
+  const flatAgencyId = pickNumber(raw, ["agency_id", "organization_id", "corredora_id", "inmobiliaria_id"]);
+  return {
+    id: flatAgencyId !== null ? Math.round(flatAgencyId) : null,
+    name: orgName,
+    logoUrl: pickString(raw, ["agency_logo", "organization_logo", "logo_agencia"]),
+    ...pickPartnerContacts(raw),
+  };
 }
 
 /** `agent` / `sub_agent` como corredora (objeto o nombre); no mezclar con la lista `agents` de nombres sueltos. */
@@ -207,20 +269,38 @@ function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyPartn
 
 /** Socio / anunciante (no confundir con `agency` ni con la lista de agentes asociados). */
 function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
-  const nested =
-    raw.advertiser ??
-    raw.anunciante ??
-    raw.socio ??
-    raw.publisher ??
-    raw.announcer;
-
-  if (typeof nested === "string") {
-    const s = nested.trim();
-    if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
-  }
-  if (nested && isRecord(nested)) {
-    const a = normalizePartnerRecord(nested);
-    if (a) return a;
+  const fromNested = firstPartnerFromCandidates([
+    raw.advertiser,
+    raw.anunciante,
+    raw.socio,
+    raw.publisher,
+    raw.announcer,
+    raw.member,
+    raw.author,
+    getPath(raw, "listing.advertiser"),
+    getPath(raw, "listing.publisher"),
+    getPath(raw, "property.advertiser"),
+    getPath(raw, "data.advertiser"),
+    getPath(raw, "publication.advertiser"),
+    getPath(raw, "item.advertiser"),
+    getPath(raw, "user.profile"),
+    raw.user,
+    raw.contact,
+    raw.posted_by,
+    raw.postedBy,
+    raw.seller,
+    raw.vendor,
+  ]);
+  if (fromNested) {
+    const flat = pickPartnerContacts(raw);
+    return {
+      ...fromNested,
+      email: fromNested.email ?? pickString(raw, ["advertiser_email", "advertiserEmail", "anunciante_email"]),
+      phone: fromNested.phone ?? pickString(raw, ["advertiser_phone", "advertiserPhone"]),
+      mobile: fromNested.mobile ?? pickString(raw, ["advertiser_mobile", "advertiserMobile"]),
+      whatsapp: fromNested.whatsapp ?? pickString(raw, ["advertiser_whatsapp"]),
+      webUrl: fromNested.webUrl ?? pickString(raw, ["advertiser_web", "advertiser_url"]),
+    };
   }
 
   const name = pickString(raw, [
@@ -229,6 +309,8 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     "nombre_anunciante",
     "socio_nombre",
     "nombre_socio",
+    "anunciante",
+    "nombre_publicante",
   ]);
   const logoUrl = pickString(raw, [
     "advertiser_logo",
@@ -236,7 +318,7 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     "logo_anunciante",
     "logo_socio",
   ]);
-  const id = pickNumber(raw, ["advertiser_id", "advertiserId", "socio_id", "anunciante_id"]);
+  const id = pickNumber(raw, ["advertiser_id", "advertiserId", "socio_id", "anunciante_id", "member_id", "user_id"]);
   const flatContacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;
   return {

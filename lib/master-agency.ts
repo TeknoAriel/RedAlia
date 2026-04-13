@@ -95,6 +95,17 @@ export function rowMatchesMasterExclusion(
   return false;
 }
 
+/** Solo alias/env de la matriz (Aina). En fichas y tarjetas: ocultar solo esto, no cuando `agency` repite el mismo id que `masterAgency` (muy frecuente en el feed). */
+export function partnerMatchesStaticMatrizAliases(partner: PropertyPartner | null | undefined): boolean {
+  if (!partner?.name?.trim() && partner?.id == null) return false;
+  const ids = staticMasterIdSet();
+  const names = staticMasterNameNormSet();
+  if (partner.id != null && ids.has(partner.id)) return true;
+  const n = partner.name?.trim();
+  if (n && names.has(normPartnerName(n))) return true;
+  return false;
+}
+
 /**
  * Socio / fila que corresponde a la matriz globalizadora (Aina): coincide con `masterAgency` del ítem o con alias configurados.
  * No mostrar en UI ni contar como inmobiliaria/anunciante operativo.

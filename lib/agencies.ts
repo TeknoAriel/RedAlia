@@ -2,6 +2,7 @@ import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import {
   buildMasterExclusionFingerprints,
   partnerIsMatrizGlobalizadora,
+  partnerMatchesStaticMatrizAliases,
   rowMatchesMasterExclusion,
 } from "@/lib/master-agency";
 
@@ -223,7 +224,7 @@ export function propertyFichaConsultarRow(p: NormalizedProperty): ScopedPartnerO
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
-    if (partnerIsMatrizGlobalizadora(data, p)) continue;
+    if (partnerMatchesStaticMatrizAliases(data)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),
@@ -299,7 +300,7 @@ export function kitePrimaryPartnerRecord(p: NormalizedProperty): (PropertyPartne
     const c = chain[i];
     const n = c?.name?.trim();
     if (!n || !c) continue;
-    if (i === 0 && partnerIsMatrizGlobalizadora(c, p)) continue;
+    if (i === 0 && partnerMatchesStaticMatrizAliases(c)) continue;
     return { ...c, name: n };
   }
   return null;
@@ -318,7 +319,7 @@ export function partnersRoughlyEqual(
 export function propertyBrandPartner(p: NormalizedProperty): (PropertyPartner & { name: string }) | null {
   const a = p.agency?.name?.trim();
   if (!a || !p.agency) return null;
-  if (partnerIsMatrizGlobalizadora(p.agency, p)) return null;
+  if (partnerMatchesStaticMatrizAliases(p.agency)) return null;
   return { ...p.agency, name: a };
 }
 
@@ -335,7 +336,7 @@ export function propertyContactScopedRow(p: NormalizedProperty): ScopedPartnerOn
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
-    if (partnerIsMatrizGlobalizadora(data, p)) continue;
+    if (partnerMatchesStaticMatrizAliases(data)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),
@@ -363,7 +364,7 @@ export function kitePrimaryScopedRow(p: NormalizedProperty): ScopedPartnerOnProp
   for (const { scope, data } of order) {
     const row = partnerFromProperty(scope, data);
     if (!row) continue;
-    if (partnerIsMatrizGlobalizadora(data, p)) continue;
+    if (partnerMatchesStaticMatrizAliases(data)) continue;
     return {
       scope,
       key: scopedPartnerKey(scope, row.id, row.name),

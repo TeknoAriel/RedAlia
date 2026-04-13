@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { propertyFichaConsultarRow } from "@/lib/agencies";
-import { partnerIsMatrizGlobalizadora } from "@/lib/master-agency";
+import { partnerMatchesStaticMatrizAliases } from "@/lib/master-agency";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -23,8 +23,14 @@ export function PropertyCard({
   const showCompare = Boolean(onToggleCompare);
   const consultar = propertyFichaConsultarRow(property);
   const showAgencyOnCard = Boolean(
-    property.agency?.name?.trim() && !partnerIsMatrizGlobalizadora(property.agency, property),
+    property.agency?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.agency),
   );
+  const publicaCard =
+    property.advertiser?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.advertiser)
+      ? { label: "Anunciante" as const, name: property.advertiser.name.trim() }
+      : property.agentAgency?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.agentAgency)
+        ? { label: "Agente" as const, name: property.agentAgency.name.trim() }
+        : null;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
@@ -92,12 +98,18 @@ export function PropertyCard({
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
           {property.summary}
         </p>
-        {(showAgencyOnCard || consultar?.name || property.associatedAgentsLabel) && (
+        {(showAgencyOnCard || publicaCard || consultar?.name || property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
             {showAgencyOnCard && property.agency?.name && (
               <p className="text-brand-navy">
                 <span className="font-medium text-brand-navy/60">Inmobiliaria · </span>
                 {property.agency.name}
+              </p>
+            )}
+            {publicaCard && (
+              <p className="text-brand-navy/90">
+                <span className="font-medium text-brand-navy/60">{publicaCard.label} · </span>
+                {publicaCard.name}
               </p>
             )}
             {consultar?.name && (

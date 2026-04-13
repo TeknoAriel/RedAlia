@@ -5,7 +5,8 @@ import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getPropertyById } from "@/lib/get-properties";
 import { propertyFichaConsultarRow, scopedPartnerKey, socioScopeLabelEs } from "@/lib/agencies";
-import { partnerIsMatrizGlobalizadora } from "@/lib/master-agency";
+import { partnerMatchesStaticMatrizAliases } from "@/lib/master-agency";
+import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
 
@@ -35,6 +36,31 @@ function consultarLinkLabel(scope: string): string {
   return "Ver publicaciones de este contacto";
 }
 
+/** Anunciante del JSON o, si no viene, agente de la publicación (`listing_agent` / `agent`). */
+function fichaPublicaPartner(p: NormalizedProperty): {
+  scope: "advertiser" | "agent";
+  row: PropertyPartner & { name: string };
+  chip: string;
+} | null {
+  const adv = p.advertiser;
+  if (adv?.name?.trim() && !partnerMatchesStaticMatrizAliases(adv)) {
+    return {
+      scope: "advertiser",
+      row: { ...adv, name: adv.name.trim() },
+      chip: "Anunciante",
+    };
+  }
+  const ag = p.agentAgency;
+  if (ag?.name?.trim() && !partnerMatchesStaticMatrizAliases(ag)) {
+    return {
+      scope: "agent",
+      row: { ...ag, name: ag.name.trim() },
+      chip: "Agente de la publicación",
+    };
+  }
+  return null;
+}
+
 export default async function PropertyDetailPage({ params }: Props) {
   const { id } = await params;
   const p = await getPropertyById(id);
@@ -42,14 +68,29 @@ export default async function PropertyDetailPage({ params }: Props) {
 
   const op = labelForOperation(p.operation);
   const consultar = propertyFichaConsultarRow(p);
+  const publica = fichaPublicaPartner(p);
   const showInmobiliaria = Boolean(
-    p.agency?.name?.trim() && !partnerIsMatrizGlobalizadora(p.agency, p),
+    p.agency?.name?.trim() && !partnerMatchesStaticMatrizAliases(p.agency),
   );
+  const showConsultarBlock = Boolean(
+    consultar &&
+      !(
+        (consultar.scope === "advertiser" && publica?.scope === "advertiser") ||
+        (consultar.scope === "agent" && publica?.scope === "agent")
+      ),
+  );
+  const showPublisherEmpty =
+    !showInmobiliaria && !publica && !showConsultarBlock && !p.associatedAgentsLabel;
   const hasPublisherSection =
-    showInmobiliaria || Boolean(consultar) || Boolean(p.associatedAgentsLabel);
+    showInmobiliaria ||
+    Boolean(publica) ||
+    showConsultarBlock ||
+    Boolean(p.associatedAgentsLabel) ||
+    showPublisherEmpty;
   const consultMailto =
     consultar?.email?.trim() ??
     (showInmobiliaria ? p.agency?.email?.trim() : undefined) ??
+    (publica ? publica.row.email?.trim() : undefined) ??
     siteConfig.contact.email;
 
   return (
@@ -142,9 +183,54 @@ export default async function PropertyDetailPage({ params }: Props) {
                   </div>
                 )}
 
-                {consultar && (
+                {publica && (
                   <div
                     className={`space-y-3 ${showInmobiliaria ? "border-t border-brand-navy/10 pt-4" : ""}`}
+                  >
+                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
+                      {publica.chip}
+                    </span>
+                    <div className="flex items-start gap-3">
+                      {publica.row.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={publica.row.logoUrl}
+                          alt=""
+                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
+                          {publica.row.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-brand-navy">{publica.row.name}</p>
+                        <Link
+                          href={`/propiedades?socio=${encodeURIComponent(
+                            scopedPartnerKey(publica.scope, publica.row.id, publica.row.name),
+                          )}`}
+                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                        >
+                          {publica.scope === "advertiser"
+                            ? "Ver publicaciones de este anunciante"
+                            : "Ver publicaciones de este agente"}
+                        </Link>
+                        <PartnerContactLinks
+                          email={publica.row.email}
+                          phone={publica.row.phone}
+                          mobile={publica.row.mobile}
+                          whatsapp={publica.row.whatsapp}
+                          webUrl={publica.row.webUrl}
+                          className="mt-3"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {showConsultarBlock && consultar && (
+                  <div
+                    className={`space-y-3 ${showInmobiliaria || publica ? "border-t border-brand-navy/10 pt-4" : ""}`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-block rounded-full bg-brand-gold/25 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy">
@@ -193,6 +279,14 @@ export default async function PropertyDetailPage({ params }: Props) {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agentes asociados</p>
                     <p className="mt-1 text-sm leading-snug text-brand-navy/90">{p.associatedAgentsLabel}</p>
                   </div>
+                )}
+
+                {showPublisherEmpty && (
+                  <p className="text-sm leading-relaxed text-muted">
+                    No hay datos de inmobiliaria ni de anunciante en los campos que leemos del JSON (agency,
+                    advertiser, agent, etc.). Si en tu feed usan otros nombres, conviene ampliar el adaptador en{" "}
+                    <code className="rounded bg-brand-navy-soft px-1 text-xs">lib/kiteprop-adapter.ts</code>.
+                  </p>
                 )}
               </div>
             )}
