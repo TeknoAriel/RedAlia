@@ -44,9 +44,10 @@ Documentación técnica breve (abril 2026). Fuentes: código del repo, feed JSON
 Definido en `lib/public-data/types.ts`:
 
 - **`PublicPartnerDirectoryEntry`**: fila del directorio público.
-  - `partnerKey`, `scope` (`agency` | `advertiser`), `displayName`, `logoUrl`, `propertyCount`, contactos opcionales del feed, `coverageLabels` (hasta 4 strings únicos de región/ciudad/zona derivados de las publicaciones donde aparece el socio).
+  - `partnerKey`, `scope`, `displayName`, `roleLabel`, `listingCtaLabel`, `logoUrl`, `propertyCount`, contactos saneados, `coverageLabels` (hasta 4 ubicaciones por socio).
+- **`PublicDirectorySnapshot`**: `entries` (orden final), `featured` (subconjunto para Home), `stats` (`totalListings`, `directoryCount`, `geographicDistinctCount`, `geographicPresenceLabels`).
 
-Construcción: `buildPublicPartnerDirectoryFromFeed(properties)` en `lib/public-data/from-properties-feed.ts` (usa `extractSociosGridCatalog` + `propertyMatchesPartnerKey` para cobertura).
+Construcción: `buildPublicPartnerDirectoryFromFeed` y `buildPublicDirectorySnapshot` en `lib/public-data/from-properties-feed.ts` (catálogo interno vía `extractSociosGridCatalog` + reglas de calidad en `directory-order.ts`, `sanitize-entry.ts`, `labels.ts`).
 
 **No se inventan campos:** solo lo presente en `SocioCatalogEntry` / normalizado o deducible por agregación de ubicaciones en fichas vinculadas.
 
@@ -58,8 +59,13 @@ Construcción: `buildPublicPartnerDirectoryFromFeed(properties)` en `lib/public-
 |---------|-----|
 | `lib/public-data/types.ts` | Tipos del modelo público. |
 | `lib/public-data/map-socio-catalog-to-public.ts` | `SocioCatalogEntry` → `PublicPartnerDirectoryEntry`. |
-| `lib/public-data/from-properties-feed.ts` | Lista completa + `coverageLabels`. |
+| `lib/public-data/from-properties-feed.ts` | Directorio final + snapshot (featured + stats). |
+| `lib/public-data/directory-order.ts` | Normalización de nombre, orden institucional. |
+| `lib/public-data/sanitize-entry.ts` | Filtro mínimo de contactos dudosos / inválidos. |
+| `lib/public-data/labels.ts` | Textos de rol y CTA sin importar `agencies` en la UI. |
 | `lib/public-data/index.ts` | Barrel. |
+| `components/public-directory/PartnerDirectoryCard.tsx` | Tarjeta solo con modelo público. |
+| `components/sections/PartnerDirectoryPreview.tsx` | Bloque Home. |
 | `lib/kiteprop/client.ts` | Soporte opcional **`Authorization: Bearer`** además de **`X-API-Key`**. |
 | `lib/kiteprop/get-users.ts` | `GET /users` con Bearer. |
 | `lib/kiteprop/get-properties-api.ts` | `GET /properties` con Bearer. |
@@ -107,3 +113,45 @@ Construcción: `buildPublicPartnerDirectoryFromFeed(properties)` en `lib/public-
 2. Decidir política de **PII** antes de cualquier UI.
 3. Script de **paridad** feed vs API de propiedades (misma idea que `docs/kiteprop-api-1.md`).
 4. Revisar **MCP KiteProp** cuando esté estable: listar tools y contrastar con esta matriz.
+
+---
+
+## 8. Directorio institucional en la web (criterio)
+
+### Inclusión
+
+- Solo **agencias** e **anunciantes** que aparecen en el feed normalizado y pasan `extractSociosGridCatalog` (ya excluye la fila de **matriz** cuando `partnerIsObviousMatrizBrandForListing` aplica).
+- Una fila por clave `partnerKey` (sin duplicados: el catálogo interno agrupa por socio).
+
+### Exclusión / saneo
+
+- Nombres vacíos o solo espacios tras `normalizePublicDisplayName` → se descarta la fila.
+- Email sin `@` o demasiado corto; `webUrl` sin `http(s)://`; teléfonos con menos de 8 dígitos útiles → campo anulado (no se muestra ruido).
+- No se muestran claves técnicas ni JSON en la UI.
+
+### Orden
+
+1. Mayor cantidad de publicaciones asociadas (`propertyCount` descendente).
+2. **Inmobiliaria** (`agency`) antes que **anunciante** (`advertiser`) a igual conteo.
+3. Nombre alfabético (`es`, base insensitive).
+
+### Qué se muestra públicamente
+
+- Nombre, rol legible, logo si existe en el feed, cobertura por ubicaciones deducidas de fichas, conteo de publicaciones, contactos que pasan saneo, CTA al listado filtrado por socio.
+
+### Señales agregadas (solo feed)
+
+- Total de publicaciones en el catálogo cargado.
+- Cantidad de entradas del directorio.
+- Cantidad **distinta** de etiquetas de ubicación en fichas de esos socios; texto de apoyo con hasta 12 etiquetas ordenadas.
+
+### Qué no se muestra
+
+- Payload crudo, IDs internos de KiteProp en titulares, estructuras `agency`/`advertiser` en bruto.
+- API REST para armar el directorio en esta fase.
+
+### Próximos pasos posibles
+
+- Lista curada “socios homologados Redalia” desacoplada del solo feed.
+- Descripciones institucionales por socio aprobadas por comercial.
+- Enlace a ficha pública dedicada por `partnerKey` si el producto lo define.

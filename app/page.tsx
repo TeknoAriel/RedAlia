@@ -8,7 +8,9 @@ import { EvidenceSection } from "@/components/sections/EvidenceSection";
 import { ListingPulseStrip } from "@/components/sections/ListingPulseStrip";
 import { PartnerLogosStrip } from "@/components/sections/PartnerLogosStrip";
 import { TangibleValueForBrokers } from "@/components/sections/TangibleValueForBrokers";
+import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
 import { getProperties } from "@/lib/get-properties";
+import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
@@ -58,6 +60,8 @@ const benefits = [
 export default async function HomePage() {
   const catalog = await getProperties();
   const listingCount = catalog.ok ? catalog.properties.length : 0;
+  const directorySnapshot =
+    catalog.ok ? buildPublicDirectorySnapshot(catalog.properties, { featuredMax: 8 }) : null;
 
   return (
     <>
@@ -95,6 +99,8 @@ export default async function HomePage() {
       </PageHero>
 
       <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
+
+      <PartnerDirectoryPreview feedOk={catalog.ok} snapshot={directorySnapshot} />
 
       <section className="border-b border-brand-navy/10 bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">

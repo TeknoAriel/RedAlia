@@ -1,9 +1,21 @@
 import { extractSociosGridCatalog, propertyMatchesPartnerKey } from "@/lib/agencies";
+import {
+  dropDirectoryEntriesWithoutDisplayName,
+  normalizePublicDisplayName,
+  sortPublicDirectoryEntries,
+} from "@/lib/public-data/directory-order";
 import { mapSocioCatalogEntryToPublicDirectory } from "@/lib/public-data/map-socio-catalog-to-public";
-import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
+import { sanitizePublicPartnerDirectoryEntry } from "@/lib/public-data/sanitize-entry";
+import type {
+  PublicDirectorySnapshot,
+  PublicDirectoryStats,
+  PublicPartnerDirectoryEntry,
+} from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
 const MAX_COVERAGE_LABELS = 4;
+const MAX_GEOGRAPHIC_PRESENCE_LABELS = 12;
+const DEFAULT_FEATURED_MAX = 8;
 
 function coverageLabelsForPartner(
   properties: NormalizedProperty[],
@@ -20,21 +32,77 @@ function coverageLabelsForPartner(
   return [...set].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE_LABELS);
 }
 
+function finalizeDirectoryEntries(
+  raw: PublicPartnerDirectoryEntry[],
+): PublicPartnerDirectoryEntry[] {
+  const named = raw.map((e) => ({
+    ...e,
+    displayName: normalizePublicDisplayName(e.displayName),
+  }));
+  const kept = dropDirectoryEntriesWithoutDisplayName(named);
+  const sanitized = kept.map(sanitizePublicPartnerDirectoryEntry);
+  return sortPublicDirectoryEntries(sanitized);
+}
+
+function buildGeographicPresence(
+  entries: PublicPartnerDirectoryEntry[],
+): Pick<PublicDirectoryStats, "geographicDistinctCount" | "geographicPresenceLabels"> {
+  const set = new Set<string>();
+  for (const e of entries) {
+    for (const l of e.coverageLabels) {
+      const t = l.trim();
+      if (t) set.add(t);
+    }
+  }
+  const sorted = [...set].sort((a, b) => a.localeCompare(b, "es"));
+  return {
+    geographicDistinctCount: sorted.length,
+    geographicPresenceLabels: sorted.slice(0, MAX_GEOGRAPHIC_PRESENCE_LABELS),
+  };
+}
+
+function buildStats(
+  properties: NormalizedProperty[],
+  entries: PublicPartnerDirectoryEntry[],
+): PublicDirectoryStats {
+  const geo = buildGeographicPresence(entries);
+  return {
+    totalListings: properties.length,
+    directoryCount: entries.length,
+    geographicDistinctCount: geo.geographicDistinctCount,
+    geographicPresenceLabels: geo.geographicPresenceLabels,
+  };
+}
+
 /**
  * Directorio público a partir del catálogo ya normalizado (feed JSON / remoto).
- * No llama a la API REST de KiteProp.
+ * Aplica reglas de calidad, orden institucional y saneo de contactos. No llama a la API REST de KiteProp.
  */
 export function buildPublicPartnerDirectoryFromFeed(
   properties: NormalizedProperty[],
 ): PublicPartnerDirectoryEntry[] {
   const catalog = extractSociosGridCatalog(properties);
-  const out: PublicPartnerDirectoryEntry[] = [];
+  const raw: PublicPartnerDirectoryEntry[] = [];
   for (const row of catalog) {
     const mapped = mapSocioCatalogEntryToPublicDirectory(
       row,
       coverageLabelsForPartner(properties, row.key),
     );
-    if (mapped) out.push(mapped);
+    if (mapped) raw.push(mapped);
   }
-  return out;
+  return finalizeDirectoryEntries(raw);
+}
+
+/**
+ * Snapshot para Home y `/socios`: entradas finales, destacados y estadísticas verificables del feed.
+ */
+export function buildPublicDirectorySnapshot(
+  properties: NormalizedProperty[],
+  options?: { featuredMax?: number },
+): PublicDirectorySnapshot {
+  const featuredMax = options?.featuredMax ?? DEFAULT_FEATURED_MAX;
+  const entries = buildPublicPartnerDirectoryFromFeed(properties);
+  const featured = entries.slice(0, Math.min(featuredMax, entries.length));
+  const stats = buildStats(properties, entries);
+  return { entries, featured, stats };
 }

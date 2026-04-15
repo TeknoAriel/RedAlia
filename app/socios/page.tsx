@@ -1,27 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
+import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import { sociosCardRoleLabelEs, sociosGridLinkLabel } from "@/lib/agencies";
-import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties } from "@/lib/get-properties";
-import { buildPublicPartnerDirectoryFromFeed } from "@/lib/public-data";
+import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Socios",
   description:
-    "Pertenencia a Redalia: criterios de admisión, visibilidad profesional y colaboración seria entre corredoras y agentes en Chile.",
+    "Directorio institucional de Redalia: inmobiliarias y anunciantes con publicaciones en el catálogo, criterios de pertenencia y colaboración profesional en Chile.",
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 const perfilCards = [
   {
@@ -59,16 +51,19 @@ const estandares = [
 
 export default async function SociosPage() {
   const result = await getProperties();
-  const partners = result.ok ? buildPublicPartnerDirectoryFromFeed(result.properties) : [];
-  const listingCount = result.ok ? result.properties.length : 0;
+  const snapshot = result.ok ? buildPublicDirectorySnapshot(result.properties, { featuredMax: 8 }) : null;
+  const entries = snapshot?.entries ?? [];
+  const stats = snapshot?.stats;
+  const listingCount = stats?.totalListings ?? 0;
+  const geoCount = stats?.geographicDistinctCount ?? 0;
 
   return (
     <div className="bg-background">
       <PageHero
         variant="navy-solid"
         eyebrow="Pertenencia · Redalia"
-        title="Socios: prestigio de pertenencia y colaboración seria"
-        lead="La red agrupa corredoras y agentes que trabajan con reglas claras de canje y cooperación. Acá encontrás marcas y contactos vinculados a las publicaciones activas —y el marco de valor que respalda cada incorporación."
+        title="Directorio institucional de socios"
+        lead="Inmobiliarias y anunciantes que hoy tienen publicaciones en el catálogo público de la red. Cada ficha refleja datos aportados en las publicaciones; el ingreso formal a Redalia se coordina con el equipo comercial."
       >
         {result.ok && listingCount > 0 ? (
           <div className="flex flex-wrap gap-4 border-t border-white/15 pt-8">
@@ -77,15 +72,25 @@ export default async function SociosPage() {
                 {listingCount.toLocaleString("es-CL")}
               </p>
               <p className="mt-1 text-xs font-medium uppercase tracking-wide text-white/70">
-                {listingCount === 1 ? "Oportunidad en catálogo" : "Oportunidades en catálogo"}
+                {listingCount === 1 ? "Publicación en catálogo" : "Publicaciones en catálogo"}
               </p>
             </div>
             <div className="rounded-xl border border-white/20 bg-white/[0.07] px-5 py-4">
-              <p className="text-2xl font-bold tracking-tight text-brand-gold">{partners.length}</p>
+              <p className="text-2xl font-bold tracking-tight text-brand-gold">{entries.length}</p>
               <p className="mt-1 text-xs font-medium uppercase tracking-wide text-white/70">
-                {partners.length === 1 ? "Socio en directorio" : "Socios en directorio"}
+                {entries.length === 1
+                  ? "Inmobiliaria o anunciante listado"
+                  : "Inmobiliarias y anunciantes listados"}
               </p>
             </div>
+            {geoCount > 0 && (
+              <div className="rounded-xl border border-white/20 bg-white/[0.07] px-5 py-4">
+                <p className="text-2xl font-bold tracking-tight text-brand-gold">{geoCount}</p>
+                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-white/70">
+                  Ubicaciones distintas en fichas
+                </p>
+              </div>
+            )}
           </div>
         ) : null}
       </PageHero>
@@ -149,10 +154,18 @@ export default async function SociosPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
-            eyebrow="Directorio"
-            title="Inmobiliarias y anunciantes"
-            description="Fichas vinculadas a publicaciones activas: contacto, marca y acceso directo al catálogo filtrado por socio."
+            eyebrow="Directorio institucional"
+            title="Inmobiliarias y anunciantes en el catálogo"
+            description="Listado derivado de publicaciones activas: orden por actividad en el catálogo, sin duplicar marcas y excluyendo la capa matriz del feed cuando corresponde. Los contactos son los publicados en cada ficha."
+            titleVariant="display"
           />
+
+          {stats && stats.geographicPresenceLabels.length > 0 && (
+            <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-relaxed text-muted">
+              <span className="font-semibold text-brand-navy">Presencia geográfica en fichas del catálogo:</span>{" "}
+              {stats.geographicPresenceLabels.join(" · ")}
+            </p>
+          )}
 
           {!result.ok && (
             <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-8 text-center shadow-sm">
@@ -169,18 +182,17 @@ export default async function SociosPage() {
             </div>
           )}
 
-          {result.ok && partners.length === 0 && (
+          {result.ok && entries.length === 0 && (
             <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-2xl border border-brand-gold/25 bg-white shadow-lg">
               <div className="border-b border-brand-navy/10 bg-brand-navy px-6 py-4 text-center text-white">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Directorio</p>
-                <p className="mt-1 text-sm text-white/85">Categoría institucional en actualización</p>
+                <p className="mt-1 text-sm text-white/85">Sin entradas que cumplan los criterios actuales</p>
               </div>
               <div className="px-8 py-12 text-center">
                 <p className="text-lg font-semibold text-brand-navy">Tu marca en un espacio de alto estándar</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Las fichas públicas de socios se publican cuando la operación y los datos lo permiten. Mientras tanto,
-                  la red sigue activa en colaboración y catálogo: podés explorar oportunidades y conversar con el equipo
-                  para anticipar tu incorporación al directorio.
+                  Cuando haya publicaciones que asocien inmobiliarias o anunciantes según las reglas de la red, aparecerán
+                  acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link
@@ -200,57 +212,11 @@ export default async function SociosPage() {
             </div>
           )}
 
-          {partners.length > 0 && (
+          {entries.length > 0 && (
             <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {partners.map((p) => (
-                <li
-                  key={p.partnerKey}
-                  className="card-elevated flex flex-col rounded-2xl border border-brand-navy/10 bg-white p-5 text-center transition hover:border-brand-gold/35"
-                >
-                  <div className="mx-auto flex h-[4.5rem] w-full max-w-[7rem] items-center justify-center overflow-hidden rounded-xl border border-brand-navy/10 bg-white">
-                    {p.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.logoUrl}
-                        alt=""
-                        className="h-full w-full object-contain p-2"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <span className="text-lg font-bold tracking-tight text-brand-navy/45" aria-hidden>
-                        {initials(p.displayName)}
-                      </span>
-                    )}
-                  </div>
-                  <span className="mt-3 inline-flex rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/75">
-                    {sociosCardRoleLabelEs[p.scope]}
-                  </span>
-                  <h3 className="mt-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-brand-navy sm:text-base">
-                    {p.displayName}
-                  </h3>
-                  <p className="mt-2 text-xs text-muted">
-                    {p.propertyCount} {p.propertyCount === 1 ? "publicación" : "publicaciones"}
-                  </p>
-                  {p.coverageLabels.length > 0 && (
-                    <p className="mt-1.5 text-[11px] leading-snug text-muted">
-                      Cobertura en catálogo: {p.coverageLabels.join(" · ")}
-                    </p>
-                  )}
-                  <PartnerContactLinks
-                    email={p.email}
-                    phone={p.phone}
-                    mobile={p.mobile}
-                    whatsapp={p.whatsapp}
-                    webUrl={p.webUrl}
-                    className="mt-3 border-t border-brand-navy/10 pt-3"
-                  />
-                  <Link
-                    href={`/propiedades?socio=${encodeURIComponent(p.partnerKey)}`}
-                    className="mt-4 inline-flex items-center justify-center text-sm font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline"
-                  >
-                    {sociosGridLinkLabel(p.scope)}
-                  </Link>
+              {entries.map((entry) => (
+                <li key={entry.partnerKey}>
+                  <PartnerDirectoryCard entry={entry} variant="default" />
                 </li>
               ))}
             </ul>

@@ -1,4 +1,5 @@
 import type { SocioCatalogEntry } from "@/lib/agencies";
+import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryEntry, PublicPartnerScope } from "@/lib/public-data/types";
 
 /**
@@ -17,6 +18,8 @@ export function mapSocioCatalogEntryToPublicDirectory(
     partnerKey: entry.key,
     scope,
     displayName: entry.name,
+    roleLabel: publicPartnerRoleLabelEs[scope],
+    listingCtaLabel: publicPartnerListingCtaLabel(scope),
     logoUrl: entry.logoUrl,
     propertyCount: entry.propertyCount,
     email: entry.email,
