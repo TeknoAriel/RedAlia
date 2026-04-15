@@ -44,7 +44,7 @@ Documentación técnica breve (abril 2026). Fuentes: código del repo, feed JSON
 Definido en `lib/public-data/types.ts`:
 
 - **`PublicPartnerDirectoryEntry`**: fila del directorio público.
-  - `partnerKey`, `scope`, `displayName`, `roleLabel`, `listingCtaLabel`, `logoUrl`, `propertyCount`, contactos saneados, `coverageLabels` (hasta 4 ubicaciones por socio).
+  - `partnerKey`, `publicSlug`, `scope`, `displayName`, `roleLabel`, `listingCtaLabel`, `logoUrl`, `propertyCount`, contactos saneados, `coverageLabels` (hasta 4 ubicaciones por socio).
 - **`PublicDirectorySnapshot`**: `entries` (orden final), `featured` (subconjunto para Home), `stats` (`totalListings`, `directoryCount`, `geographicDistinctCount`, `geographicPresenceLabels`).
 
 Construcción: `buildPublicPartnerDirectoryFromFeed` y `buildPublicDirectorySnapshot` en `lib/public-data/from-properties-feed.ts` (catálogo interno vía `extractSociosGridCatalog` + reglas de calidad en `directory-order.ts`, `sanitize-entry.ts`, `labels.ts`).
@@ -65,7 +65,13 @@ Construcción: `buildPublicPartnerDirectoryFromFeed` y `buildPublicDirectorySnap
 | `lib/public-data/labels.ts` | Textos de rol y CTA sin importar `agencies` en la UI. |
 | `lib/public-data/index.ts` | Barrel. |
 | `components/public-directory/PartnerDirectoryCard.tsx` | Tarjeta solo con modelo público. |
+| `components/public-directory/PartnerProfileView.tsx` | Ficha institucional `/socios/[slug]`. |
 | `components/sections/PartnerDirectoryPreview.tsx` | Bloque Home. |
+| `app/socios/[slug]/page.tsx` | Ruta de ficha; `notFound` si slug inválido. |
+| `lib/public-data/public-slug.ts` | Construcción de `publicSlug`. |
+| `lib/public-data/partner-detail.ts` | `PublicPartnerDetail` + texto institucional neutro. |
+| `lib/public-data/partner-properties.ts` | Filtro y preview de propiedades por `partnerKey`. |
+| `lib/public-data/find-partner.ts` | Resolución slug → entrada. |
 | `lib/kiteprop/client.ts` | Soporte opcional **`Authorization: Bearer`** además de **`X-API-Key`**. |
 | `lib/kiteprop/get-users.ts` | `GET /users` con Bearer. |
 | `lib/kiteprop/get-properties-api.ts` | `GET /properties` con Bearer. |
@@ -153,5 +159,32 @@ Construcción: `buildPublicPartnerDirectoryFromFeed` y `buildPublicDirectorySnap
 ### Próximos pasos posibles
 
 - Lista curada “socios homologados Redalia” desacoplada del solo feed.
-- Descripciones institucionales por socio aprobadas por comercial.
-- Enlace a ficha pública dedicada por `partnerKey` si el producto lo define.
+- Descripciones institucionales por socio aprobadas por comercial (sustituyen o complementan el bloque neutro actual).
+
+---
+
+## 9. Ficha de socio `/socios/[slug]` (implementado)
+
+### URL y slug
+
+- Cada entrada del directorio incluye **`publicSlug`**: `nombre-normalizado-inmobiliaria|anunciante-fingerprint(partnerKey)`.
+- **`fingerprintPartnerKey`**: `partnerKey` con caracteres no seguros reemplazados por `-` (estable y único por socio en el feed).
+- Resolución: `findPartnerEntryByPublicSlug(entries, slug)`; si no hay coincidencia → **404** (`notFound()`).
+
+### Modelo
+
+- **`PublicPartnerDetail`**: `PublicPartnerDirectoryEntry` + `institutionalBlock` (títulos y párrafos neutros generados en `buildPublicPartnerDetail`, sin marketing inventado).
+- La UI de la ficha **no** lee el JSON crudo: solo `PublicPartnerDetail` + lista de `NormalizedProperty` filtrada por `partnerKey`.
+
+### Propiedades asociadas
+
+- `filterPropertiesForPartnerKey` / `selectPartnerPropertiesPreview` (`lib/public-data/partner-properties.ts`) reutilizan `propertyMatchesPartnerKey` (mismo criterio que `?socio=` en `/propiedades`).
+- La ficha muestra hasta **6** publicaciones recientes y un CTA al **listado completo filtrado**.
+
+### Qué no se publica
+
+- Misma política que el directorio: sin API REST de usuarios, sin PII dudosa, sin métricas inventadas.
+
+### Escalado futuro
+
+- Metadata OG por socio, JSON-LD, o tabla Redalia de “perfil homologado” enlazada por `publicSlug`.

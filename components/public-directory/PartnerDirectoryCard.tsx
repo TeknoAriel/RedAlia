@@ -18,6 +18,12 @@ type Props = {
 export function PartnerDirectoryCard({ entry, variant = "default" }: Props) {
   const compact = variant === "compact";
   const listingHref = `/propiedades?socio=${encodeURIComponent(entry.partnerKey)}`;
+  const profileHref = `/socios/${encodeURIComponent(entry.publicSlug)}`;
+
+  const btnPrimary =
+    "inline-flex items-center justify-center rounded-full bg-brand-navy px-4 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-brand-navy-mid sm:text-sm";
+  const btnSecondary =
+    "inline-flex items-center justify-center rounded-full border border-brand-navy/20 bg-white px-4 py-2.5 text-center text-xs font-semibold text-brand-navy transition hover:bg-brand-navy-soft sm:text-sm";
 
   return (
     <article
@@ -74,14 +80,14 @@ export function PartnerDirectoryCard({ entry, variant = "default" }: Props) {
         webUrl={entry.webUrl}
         className="mt-3 border-t border-brand-navy/10 pt-3"
       />
-      <Link
-        href={listingHref}
-        className={`mt-4 inline-flex items-center justify-center font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline ${
-          compact ? "text-xs" : "text-sm"
-        }`}
-      >
-        {entry.listingCtaLabel}
-      </Link>
+      <div className={`mt-4 flex w-full flex-col gap-2 ${compact ? "" : "gap-2.5"}`}>
+        <Link href={profileHref} className={compact ? `${btnPrimary} py-2 text-[11px]` : btnPrimary}>
+          Ver ficha institucional
+        </Link>
+        <Link href={listingHref} className={compact ? `${btnSecondary} py-2 text-[11px]` : btnSecondary}>
+          {entry.listingCtaLabel}
+        </Link>
+      </div>
     </article>
   );
 }

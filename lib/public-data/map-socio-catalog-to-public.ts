@@ -1,6 +1,6 @@
 import type { SocioCatalogEntry } from "@/lib/agencies";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
-import type { PublicPartnerDirectoryEntry, PublicPartnerScope } from "@/lib/public-data/types";
+import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 
 /**
  * Convierte una fila del catálogo interno (`SocioCatalogEntry`) al modelo público.
@@ -9,7 +9,7 @@ import type { PublicPartnerDirectoryEntry, PublicPartnerScope } from "@/lib/publ
 export function mapSocioCatalogEntryToPublicDirectory(
   entry: SocioCatalogEntry,
   coverageLabels: string[],
-): PublicPartnerDirectoryEntry | null {
+): PublicPartnerDirectoryRowDraft | null {
   if (entry.scope !== "agency" && entry.scope !== "advertiser") {
     return null;
   }

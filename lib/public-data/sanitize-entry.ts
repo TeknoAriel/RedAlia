@@ -1,4 +1,4 @@
-import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
+import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 
 function trimOrNull(s: string | null | undefined): string | null {
   const t = s?.trim();
@@ -26,8 +26,8 @@ function isPlausiblePhoneLike(s: string): boolean {
  * No inventa datos; solo filtra lo que no pasa validación mínima.
  */
 export function sanitizePublicPartnerDirectoryEntry(
-  entry: PublicPartnerDirectoryEntry,
-): PublicPartnerDirectoryEntry {
+  entry: PublicPartnerDirectoryRowDraft,
+): PublicPartnerDirectoryRowDraft {
   const email = trimOrNull(entry.email);
   const webUrl = trimOrNull(entry.webUrl);
   const phone = trimOrNull(entry.phone);

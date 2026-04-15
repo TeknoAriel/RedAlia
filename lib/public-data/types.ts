@@ -12,6 +12,8 @@ export type PublicPartnerScope = "agency" | "advertiser";
  */
 export type PublicPartnerDirectoryEntry = {
   partnerKey: string;
+  /** Segmento de URL estable y único: nombre-scope-fingerprint(partnerKey). */
+  publicSlug: string;
   scope: PublicPartnerScope;
   displayName: string;
   /** Rol legible para la UI pública (sin acoplar a `lib/agencies`). */
@@ -30,6 +32,19 @@ export type PublicPartnerDirectoryEntry = {
    * (máximo acotado en el mapper).
    */
   coverageLabels: string[];
+};
+
+/** Fila antes de asignar `publicSlug` (uso interno del builder). */
+export type PublicPartnerDirectoryRowDraft = Omit<PublicPartnerDirectoryEntry, "publicSlug">;
+
+/**
+ * Ficha institucional `/socios/[slug]`: mismo núcleo que el directorio + bloque narrativo neutro (sin copy comercial inventado).
+ */
+export type PublicPartnerDetail = PublicPartnerDirectoryEntry & {
+  institutionalBlock: {
+    title: string;
+    lines: string[];
+  };
 };
 
 /** Señales agregadas verificables a partir del feed (sin API REST). */

@@ -5,11 +5,13 @@ import {
   sortPublicDirectoryEntries,
 } from "@/lib/public-data/directory-order";
 import { mapSocioCatalogEntryToPublicDirectory } from "@/lib/public-data/map-socio-catalog-to-public";
+import { buildPublicSlugForEntry } from "@/lib/public-data/public-slug";
 import { sanitizePublicPartnerDirectoryEntry } from "@/lib/public-data/sanitize-entry";
 import type {
   PublicDirectorySnapshot,
   PublicDirectoryStats,
   PublicPartnerDirectoryEntry,
+  PublicPartnerDirectoryRowDraft,
 } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
@@ -33,7 +35,7 @@ function coverageLabelsForPartner(
 }
 
 function finalizeDirectoryEntries(
-  raw: PublicPartnerDirectoryEntry[],
+  raw: PublicPartnerDirectoryRowDraft[],
 ): PublicPartnerDirectoryEntry[] {
   const named = raw.map((e) => ({
     ...e,
@@ -41,7 +43,15 @@ function finalizeDirectoryEntries(
   }));
   const kept = dropDirectoryEntriesWithoutDisplayName(named);
   const sanitized = kept.map(sanitizePublicPartnerDirectoryEntry);
-  return sortPublicDirectoryEntries(sanitized);
+  const sorted = sortPublicDirectoryEntries(sanitized);
+  return sorted.map((e) => ({
+    ...e,
+    publicSlug: buildPublicSlugForEntry({
+      displayName: e.displayName,
+      scope: e.scope,
+      partnerKey: e.partnerKey,
+    }),
+  }));
 }
 
 function buildGeographicPresence(
@@ -82,7 +92,7 @@ export function buildPublicPartnerDirectoryFromFeed(
   properties: NormalizedProperty[],
 ): PublicPartnerDirectoryEntry[] {
   const catalog = extractSociosGridCatalog(properties);
-  const raw: PublicPartnerDirectoryEntry[] = [];
+  const raw: PublicPartnerDirectoryRowDraft[] = [];
   for (const row of catalog) {
     const mapped = mapSocioCatalogEntryToPublicDirectory(
       row,

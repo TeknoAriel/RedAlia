@@ -22,8 +22,8 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
             Inmobiliarias y anunciantes en el catálogo
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-            Marcas con publicaciones activas en la red. Los datos provienen del listado público de oportunidades; el
-            detalle de contacto es el que cada socio incorporó a sus fichas.
+            Marcas con publicaciones activas en la red. Cada una tiene una ficha institucional propia; los datos
+            provienen del listado público de oportunidades y el contacto es el publicado en las fichas.
           </p>
         </div>
 

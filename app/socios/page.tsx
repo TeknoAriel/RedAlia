@@ -63,7 +63,7 @@ export default async function SociosPage() {
         variant="navy-solid"
         eyebrow="Pertenencia · Redalia"
         title="Directorio institucional de socios"
-        lead="Inmobiliarias y anunciantes que hoy tienen publicaciones en el catálogo público de la red. Cada ficha refleja datos aportados en las publicaciones; el ingreso formal a Redalia se coordina con el equipo comercial."
+        lead="Inmobiliarias y anunciantes con publicaciones en el catálogo público de la red. Podés abrir la ficha institucional de cada marca o ir directo al listado filtrado de propiedades. El ingreso formal a Redalia se coordina con el equipo comercial."
       >
         {result.ok && listingCount > 0 ? (
           <div className="flex flex-wrap gap-4 border-t border-white/15 pt-8">

@@ -1,4 +1,4 @@
-import type { PublicPartnerDirectoryEntry, PublicPartnerScope } from "@/lib/public-data/types";
+import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 
 /** Normaliza el nombre visible: espacios colapsados, sin vacío. */
 export function normalizePublicDisplayName(name: string): string {
@@ -14,8 +14,8 @@ const scopeOrder: Record<PublicPartnerScope, number> = {
  * Orden institucional: más publicaciones primero; luego inmobiliaria antes que anunciante; luego nombre.
  */
 export function sortPublicDirectoryEntries(
-  entries: PublicPartnerDirectoryEntry[],
-): PublicPartnerDirectoryEntry[] {
+  entries: PublicPartnerDirectoryRowDraft[],
+): PublicPartnerDirectoryRowDraft[] {
   return [...entries].sort((a, b) => {
     if (b.propertyCount !== a.propertyCount) {
       return b.propertyCount - a.propertyCount;
@@ -28,7 +28,7 @@ export function sortPublicDirectoryEntries(
 
 /** Descarta filas sin nombre usable (no debería ocurrir si el feed es consistente). */
 export function dropDirectoryEntriesWithoutDisplayName(
-  entries: PublicPartnerDirectoryEntry[],
-): PublicPartnerDirectoryEntry[] {
+  entries: PublicPartnerDirectoryRowDraft[],
+): PublicPartnerDirectoryRowDraft[] {
   return entries.filter((e) => normalizePublicDisplayName(e.displayName).length > 0);
 }
