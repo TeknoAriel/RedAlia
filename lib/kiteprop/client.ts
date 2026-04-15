@@ -18,8 +18,20 @@ export function getKitePropApiKeyOrNull(): string | null {
   return key || null;
 }
 
+/**
+ * Token Bearer documentado para varios endpoints v1 (p. ej. `GET /users`, `GET /properties`).
+ * No exponer en cliente ni en respuestas HTTP públicas.
+ */
+export function getKitePropBearerTokenOrNull(): string | null {
+  const t = process.env.KITEPROP_ACCESS_TOKEN?.trim();
+  return t || null;
+}
+
+export type KitepropGetAuth = "api_key" | "bearer";
+
 export type KitepropClientErrorCode =
   | "MISSING_KEY"
+  | "MISSING_BEARER"
   | "TIMEOUT"
   | "NETWORK"
   | "HTTP_ERROR"
@@ -29,14 +41,35 @@ export type KitepropJsonResult<T> =
   | { ok: true; status: number; data: T }
   | { ok: false; status: number | null; errorCode: KitepropClientErrorCode };
 
+export type KitepropGetJsonOptions = {
+  /** `api_key` (default): header `X-API-Key` — usado en `GET /profile` en integración actual. `bearer`: header `Authorization: Bearer …` según docs públicas para otros recursos. */
+  auth?: KitepropGetAuth;
+};
+
 /**
  * GET JSON contra la API REST de KiteProp (server-only).
- * No registra la API key ni cuerpos de respuesta en consola.
+ * No registra la API key, token ni cuerpos de respuesta en consola.
  */
-export async function kitepropGetJson<T = unknown>(path: string): Promise<KitepropJsonResult<T>> {
-  const apiKey = getKitePropApiKeyOrNull();
-  if (!apiKey) {
-    return { ok: false, status: null, errorCode: "MISSING_KEY" };
+export async function kitepropGetJson<T = unknown>(
+  path: string,
+  options?: KitepropGetJsonOptions,
+): Promise<KitepropJsonResult<T>> {
+  const auth: KitepropGetAuth = options?.auth ?? "api_key";
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+
+  if (auth === "api_key") {
+    const apiKey = getKitePropApiKeyOrNull();
+    if (!apiKey) {
+      return { ok: false, status: null, errorCode: "MISSING_KEY" };
+    }
+    headers["X-API-Key"] = apiKey;
+  } else {
+    const token = getKitePropBearerTokenOrNull();
+    if (!token) {
+      return { ok: false, status: null, errorCode: "MISSING_BEARER" };
+    }
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const base = getKitePropApiBaseUrl();
@@ -50,10 +83,7 @@ export async function kitepropGetJson<T = unknown>(path: string): Promise<Kitepr
     const res = await fetch(url, {
       method: "GET",
       signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "X-API-Key": apiKey,
-      },
+      headers,
       cache: "no-store",
     });
 

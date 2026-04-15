@@ -1,5 +1,7 @@
+import { siteConfig } from "@/lib/site-config";
+
 /**
- * Datos de contacto públicos. Sin variables de entorno = sin WhatsApp en UI (evita números ficticios).
+ * Datos de contacto públicos. Prioridad: variables de entorno → valores institucionales en `siteConfig`.
  */
 export function getWhatsappContact(): { href: string; display: string } | null {
   const explicitUrl = process.env.NEXT_PUBLIC_WHATSAPP_URL?.trim();
@@ -8,13 +10,23 @@ export function getWhatsappContact(): { href: string; display: string } | null {
     return { href: explicitUrl, display };
   }
   const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim();
-  if (!raw) return null;
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 9) return null;
-  const display =
-    process.env.NEXT_PUBLIC_WHATSAPP_LABEL?.trim() ||
-    formatChileWhatsappDisplay(digits);
-  return { href: `https://wa.me/${digits}`, display };
+  if (raw) {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 9) {
+      return {
+        href: siteConfig.contact.whatsappHref,
+        display: siteConfig.contact.whatsappDisplay,
+      };
+    }
+    const display =
+      process.env.NEXT_PUBLIC_WHATSAPP_LABEL?.trim() ||
+      formatChileWhatsappDisplay(digits);
+    return { href: `https://wa.me/${digits}`, display };
+  }
+  return {
+    href: siteConfig.contact.whatsappHref,
+    display: siteConfig.contact.whatsappDisplay,
+  };
 }
 
 function formatChileWhatsappDisplay(digits: string): string {

@@ -293,7 +293,6 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     raw.contact,
   ]);
   if (fromNested) {
-    const flat = pickPartnerContacts(raw);
     return {
       ...fromNested,
       email: fromNested.email ?? pickString(raw, ["advertiser_email", "advertiserEmail", "anunciante_email"]),
@@ -490,8 +489,8 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     "listing_agent",
     "listingAgent",
   ]);
-  advertiser = nullIfMatrizFeedLayerPartner(advertiser, masterAgency);
-  agentAgency = nullIfMatrizFeedLayerPartner(agentAgency, masterAgency);
+  advertiser = nullIfMatrizFeedLayerPartner(advertiser);
+  agentAgency = nullIfMatrizFeedLayerPartner(agentAgency);
   const subAgentAgency = normalizeAgentOffice(raw, [
     "sub_agent",
     "subAgent",

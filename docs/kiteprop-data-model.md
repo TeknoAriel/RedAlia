@@ -1,0 +1,109 @@
+# KiteProp — fuentes de datos, entidades y modelo público Redalia
+
+Documentación técnica breve (abril 2026). Fuentes: código del repo, feed JSON ya normalizado, documentación pública agregada en [KiteProp API v1](https://www.kiteprop.com/docs/api/v1/index), y resumen en context7 (`kiteprop_api_v1`). **MCP `user-kiteprop`:** en el entorno de desarrollo analizado el servidor MCP reportó error (`mcps/user-kiteprop/STATUS.md`); no se listaron tools MCP desde archivos descriptor — auditar tools cuando el servidor esté operativo.
+
+---
+
+## 1. Fuentes disponibles
+
+| Fuente | Autenticación | Uso en Redalia hoy |
+|--------|----------------|-------------------|
+| **JSON de difusión** (`KITEPROP_PROPERTIES_URL` o `data/kiteprop-sample.json`) | Público / archivo | **Catálogo de propiedades**, extracción de **agencias / anunciantes / agentes** por propiedad, **directorio Socios**, métricas de hero en `/socios`. |
+| **`GET /api/v1/profile`** | Header **`X-API-Key`** (`KITEPROP_API_KEY`) | Conectividad (`getKitePropProfile`, ruta opcional `/api/test-kiteprop`). **No** se usa aún para UI pública. |
+| **`GET /api/v1/users`** | Documentación: header **`Authorization: Bearer`** | Wrapper `getKitePropUsersPage` con `KITEPROP_ACCESS_TOKEN`. **No** probado en este entrega; shape de respuesta no modelado. |
+| **`GET /api/v1/properties`** | Documentación: **Bearer** | Wrapper `getKitePropPropertiesApiPage`. **No** sustituye al feed hasta validar paridad y permisos. |
+| **Detalle de propiedad (API)** | Ejemplos con `success` + `data` | Incluye anidados `user` (id, email, phone, full_name, …) y `organization` (name). **Datos sensibles** — no aptos para copiar tal cual a web pública sin política explícita. |
+
+**Importante:** la documentación pública mezcla ejemplos con `Authorization: Bearer` para listados; la integración vigente de **profile** usa **`X-API-Key`**. No asumir que la misma key sirve para todos los paths hasta probarlo con KiteProp.
+
+---
+
+## 2. Inventario de entidades (real / derivable)
+
+### Desde el feed JSON (ya mapeado en `lib/kiteprop-adapter.ts` → `NormalizedProperty`)
+
+- **Inmobiliaria / corredora operativa:** `NormalizedProperty.agency` (`PropertyPartner`: id, name, logoUrl, email, phone, mobile, whatsapp, webUrl).
+- **Anunciante / socio publicante:** `advertiser`.
+- **Agente / oficina asociada a la ficha:** `agentAgency`, `subAgentAgency`.
+- **Capa matriz / red en feed:** `masterAgency` — en UI Redalia se filtra u omite según reglas (`master-agency.ts`).
+- **Propiedad:** `NormalizedProperty` (incluye `city`, `region`, `zone`, `lastUpdate`, etc.).
+
+**Relación usuario ↔ inmobiliaria en el feed:** no hay “usuario” como entidad de cuenta; hay **objetos contacto** anidados en roles (agency, advertiser, agent…). La relación es **implícita por publicación**.
+
+### Desde API (documentación / ejemplos — no modelado fino en UI)
+
+- **Usuario API:** objeto `user` en detalle de propiedad (id, email, phone, full_name, …).
+- **Organización:** objeto `organization` con al menos `name` en ejemplo.
+- **Lista `/users`:** entidad “usuario de plataforma” paginada — **respuesta exacta no descrita** en el fragmento consultado.
+- **Entidad “socio Redalia”:** **no existe** en KiteProp como tal; “socio” en el sitio es **rol de negocio Redalia** mapeado a **agencia/anunciante** del feed (y filtros de matriz).
+
+---
+
+## 3. Modelo público Redalia (implementado)
+
+Definido en `lib/public-data/types.ts`:
+
+- **`PublicPartnerDirectoryEntry`**: fila del directorio público.
+  - `partnerKey`, `scope` (`agency` | `advertiser`), `displayName`, `logoUrl`, `propertyCount`, contactos opcionales del feed, `coverageLabels` (hasta 4 strings únicos de región/ciudad/zona derivados de las publicaciones donde aparece el socio).
+
+Construcción: `buildPublicPartnerDirectoryFromFeed(properties)` en `lib/public-data/from-properties-feed.ts` (usa `extractSociosGridCatalog` + `propertyMatchesPartnerKey` para cobertura).
+
+**No se inventan campos:** solo lo presente en `SocioCatalogEntry` / normalizado o deducible por agregación de ubicaciones en fichas vinculadas.
+
+---
+
+## 4. Capa de adaptación (archivos)
+
+| Archivo | Rol |
+|---------|-----|
+| `lib/public-data/types.ts` | Tipos del modelo público. |
+| `lib/public-data/map-socio-catalog-to-public.ts` | `SocioCatalogEntry` → `PublicPartnerDirectoryEntry`. |
+| `lib/public-data/from-properties-feed.ts` | Lista completa + `coverageLabels`. |
+| `lib/public-data/index.ts` | Barrel. |
+| `lib/kiteprop/client.ts` | Soporte opcional **`Authorization: Bearer`** además de **`X-API-Key`**. |
+| `lib/kiteprop/get-users.ts` | `GET /users` con Bearer. |
+| `lib/kiteprop/get-properties-api.ts` | `GET /properties` con Bearer. |
+| `lib/kiteprop/unwrap-envelope.ts` | Helper `{ success, data }` sin tipar `data`. |
+| `lib/kiteprop/map-feed-partner-to-public.ts` | Re-export de conveniencia. |
+
+---
+
+## 5. Qué puede mostrarse ya / qué no
+
+### Ya apto (y usado)
+
+- **Directorio Socios:** marcas y contactos **que el propio feed publica**; conteo de publicaciones; cobertura geográfica resumida derivada del catálogo.
+- **Home / otras páginas:** conteo de oportunidades y enlaces a catálogo (como antes), reforzados por datos reales del feed cuando hay URL configurada.
+
+### No conviene publicar todavía sin definición explícita
+
+- Payload completo de **`GET /profile`** (puede incluir email/cuenta).
+- **`user` de API** con emails/teléfonos de operadores internos.
+- **Lista `/users`** hasta conocer permisos, PII y consentimiento.
+- **Sustituir el feed por API** sin script de comparación de ids/campos (ver `docs/kiteprop-api-1.md` fase sugerida API-2).
+
+### Para un directorio “institucional serio” faltaría
+
+- Criterio editorial de **quién** entra al directorio (no solo presencia en feed).
+- Texto / **descripción** aprobada por cada socio (no existe en el modelo actual).
+- **Logos** consistentes (dependen del feed).
+- Opcional: endpoint o tabla **Redalia** propia para socios homologados independiente del shape KiteProp.
+
+---
+
+## 6. Variables de entorno nuevas / relevantes
+
+| Variable | Uso |
+|----------|-----|
+| `KITEPROP_ACCESS_TOKEN` | Bearer para `getKitePropUsersPage` / `getKitePropPropertiesApiPage`. **Server-only**; no `NEXT_PUBLIC_`. |
+| `KITEPROP_API_KEY` | `X-API-Key` para `/profile` (existente). |
+| `NEXT_PUBLIC_WHATSAPP_*` | Sigue pudiendo sobreescribir WhatsApp; por defecto el sitio usa `siteConfig.contact.whatsapp*`. |
+
+---
+
+## 7. Siguiente paso técnico recomendado
+
+1. Obtener **respuesta real** de `GET /users?page=1&limit=5` con token Bearer válido; guardar **solo estructura** (keys) en doc interna, no datos personales en repo.
+2. Decidir política de **PII** antes de cualquier UI.
+3. Script de **paridad** feed vs API de propiedades (misma idea que `docs/kiteprop-api-1.md`).
+4. Revisar **MCP KiteProp** cuando esté estable: listar tools y contrastar con esta matriz.

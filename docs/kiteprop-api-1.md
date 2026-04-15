@@ -128,3 +128,4 @@ Para confirmar que la key “es la cuenta correcta”, comparar en backend (o en
 
 - Catálogo actual: `lib/get-properties.ts`, `KITEPROP_PROPERTIES_URL`.
 - Cliente API: `lib/kiteprop/client.ts`.
+- Modelo público socios / entidades / API Bearer: `docs/kiteprop-data-model.md`.

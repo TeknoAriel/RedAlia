@@ -3,13 +3,10 @@ import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import {
-  extractSociosGridCatalog,
-  sociosCardRoleLabelEs,
-  sociosGridLinkLabel,
-} from "@/lib/agencies";
+import { sociosCardRoleLabelEs, sociosGridLinkLabel } from "@/lib/agencies";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties } from "@/lib/get-properties";
+import { buildPublicPartnerDirectoryFromFeed } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +59,7 @@ const estandares = [
 
 export default async function SociosPage() {
   const result = await getProperties();
-  const partners = result.ok ? extractSociosGridCatalog(result.properties) : [];
+  const partners = result.ok ? buildPublicPartnerDirectoryFromFeed(result.properties) : [];
   const listingCount = result.ok ? result.properties.length : 0;
 
   return (
@@ -207,7 +204,7 @@ export default async function SociosPage() {
             <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {partners.map((p) => (
                 <li
-                  key={p.key}
+                  key={p.partnerKey}
                   className="card-elevated flex flex-col rounded-2xl border border-brand-navy/10 bg-white p-5 text-center transition hover:border-brand-gold/35"
                 >
                   <div className="mx-auto flex h-[4.5rem] w-full max-w-[7rem] items-center justify-center overflow-hidden rounded-xl border border-brand-navy/10 bg-white">
@@ -222,21 +219,24 @@ export default async function SociosPage() {
                       />
                     ) : (
                       <span className="text-lg font-bold tracking-tight text-brand-navy/45" aria-hidden>
-                        {initials(p.name)}
+                        {initials(p.displayName)}
                       </span>
                     )}
                   </div>
                   <span className="mt-3 inline-flex rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/75">
-                    {p.scope === "agency" || p.scope === "advertiser"
-                      ? sociosCardRoleLabelEs[p.scope]
-                      : p.scope}
+                    {sociosCardRoleLabelEs[p.scope]}
                   </span>
                   <h3 className="mt-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-brand-navy sm:text-base">
-                    {p.name}
+                    {p.displayName}
                   </h3>
                   <p className="mt-2 text-xs text-muted">
                     {p.propertyCount} {p.propertyCount === 1 ? "publicación" : "publicaciones"}
                   </p>
+                  {p.coverageLabels.length > 0 && (
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted">
+                      Cobertura en catálogo: {p.coverageLabels.join(" · ")}
+                    </p>
+                  )}
                   <PartnerContactLinks
                     email={p.email}
                     phone={p.phone}
@@ -246,7 +246,7 @@ export default async function SociosPage() {
                     className="mt-3 border-t border-brand-navy/10 pt-3"
                   />
                   <Link
-                    href={`/propiedades?socio=${encodeURIComponent(p.key)}`}
+                    href={`/propiedades?socio=${encodeURIComponent(p.partnerKey)}`}
                     className="mt-4 inline-flex items-center justify-center text-sm font-semibold text-brand-navy-mid underline-offset-2 transition hover:text-brand-gold-deep hover:underline"
                   >
                     {sociosGridLinkLabel(p.scope)}

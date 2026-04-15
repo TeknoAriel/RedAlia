@@ -93,11 +93,10 @@ export function partnerIsObviousMatrizBrandForListing(partner: PropertyPartner |
 
 /**
  * Quitar `advertiser` / `agent` solo si el nombre o id (env) son claramente la marca matriz.
- * No usa id del feed ni igualdad con `masterAgency` ni dominio de mail (muchas corredoras usan @aina.cl).
+ * No usa id del feed ni dominio de mail (muchas corredoras usan @aina.cl).
  */
 export function nullIfMatrizFeedLayerPartner(
   partner: PropertyPartner | null | undefined,
-  _masterAgency: PropertyPartner | null | undefined,
 ): PropertyPartner | null {
   if (!partner) return null;
   if (partnerIsObviousMatrizBrandForListing(partner)) return null;
