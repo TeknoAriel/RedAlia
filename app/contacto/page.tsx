@@ -8,7 +8,7 @@ import { getWhatsappContact } from "@/lib/public-contact";
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Contacto comercial Redalia: correo, WhatsApp (si está publicado) y formulario para coordinar reunión o presentación.",
+    "Contacto comercial Redalia: correo, WhatsApp y formulario para coordinar reunión o presentación.",
 };
 
 const confianza = [
