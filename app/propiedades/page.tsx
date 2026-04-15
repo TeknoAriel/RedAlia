@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Propiedades",
   description:
-    "Propiedades publicadas en Redalia, alimentadas desde el feed JSON de KiteProp: venta, arriendo y más.",
+    "Publicaciones asociadas a la red Redalia: venta, arriendo y otras operaciones. Consultá oportunidades y derivá consultas con criterio profesional.",
 };
 
 export default async function PropiedadesPage() {
@@ -20,37 +21,55 @@ export default async function PropiedadesPage() {
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Propiedades</p>
           <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight text-brand-navy sm:text-4xl">
-            Oportunidades conectadas a la red
+            Oportunidades de la red
           </h1>
           <p className="mt-4 max-w-2xl text-muted">
-            Catálogo orientado a <strong className="font-medium text-brand-navy">resultados reales</strong>: datos
-            desde el JSON de difusión de <strong className="font-medium text-brand-navy">KiteProp</strong>. Con{" "}
-            <code className="rounded bg-brand-navy-soft px-1 text-xs">KITEPROP_PROPERTIES_URL</code> en Vercel
-            cargás el feed completo; sin URL, fichas de muestra desde el repo.
+            Catálogo para que corredoras y agentes compartan y cierren más operaciones. Las fichas se actualizan según
+            la operación de la red; si necesitás una búsqueda específica,{" "}
+            <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
+              escribinos
+            </Link>
+            .
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-        {result.ok && result.source === "sample" && (
-          <div className="mb-6 rounded-2xl border border-brand-gold/40 bg-brand-navy-soft/60 px-5 py-4 text-sm text-brand-navy">
-            <p className="font-medium">Modo muestra</p>
+        {result.ok && result.usedSampleFallback && (
+          <div className="mb-6 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-5 py-4 text-sm text-brand-navy">
+            <p className="font-medium">Listado referencial</p>
             <p className="mt-1 text-muted">
-              Estás viendo <strong>data/kiteprop-sample.json</strong> (liviano). Para el catálogo completo,
-              definí la variable de entorno del JSON de difusión en el panel de Vercel.
+              Mostramos una selección de ejemplo mientras se restablece la conexión con el catálogo actualizado. Para
+              publicaciones vigentes y prioridades comerciales, contactá al equipo de Redalia.
             </p>
           </div>
         )}
         {!result.ok && (
-          <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950">
-            <p className="font-medium">No se pudieron cargar las propiedades.</p>
-            <p className="mt-1 text-amber-900/90">{result.error}</p>
+          <div className="mb-8 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-5 py-6 text-center text-brand-navy">
+            <p className="font-medium">No pudimos mostrar el catálogo en este momento</p>
+            <p className="mt-2 text-sm text-muted">
+              Podés volver a intentar más tarde o coordinar con nosotros por correo y te orientamos.
+            </p>
+            <Link
+              href="/contacto"
+              className="mt-4 inline-flex rounded-full bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-mid"
+            >
+              Contacto
+            </Link>
           </div>
         )}
         {result.ok && result.properties.length === 0 && (
           <div className="mb-8 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-6 py-12 text-center text-brand-navy">
-            <p className="font-medium">No hay publicaciones disponibles por ahora.</p>
-            <p className="mt-2 text-sm text-muted">Probá más tarde o revisá la URL del feed en configuración.</p>
+            <p className="font-medium">No hay publicaciones disponibles por ahora</p>
+            <p className="mt-2 text-sm text-muted">
+              Si querés conocer cómo incorporar oferta o recibir novedades de la red, dejanos un mensaje.
+            </p>
+            <Link
+              href="/contacto"
+              className="mt-4 inline-flex rounded-full border border-brand-navy/25 px-5 py-2.5 text-sm font-semibold text-brand-navy hover:bg-white"
+            >
+              Escribir a Redalia
+            </Link>
           </div>
         )}
         {result.ok && result.properties.length > 0 && (

@@ -286,9 +286,12 @@ export default async function PropertyDetailPage({ params }: Props) {
 
                 {showPublisherEmpty && (
                   <p className="text-sm leading-relaxed text-muted">
-                    No hay datos de inmobiliaria ni de anunciante en los campos que leemos del JSON (agency,
-                    advertiser, agent, etc.). Si en tu feed usan otros nombres, conviene ampliar el adaptador en{" "}
-                    <code className="rounded bg-brand-navy-soft px-1 text-xs">lib/kiteprop-adapter.ts</code>.
+                    Los datos de contacto de la publicación se centralizan en Redalia para esta ficha. Para consultas
+                    específicas sobre la operación o la contraparte, usá el botón de consulta o{" "}
+                    <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
+                      escribinos
+                    </Link>
+                    .
                   </p>
                 )}
               </div>

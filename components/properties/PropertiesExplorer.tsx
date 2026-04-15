@@ -240,12 +240,11 @@ export function PropertiesExplorer({ properties }: Props) {
       {socioKey && (
         <div className="mb-6 flex flex-col gap-3 rounded-xl border border-brand-gold/35 bg-brand-navy-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-brand-navy">
-            <span className="font-medium">Filtro activo:</span> solo publicaciones de esta corredora en el feed
-            (misma lógica que en{" "}
+            <span className="font-medium">Filtro activo:</span> solo publicaciones vinculadas a este socio. Ver también{" "}
             <Link href="/socios" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
-              Miembros y socios
+              Socios de la red
             </Link>
-            ).
+            .
           </p>
           <Link
             href="/propiedades"
@@ -259,8 +258,8 @@ export function PropertiesExplorer({ properties }: Props) {
       <div className="mb-8 overflow-hidden rounded-2xl border border-brand-navy/12 bg-card/95 shadow-lg backdrop-blur-sm tech-panel-glow">
         <div className="border-b border-brand-navy/10 bg-brand-navy-soft/40 px-4 py-3 sm:px-6">
           <p className="text-xs text-muted">
-            Filtros ordenados por uso frecuente. La red se alimenta con datos reales del ecosistema
-            KiteProp.
+            Refiná el listado por operación, zona y características. El catálogo refleja las publicaciones activas de la
+            red.
           </p>
         </div>
 
@@ -272,7 +271,7 @@ export function PropertiesExplorer({ properties }: Props) {
                 <span className="font-medium text-brand-navy">Palabras clave</span>
                 <input
                   type="search"
-                  placeholder="Título, zona, referencia, agencia…"
+                  placeholder="Título, zona, referencia, corredora…"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   className={inputClass}

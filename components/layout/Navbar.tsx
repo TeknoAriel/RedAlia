@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { getMembersPortalUrl } from "@/lib/public-contact";
 
-const KITEPROP_LOGIN = "https://www.kiteprop.com/auth/login";
+const membersPortalUrl = getMembersPortalUrl();
 
-/** Orden: Home → Socios → Planes → Contacto; Únete se renderiza aparte con énfasis sutil. */
 const navTextLinks = [
   { href: "/", label: "Home" },
+  { href: "/que-es", label: "Qué es" },
+  { href: "/colaboracion", label: "Colaboración" },
   { href: "/socios", label: "Socios" },
   { href: "/planes", label: "Planes" },
   { href: "/contacto", label: "Contacto" },
@@ -34,7 +36,7 @@ export function Navbar() {
     pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-brand-navy/10 bg-white/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-4 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-3" onClick={() => setOpen(false)}>
           <Image
@@ -47,18 +49,15 @@ export function Navbar() {
           />
         </Link>
 
-        <nav
-          className="hidden min-w-0 flex-1 items-center justify-between gap-4 lg:flex"
-          aria-label="Principal"
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-1">
+        <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 xl:flex" aria-label="Principal">
+          <div className="flex min-w-0 flex-wrap items-center gap-0.5 lg:gap-1">
             {navTextLinks.map(({ href, label }) => {
               const active = linkActive(href);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors lg:px-2.5 ${
                     active
                       ? "bg-brand-navy-soft text-brand-navy"
                       : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
@@ -85,12 +84,12 @@ export function Navbar() {
               Propiedades
             </Link>
             <a
-              href={KITEPROP_LOGIN}
+              href={membersPortalUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-navy/40 hover:bg-brand-navy-soft/50"
             >
-              Miembros
+              Acceso socios
               <span className="sr-only">(abre en nueva pestaña)</span>
               <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                 <path
@@ -104,10 +103,10 @@ export function Navbar() {
           </div>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 xl:hidden">
           <button
             type="button"
-            className="inline-flex rounded-lg p-2 text-brand-navy lg:hidden"
+            className="inline-flex rounded-lg p-2 text-brand-navy"
             aria-expanded={open}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             onClick={() => setOpen((v) => !v)}
@@ -127,7 +126,7 @@ export function Navbar() {
       </div>
 
       {open && (
-        <div className="border-t border-brand-navy/10 bg-white px-4 py-4 lg:hidden">
+        <div className="border-t border-brand-navy/10 bg-white px-4 py-4 xl:hidden">
           <nav className="flex flex-col gap-1" aria-label="Móvil">
             <div className="flex flex-col gap-1 border-b border-brand-navy/10 pb-3">
               {navTextLinks.map(({ href, label }) => {
@@ -167,13 +166,13 @@ export function Navbar() {
                 Propiedades
               </Link>
               <a
-                href={KITEPROP_LOGIN}
+                href={membersPortalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-3.5 text-center text-sm font-semibold text-brand-navy"
                 onClick={() => setOpen(false)}
               >
-                Miembros
+                Acceso socios
                 <svg className="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                   <path
                     strokeLinecap="round"

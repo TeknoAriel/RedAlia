@@ -37,9 +37,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     via: result.via,
-    message:
-      result.via === "noop"
-        ? "Recibido. Configurá LEADS_WEBHOOK_URL o KITEPROP_LEAD_POST_URL en producción."
-        : "Enviado correctamente.",
+    message: "Recibido correctamente.",
   });
 }

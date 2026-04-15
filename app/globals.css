@@ -21,6 +21,7 @@
   --color-brand-gold: #c9a227;
   --color-brand-gold-deep: #8a6a1e;
   --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-libre-baskerville), "Libre Baskerville", Georgia, "Times New Roman", serif;
 }
 
 body {
@@ -117,8 +118,8 @@ body {
     transparent 60%
   );
   background-size: 200% 100%;
-  animation: tech-shimmer 14s ease-in-out infinite;
-  opacity: 0.5;
+  animation: tech-shimmer 22s ease-in-out infinite;
+  opacity: 0.32;
 }
 
 @keyframes tech-shimmer {
@@ -136,4 +137,20 @@ body {
     animation: none;
     opacity: 0.25;
   }
+}
+
+/* Institucional / premium suave */
+.strip-navy {
+  background: linear-gradient(100deg, #0a1a40 0%, #0f265c 42%, #163a72 100%);
+}
+
+.card-elevated {
+  box-shadow:
+    0 0 0 1px rgba(15, 38, 92, 0.05),
+    0 10px 36px -14px rgba(15, 38, 92, 0.18);
+}
+
+.heading-hero {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }

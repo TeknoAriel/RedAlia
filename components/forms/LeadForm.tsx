@@ -13,7 +13,6 @@ type LeadFormProps = {
 export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [via, setVia] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,7 +31,7 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind, ...raw }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; via?: string; message?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string };
 
       if (!res.ok || !data.ok) {
         setErrorMessage(data.error ?? "No se pudo enviar. Intentá de nuevo.");
@@ -40,7 +39,6 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
         return;
       }
 
-      setVia(data.via ?? null);
       setStatus("sent");
       form.reset();
     } catch {
@@ -57,13 +55,8 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
       >
         <p className="text-lg font-semibold text-brand-navy">Gracias por tu mensaje</p>
         <p className="mt-2 text-sm text-muted">
-          {via === "noop"
-            ? "Tu solicitud fue registrada. En producción configurá LEADS_WEBHOOK_URL (recomendado, lo más simple) o la URL de KiteProp + API token para que llegue al CRM."
-            : via === "webhook"
-              ? "Recibimos tu datos y los reenviamos a tu integración."
-              : via === "kiteprop"
-                ? "Los datos se enviaron a KiteProp según tu configuración."
-                : "Tu mensaje fue procesado correctamente."}
+          Lo recibimos correctamente. Nuestro equipo lo revisará y te contactará a la brevedad por el medio que
+          dejaste indicado.
         </p>
       </div>
     );
