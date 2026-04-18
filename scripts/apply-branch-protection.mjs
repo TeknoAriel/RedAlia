@@ -124,19 +124,36 @@ function pickCheckContext(checkRuns) {
   return null;
 }
 
-function protectionPayload(context, opts) {
+/**
+ * Variantes de `required_status_checks`: la API a veces rechaza mezcla checks+contexts
+ * o `app_id: null`; probamos de más compatible a más estricta.
+ * @param {"contexts_only" | "contexts_and_checks"} rscMode
+ */
+function protectionPayload(context, opts, rscMode = "contexts_only") {
   const { strict, enforceAdmins, requirePr } = opts;
   const ctx = context.trim();
+  const required_status_checks =
+    rscMode === "contexts_and_checks"
+      ? {
+          strict,
+          contexts: [ctx],
+          checks: [{ context: ctx, app_id: -1 }],
+        }
+      : {
+          strict,
+          contexts: [ctx],
+        };
+  const prReviews = requirePr
+    ? {
+        required_approving_review_count: 0,
+        dismiss_stale_reviews: false,
+        require_code_owner_reviews: false,
+      }
+    : null;
   return {
-    required_status_checks: {
-      strict,
-      contexts: [ctx],
-      checks: [{ context: ctx, app_id: null }],
-    },
+    required_status_checks,
     enforce_admins: enforceAdmins,
-    required_pull_request_reviews: requirePr
-      ? { required_approving_review_count: 0 }
-      : null,
+    required_pull_request_reviews: prReviews,
     restrictions: null,
     required_linear_history: false,
     allow_force_pushes: false,
@@ -188,8 +205,16 @@ async function putProtection(owner, repo, branch, body, token) {
     headers: { "Content-Type": "application/json" },
   });
   if (!ok) {
-    const msg = json?.message || JSON.stringify(json);
-    const err = new Error(`PUT branch protection (${status}): ${msg}`);
+    const detail =
+      json?.errors != null ? ` ${JSON.stringify(json.errors)}` : "";
+    const msg = (json?.message || JSON.stringify(json)) + detail;
+    const hint =
+      status === 403
+        ? " Token sin permiso de administración del repo (fine-grained: **Administration → Read and write**)."
+        : status === 422
+          ? " Revisá que el nombre del check exista en un run reciente de main (Actions → CI)."
+          : "";
+    const err = new Error(`PUT branch protection (${status}): ${msg}${hint}`);
     err.status = status;
     err.body = json;
     throw err;
@@ -210,11 +235,15 @@ async function main() {
       );
       const forced = (process.env.CHECK_CONTEXT || "").trim();
       if (forced) {
-        const body = protectionPayload(forced, {
-          strict: envBool("STRICT_UP_TO_DATE", true),
-          enforceAdmins: envBool("ENFORCE_ADMINS", true),
-          requirePr: envBool("REQUIRE_PR", true),
-        });
+        const body = protectionPayload(
+          forced,
+          {
+            strict: envBool("STRICT_UP_TO_DATE", true),
+            enforceAdmins: envBool("ENFORCE_ADMINS", true),
+            requirePr: envBool("REQUIRE_PR", true),
+          },
+          "contexts_only",
+        );
         console.log("[dry-run] PUT body:", JSON.stringify(body, null, 2));
       }
       process.exit(0);
@@ -249,12 +278,6 @@ async function main() {
     console.log(`Usando fallback: "${context}"`);
   }
 
-  const body = protectionPayload(context, {
-    strict,
-    enforceAdmins,
-    requirePr,
-  });
-
   const existing = await getProtection(owner, repo, branch, tokenFinal);
   if (
     protectionAlreadyMatches(existing, context, {
@@ -270,27 +293,37 @@ async function main() {
   }
 
   if (dry) {
+    const body = protectionPayload(
+      context,
+      { strict, enforceAdmins, requirePr },
+      "contexts_only",
+    );
     console.log("[dry-run] PUT body:", JSON.stringify(body, null, 2));
     process.exit(0);
   }
 
   const candidates = [context, ...FALLBACK_CONTEXTS.filter((c) => c !== context)];
+  const rscModes = ["contexts_only", "contexts_and_checks"];
   let lastErr;
   for (const ctx of candidates) {
-    const b = protectionPayload(ctx, { strict, enforceAdmins, requirePr });
-    try {
-      await putProtection(owner, repo, branch, b, tokenFinal);
-      console.log(
-        `Listo: ${branch} en ${owner}/${repo} exige status check "${ctx}", strict=${strict}, PR requerido=${requirePr}, enforce_admins=${enforceAdmins}.`,
-      );
-      process.exit(0);
-    } catch (e) {
-      lastErr = e;
-      if (e.status === 422) {
-        console.warn(`Contexto "${ctx}" rechazado por la API; probando siguiente…`);
-        continue;
+    for (const rscMode of rscModes) {
+      const b = protectionPayload(ctx, { strict, enforceAdmins, requirePr }, rscMode);
+      try {
+        await putProtection(owner, repo, branch, b, tokenFinal);
+        console.log(
+          `Listo: ${branch} en ${owner}/${repo} exige status check "${ctx}" (${rscMode}), strict=${strict}, PR requerido=${requirePr}, enforce_admins=${enforceAdmins}.`,
+        );
+        process.exit(0);
+      } catch (e) {
+        lastErr = e;
+        if (e.status === 422) {
+          console.warn(
+            `Intento fallido (${rscMode}, check "${ctx}"): ${e.message || e}`,
+          );
+          continue;
+        }
+        throw e;
       }
-      throw e;
     }
   }
   throw lastErr || new Error("No se pudo aplicar branch protection.");
@@ -298,5 +331,7 @@ async function main() {
 
 main().catch((e) => {
   console.error(e.message || e);
+  if (e.body) console.error(JSON.stringify(e.body, null, 2));
+  if (e.stack) console.error(e.stack);
   process.exit(1);
 });

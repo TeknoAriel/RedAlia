@@ -15,7 +15,8 @@ GitHub **no** permite que el `GITHUB_TOKEN` de Actions modifique branch protecti
 ### Una sola intervención en GitHub (dueño del repo)
 
 1. Creá un token:
-   - **Fine-grained:** acceso solo a este repositorio → permiso **Administration** → **Read and write**.
+   - **Fine-grained:** acceso solo a este repositorio → permiso **Administration** → **Read and write** (no alcanza solo *Read*: el script hace GET y PUT de la protección).
+   - Opcional: **Actions** → **Read** ayuda a autodetectar el nombre del check; si no está, el script usa nombres por defecto.
    - **Classic:** scope **`repo`** (dueño del repo).
 2. En el repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
    - Nombre: **`BRANCH_PROTECTION_TOKEN`**
