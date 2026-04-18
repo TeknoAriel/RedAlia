@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Propiedades",
   description:
-    "Publicaciones asociadas a la red Redalia: venta, arriendo y otras operaciones. Consultá oportunidades y derivá consultas con criterio profesional.",
+    "Publicaciones del catálogo Redalia: venta, arriendo y otras operaciones. Consultá oportunidades y derivá consultas con criterio profesional.",
 };
 
 export default async function PropiedadesPage() {
@@ -19,13 +19,13 @@ export default async function PropiedadesPage() {
     <div>
       <section className="border-b border-brand-navy/10 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Propiedades</p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight text-brand-navy sm:text-4xl">
-            Oportunidades de la red
+          <p className="redalia-eyebrow redalia-eyebrow--onLight">Catálogo</p>
+          <h1 className="font-display mt-4 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-brand-navy sm:text-4xl">
+            Oportunidades publicadas
           </h1>
           <p className="mt-4 max-w-2xl text-muted">
-            Catálogo para que corredoras y agentes compartan y cierren más operaciones. Las fichas se actualizan según
-            la operación de la red; si necesitás una búsqueda específica,{" "}
+            Listado para que corredoras y agentes compartan y cierren más operaciones. Las fichas se actualizan según
+            la operación de la comunidad; si necesitás una búsqueda específica,{" "}
             <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
               escribinos
             </Link>

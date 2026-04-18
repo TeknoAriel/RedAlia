@@ -19,7 +19,14 @@ export function buildPublicSlugForEntry(input: {
   partnerKey: string;
 }): string {
   const base = nameSlug(input.displayName).slice(0, 56) || "participante";
-  const scope = input.scope === "agency" ? "inmobiliaria" : "anunciante";
+  const scope =
+    input.scope === "agency"
+      ? "inmobiliaria"
+      : input.scope === "advertiser"
+        ? "anunciante"
+        : input.scope === "agent"
+          ? "agente"
+          : "subagente";
   const fp = fingerprintPartnerKey(input.partnerKey);
   let out = `${base}-${scope}-${fp}`.replace(/-+/g, "-").replace(/^-|-$/g, "");
   if (out.length > 140) out = out.slice(0, 140).replace(/-+$/g, "");

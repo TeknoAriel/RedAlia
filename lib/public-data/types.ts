@@ -3,8 +3,8 @@
  * Solo incluye campos que existen en el feed normalizado o que se derivan sin ambigüedad.
  */
 
-/** Roles expuestos hoy en la grilla pública de directorio (alineado a `extractSociosGridCatalog`). */
-export type PublicPartnerScope = "agency" | "advertiser";
+/** Roles expuestos en la grilla pública de directorio (alineado a `extractSociosGridCatalog`). */
+export type PublicPartnerScope = "agency" | "advertiser" | "agent" | "sub_agent";
 
 /**
  * Fila del directorio público (Socios / home indirecto vía enlaces al catálogo).

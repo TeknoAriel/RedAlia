@@ -5,9 +5,9 @@ import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
 
 export const metadata: Metadata = {
-  title: "Colaboración y canje",
+  title: "Canje y colaboración",
   description:
-    "Cómo Redalia ordena el negocio compartido entre corredoras y agentes en Chile: circulación de oportunidades, cooperación y marco profesional.",
+    "Cómo Redalia ordena el canje y la colaboración en la comunidad inmobiliaria chilena: oportunidades reales, transparencia y foco en cierres.",
 };
 
 const puntos = [
@@ -49,22 +49,16 @@ export default function ColaboracionPage() {
     <div>
       <PageHero
         variant="navy-gradient"
-        eyebrow="Pilar central · Redalia"
-        title="Colaboración y canje que ordenan el negocio compartido"
-        lead="El corazón de la red es que corredoras y agentes se respalden para cerrar más y mejor: circulación de oportunidades, cooperación en visitas y un marco profesional que reemplaza la informalidad dispersa."
+        eyebrow="Canje y colaboración"
+        title="Canje y colaboración que ordenan el negocio compartido"
+        lead="El corazón de la comunidad es que corredoras y agentes se respalden para cerrar más y mejor: circulación de oportunidades, cooperación en visitas y un marco profesional que reemplaza la informalidad dispersa."
       >
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/contacto"
-            className="inline-flex rounded-full bg-brand-gold px-6 py-3 text-sm font-semibold text-brand-navy transition hover:bg-[#d4b82e]"
-          >
-            Conversar con comercial
+          <Link href="/contacto" className="btn-redalia-gold-solid">
+            Coordinar conversación comercial
           </Link>
-          <Link
-            href="/planes"
-            className="inline-flex rounded-full border border-white/35 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Ver niveles de participación
+          <Link href="/planes" className="btn-redalia-outline-on-navy">
+            Ver membresía
           </Link>
         </div>
       </PageHero>
@@ -76,11 +70,10 @@ export default function ColaboracionPage() {
           titleVariant="display"
         />
         <div className="mt-8 rounded-2xl border border-brand-gold/25 bg-brand-navy-soft/50 p-6 sm:p-8">
-          <h3 className="text-lg font-semibold text-brand-navy">No es «networking» sin operación detrás</h3>
+          <h3 className="text-lg font-semibold text-brand-navy">No es networking sin operación detrás</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Redalia separa el encuentro social del trabajo comercial: acá se priorizan acuerdos que llevan a visitas,
-            ofertas y cierres. Si buscás solo ampliar agenda sin ejecutar, probablemente haya otros espacios más
-            adecuados.
+            ofertas y cierres concretos. Si buscás solo ampliar agenda sin ejecutar, hay otros espacios más adecuados.
           </p>
         </div>
       </section>
@@ -99,6 +92,7 @@ export default function ColaboracionPage() {
                 key={p.title}
                 className="card-elevated rounded-2xl border border-brand-navy/10 bg-brand-navy-soft/40 p-6"
               >
+                <div className="redalia-card-accent" />
                 <h3 className="text-lg font-semibold text-brand-navy">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{p.text}</p>
               </li>
@@ -116,7 +110,7 @@ export default function ColaboracionPage() {
         <ul className="mt-10 grid gap-6 md:grid-cols-3">
           {transformacion.map((t) => (
             <li key={t.title} className="rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm">
-              <div className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-deep" />
+              <div className="redalia-card-accent" />
               <h3 className="text-base font-semibold text-brand-navy">{t.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{t.text}</p>
             </li>
@@ -127,7 +121,7 @@ export default function ColaboracionPage() {
       <section className="border-y border-brand-navy/10 bg-brand-navy-soft/50 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-brand-gold/30 bg-white p-8 sm:p-10">
-            <h2 className="text-xl font-bold text-brand-navy">Cómo se vive en la práctica</h2>
+            <h2 className="redalia-h2-section">Cómo se vive en la práctica</h2>
             <ol className="mt-6 list-decimal space-y-4 pl-5 text-sm leading-relaxed text-muted">
               <li>
                 <strong className="text-brand-navy">Ingreso y alineación:</strong> definimos perfil, zona y expectativas
@@ -152,14 +146,14 @@ export default function ColaboracionPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
-          title="¿Querés llevar el canje de tu equipo al siguiente nivel?"
-          description="Coordinamos una reunión para mapear oportunidades, riesgos y el nivel de membresía que mejor calce."
+          title="¿Querés ordenar el canje de tu equipo con la comunidad?"
+          description="Coordinamos una reunión para mapear oportunidades, transparencia en la colaboración y el nivel de membresía que mejor calce."
           primaryHref="/contacto"
-          primaryLabel="Coordinar reunión"
+          primaryLabel="Coordinar conversación comercial"
           secondaryHref="/propiedades"
           secondaryLabel="Ver catálogo"
           tertiaryHref="/unete"
-          tertiaryLabel="Postular a la red"
+          tertiaryLabel="Postular como socio"
         />
       </section>
     </div>

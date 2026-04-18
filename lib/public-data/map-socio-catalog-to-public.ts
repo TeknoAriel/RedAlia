@@ -4,16 +4,15 @@ import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/p
 
 /**
  * Convierte una fila del catálogo interno (`SocioCatalogEntry`) al modelo público.
- * Filas que no son agencia ni anunciante no forman parte del directorio web actual → `null`.
  */
 export function mapSocioCatalogEntryToPublicDirectory(
   entry: SocioCatalogEntry,
   coverageLabels: string[],
 ): PublicPartnerDirectoryRowDraft | null {
-  if (entry.scope !== "agency" && entry.scope !== "advertiser") {
+  const scope = entry.scope as PublicPartnerScope;
+  if (!publicPartnerRoleLabelEs[scope]) {
     return null;
   }
-  const scope = entry.scope as PublicPartnerScope;
   return {
     partnerKey: entry.key,
     scope,

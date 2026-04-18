@@ -33,8 +33,10 @@ export default function ServiciosPage() {
     <div>
       <section className="border-b border-brand-navy/10 bg-brand-navy text-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Redalia</p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">Servicios para la red</h1>
+          <p className="redalia-eyebrow redalia-eyebrow--onNavy">Servicios</p>
+          <h1 className="font-display heading-hero mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+            Servicios para la comunidad
+          </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/88">
             Más allá del listado de propiedades, Redalia ofrece estructura comercial, acompañamiento y servicios
             pensados para que la colaboración entre socios sea sostenible.
@@ -58,7 +60,7 @@ export default function ServiciosPage() {
         <p className="mt-10 text-sm text-muted">
           Para un detalle acotado a tu corredora o equipo, revisá también la sección{" "}
           <Link href="/planes" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-            Planes
+            Membresía
           </Link>{" "}
           o coordiná una reunión en{" "}
           <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
@@ -73,7 +75,7 @@ export default function ServiciosPage() {
           title="¿Necesitás una propuesta a medida?"
           description="Evaluamos tu operación y te entregamos el alcance comercial claro, sin cifras genéricas."
           primaryHref="/contacto"
-          primaryLabel="Pedir reunión"
+          primaryLabel="Coordinar conversación comercial"
           secondaryHref="/que-es"
           secondaryLabel="Qué es Redalia"
         />

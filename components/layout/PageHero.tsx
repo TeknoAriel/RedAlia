@@ -35,10 +35,10 @@ export function PageHero({
           className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20 ${contentClassName}`}
         >
           {prepend}
-          {eyebrow && (
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">{eyebrow}</p>
-          )}
-          <h1 className="font-display heading-hero mt-4 max-w-3xl text-3xl font-bold leading-[1.12] text-brand-navy sm:text-4xl lg:text-[2.45rem]">
+          {eyebrow && <p className="redalia-eyebrow redalia-eyebrow--onLight">{eyebrow}</p>}
+          <h1
+            className={`font-display heading-hero max-w-3xl text-3xl font-bold leading-[1.12] text-brand-navy sm:text-4xl lg:text-[2.45rem] ${prepend && !eyebrow ? "mt-8 sm:mt-9" : "mt-3 sm:mt-4"}`}
+          >
             {title}
           </h1>
           {lead && (
@@ -61,10 +61,10 @@ export function PageHero({
       className={`relative z-10 mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24 ${isImage ? "bg-mesh" : ""} ${contentClassName}`}
     >
       {prepend}
-      {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-gold">{eyebrow}</p>
-      )}
-      <h1 className="font-display heading-hero mt-4 max-w-3xl text-3xl font-bold leading-[1.1] text-white sm:text-4xl lg:text-[2.65rem]">
+      {eyebrow && <p className="redalia-eyebrow redalia-eyebrow--onNavy">{eyebrow}</p>}
+      <h1
+        className={`font-display heading-hero max-w-3xl text-3xl font-bold leading-[1.1] text-white sm:text-4xl lg:text-[2.65rem] ${prepend && !eyebrow ? "mt-8 sm:mt-9" : "mt-3 sm:mt-4"}`}
+      >
         {title}
       </h1>
       {lead && (
@@ -72,7 +72,7 @@ export function PageHero({
       )}
       {children ? <div className="mt-10">{children}</div> : null}
       {footnote ? (
-        <p className="mt-8 max-w-xl text-xs leading-relaxed text-white/55">{footnote}</p>
+        <p className="mt-8 max-w-2xl border-t border-white/10 pt-6 text-xs leading-relaxed text-white/70">{footnote}</p>
       ) : null}
     </div>
   );
@@ -80,16 +80,17 @@ export function PageHero({
   if (isImage && imageSrc) {
     return (
       <section className="relative overflow-hidden border-b border-brand-navy/10 bg-brand-navy text-white">
-        <div className="absolute inset-0 img-tech-wrap">
+        <div className="absolute inset-0">
           <Image
             src={imageSrc}
             alt={imageAlt}
             fill
-            className="object-cover opacity-38"
+            className="object-cover opacity-[0.26]"
             priority
             sizes="100vw"
           />
-          <div className="absolute inset-0 z-[2] bg-gradient-to-r from-brand-navy via-brand-navy/97 to-brand-navy/90" />
+          <div className="absolute inset-0 z-[2] bg-gradient-to-br from-brand-navy via-brand-navy/[0.98] to-brand-navy/88" />
+          <div className="absolute inset-0 z-[2] bg-gradient-to-t from-brand-navy via-transparent to-brand-navy/40" />
         </div>
         {body}
       </section>

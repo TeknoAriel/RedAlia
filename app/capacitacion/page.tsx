@@ -16,7 +16,7 @@ const ejes = [
   },
   {
     title: "Herramientas y operación",
-    text: "Uso ordenado de plataformas de publicación y seguimiento, alineado a la operación diaria de la red.",
+    text: "Uso ordenado de plataformas de publicación y seguimiento, alineado a la operación diaria de la comunidad.",
   },
   {
     title: "Normativa y contexto",
@@ -29,12 +29,12 @@ export default function CapacitacionPage() {
     <div>
       <section className="border-b border-brand-navy/10 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Redalia</p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight text-brand-navy sm:text-4xl">
+          <p className="redalia-eyebrow redalia-eyebrow--onLight">Capacitación</p>
+          <h1 className="font-display heading-hero mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-brand-navy sm:text-4xl">
             Capacitación continua
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-muted">
-            La red apuesta por el desarrollo permanente de sus socios: mejor formación significa mejores resultados para
+            La comunidad apuesta por el desarrollo permanente de sus socios: mejor formación significa mejores resultados para
             las corredoras, los agentes y los clientes finales.
           </p>
         </div>
@@ -44,16 +44,17 @@ export default function CapacitacionPage() {
         <SectionHeader
           title="Formación que acompaña el negocio"
           description="Las instancias de aprendizaje están pensadas para aplicarse de inmediato en terreno, no como contenido genérico desconectado de la realidad del corretaje en Chile."
+          titleVariant="display"
         />
       </section>
 
       <section className="border-y border-brand-navy/10 bg-brand-navy-soft/50 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader align="center" title="Ejes de contenido" />
+          <SectionHeader align="center" title="Ejes de contenido" titleVariant="display" />
           <ul className="mt-10 grid gap-6 sm:grid-cols-3">
             {ejes.map((e) => (
               <li key={e.title} className="rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm">
-                <div className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-deep" />
+                <div className="redalia-card-accent" />
                 <h3 className="text-base font-semibold text-brand-navy">{e.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{e.text}</p>
               </li>
@@ -72,12 +73,14 @@ export default function CapacitacionPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
-          title="¿Querés sumarte y acceder a la formación de la red?"
-          description="Te contamos cómo es el proceso de ingreso y qué incluye tu nivel de participación."
+          title="¿Querés sumarte y acceder a la formación?"
+          description="Te contamos cómo es el proceso de ingreso y qué incluye tu nivel de membresía."
           primaryHref="/unete"
-          primaryLabel="Postular a la red"
+          primaryLabel="Postular como socio"
           secondaryHref="/planes"
-          secondaryLabel="Ver planes"
+          secondaryLabel="Ver membresía"
+          tertiaryHref="/contacto"
+          tertiaryLabel="Coordinar conversación comercial"
         />
       </section>
     </div>

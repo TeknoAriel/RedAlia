@@ -8,9 +8,10 @@ Validar de forma **server-only** que la API Key de KiteProp es aceptada por la A
 
 | Variable | Obligatoria | Descripción |
 |----------|-------------|-------------|
-| `KITEPROP_API_KEY` | Sí, para que la prueba tenga sentido | API Key enviada en header `X-API-Key`. **Nunca** exponer en cliente, logs o respuestas HTTP. |
+| **`KITEPROP_API_SECRET`** | No (recomendada si querés **una** variable) | Mismo `kp_…` que en MCP; se usa como fallback de `X-API-Key` y de Bearer. Ver **`docs/kiteprop-credentials.md`**. |
+| `KITEPROP_API_KEY` | Una de API_KEY / API_SECRET | Header `X-API-Key` para `/profile`. **Nunca** exponer en cliente, logs o respuestas HTTP. |
 | `KITEPROP_API_BASE_URL` | No | Base de la API. Default: `https://www.kiteprop.com/api/v1` (sin barra final en la lógica interna). |
-| `KITEPROP_ENABLE_API_TEST` | No (pero ver abajo) | Debe ser exactamente **`1`** para que exista la ruta de prueba. Cualquier otro valor o ausencia → **404** en `/api/test-kiteprop`. |
+| `KITEPROP_ENABLE_API_TEST` | No (pero ver abajo) | Debe ser exactamente **`1`** para habilitar rutas de prueba **server-only**. Si no es `1` → **404** en `/api/test-kiteprop` y `/api/test-kiteprop-properties`. |
 
 El feed de propiedades públicas **no** usa estas variables; sigue usando `KITEPROP_PROPERTIES_URL` (JSON público).
 
@@ -19,22 +20,28 @@ El feed de propiedades públicas **no** usa estas variables; sigue usando `KITEP
 - **Método:** `GET`
 - **Path (relativo a base):** `/profile`
 - **URL completa típica:** `https://www.kiteprop.com/api/v1/profile`
-- **Header requerido:** `X-API-Key: <KITEPROP_API_KEY>`
+- **Header requerido:** `X-API-Key:` valor de `KITEPROP_API_KEY` o `KITEPROP_API_SECRET` (misma secret, ver `lib/kiteprop/env-credentials.ts`)
 - **Header adicional:** `Accept: application/json`
 
 ## Código relevante
 
+- `lib/kiteprop/env-credentials.ts` — resolución de secret única vs variables por cabecera.
 - `lib/kiteprop/client.ts` — cliente HTTP, timeout (~15 s), errores tipados, sin logs de secretos.
 - `lib/kiteprop/get-profile.ts` — `getKitePropProfile()`.
 - `lib/kiteprop/api-test-enabled.ts` — flag `KITEPROP_ENABLE_API_TEST`.
-- `app/api/test-kiteprop/route.ts` — ruta de prueba (solo si flag = `1`).
+- `app/api/test-kiteprop/route.ts` — prueba `GET /profile` (solo si flag = `1`).
+- `app/api/test-kiteprop-properties/route.ts` — muestra estructural de `GET /properties` (Bearer); ver `docs/kiteprop-api-properties-investigation.md`.
 
 ## Cómo probar en local
 
 1. En `.env.local` (no commitear):
 
    ```bash
-   KITEPROP_API_KEY=tu_key
+   # Opción A — una sola variable (mismo kp_… que en MCP):
+   KITEPROP_API_SECRET=tu_kp_token
+   # Opción B — variables por cabecera (pueden repetir el mismo valor):
+   # KITEPROP_API_KEY=...   # X-API-Key /profile
+   # KITEPROP_ACCESS_TOKEN=...   # Bearer /properties
    KITEPROP_ENABLE_API_TEST=1
    ```
 
@@ -42,9 +49,11 @@ El feed de propiedades públicas **no** usa estas variables; sigue usando `KITEP
 
 3. `curl -sS http://localhost:3000/api/test-kiteprop | jq`
 
+4. (Opcional) `curl -sS http://localhost:3000/api/test-kiteprop-properties | jq` — requiere Bearer; no devuelve PII en claro.
+
 ## Cómo probar en Vercel
 
-1. **Environment Variables:** `KITEPROP_API_KEY`, y temporalmente `KITEPROP_ENABLE_API_TEST=1`.
+1. **Environment Variables:** `KITEPROP_API_SECRET` (o `KITEPROP_API_KEY`), y temporalmente `KITEPROP_ENABLE_API_TEST=1`.
 2. Deploy / redeploy si hace falta.
 3. `GET https://<proyecto>.vercel.app/api/test-kiteprop`
 4. **Tras validar:** quitar `KITEPROP_ENABLE_API_TEST` o ponerla en `0` para que la ruta vuelva a responder **404** y no quede expuesta.
@@ -94,7 +103,7 @@ HTTP **502**, `INVALID_JSON`.
 | **404** | Next | Prueba deshabilitada por flag; comportamiento intencional. |
 | **401 / 403** | KiteProp (reflejado en JSON `status` con HTTP 502 en la ruta) | Key inválida, revocada o sin permiso para `/profile`. |
 | **502** | Next | Fallo de integración o error HTTP/parseo upstream (ver `message` y `status` en cuerpo). |
-| **503** | Next | Falta `KITEPROP_API_KEY` en el entorno. |
+| **503** | Next | Falta credencial para `/profile`: `KITEPROP_API_KEY` o `KITEPROP_API_SECRET`. |
 | **504** | Next | Timeout del cliente hacia KiteProp (~15 s). |
 
 ## Qué aporta `/profile` como prueba

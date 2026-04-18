@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { propertyFichaConsultarRow } from "@/lib/agencies";
 import {
-  partnerMatchesStaticMatrizAliases,
-  partnerShouldHideFromPublicaBlock,
-} from "@/lib/master-agency";
+  fichaInmobiliariaOperativaChipEs,
+  propertyFichaConsultarRow,
+  propertyFichaInmobiliariaOperativa,
+} from "@/lib/agencies";
+import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 
@@ -25,9 +26,8 @@ export function PropertyCard({
   const opLabel = labelForOperation(property.operation);
   const showCompare = Boolean(onToggleCompare);
   const consultar = propertyFichaConsultarRow(property);
-  const showAgencyOnCard = Boolean(
-    property.agency?.name?.trim() && !partnerMatchesStaticMatrizAliases(property.agency),
-  );
+  const inmobCard = propertyFichaInmobiliariaOperativa(property);
+  const showAgencyOnCard = Boolean(inmobCard?.name);
   const publicaCard =
     property.advertiser?.name?.trim() && !partnerShouldHideFromPublicaBlock(property.advertiser, property)
       ? { label: "Anunciante" as const, name: property.advertiser.name.trim() }
@@ -103,10 +103,12 @@ export function PropertyCard({
         </p>
         {(showAgencyOnCard || publicaCard || consultar?.name || property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
-            {showAgencyOnCard && property.agency?.name && (
+            {showAgencyOnCard && inmobCard && (
               <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">Inmobiliaria · </span>
-                {property.agency.name}
+                <span className="font-medium text-brand-navy/60">
+                  {fichaInmobiliariaOperativaChipEs[inmobCard.scope]} ·{" "}
+                </span>
+                {inmobCard.name}
               </p>
             )}
             {publicaCard && (

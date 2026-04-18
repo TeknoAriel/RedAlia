@@ -139,6 +139,49 @@ body {
   }
 }
 
+/* Imágenes de apoyo: lectura editorial, sin rejilla “producto” */
+.img-editorial {
+  position: relative;
+  isolation: isolate;
+}
+
+.img-editorial::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(15, 38, 92, 0.22) 0%,
+    transparent 45%
+  );
+  z-index: 1;
+}
+
+/* Panel institucional sobrio (sin animación tipo demo) */
+.section-institutional-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(15, 38, 92, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f9 100%);
+  box-shadow:
+    0 0 0 1px rgba(15, 38, 92, 0.04),
+    0 18px 50px -22px rgba(15, 38, 92, 0.16);
+}
+
+.section-institutional-panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
 /* Institucional / premium suave */
 .strip-navy {
   background: linear-gradient(100deg, #0a1a40 0%, #0f265c 42%, #163a72 100%);
@@ -153,4 +196,209 @@ body {
 .heading-hero {
   letter-spacing: -0.02em;
   text-wrap: balance;
+}
+
+/* —— Sistema editorial Redalia (eyebrows / jerarquía) —— */
+.redalia-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+}
+
+.redalia-eyebrow--onLight {
+  color: #8a6a1e;
+}
+
+.redalia-eyebrow--onNavy {
+  color: #c9a227;
+}
+
+.redalia-eyebrow--muted {
+  color: rgba(15, 38, 92, 0.55);
+}
+
+/* Bajada larga en hero / cabecera (misma familia sans, tracking algo menor) */
+.redalia-eyebrow--compact {
+  letter-spacing: 0.12em;
+}
+
+/* Lockup en navbar (sin forzar mayúsculas; legible en una línea o dos) */
+.redalia-nav-lockup {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: rgba(15, 38, 92, 0.78);
+}
+
+@media (min-width: 1024px) {
+  .redalia-nav-lockup {
+    font-size: 0.75rem;
+  }
+}
+
+/* Tagline bajo lockup en hero oscuro */
+.redalia-hero-tagline {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 36rem;
+}
+
+@media (min-width: 640px) {
+  .redalia-hero-tagline {
+    font-size: 0.875rem;
+  }
+}
+
+/* Bajada de marca en pie (alineada a sans, sin competir con el nombre display) */
+.redalia-footer-brandline {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #c9a227;
+}
+
+.redalia-footer-col-title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #c9a227;
+}
+
+/* H2 de página / bloque (misma receta: display, escala contenida) */
+.redalia-h2-section {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: #0f265c;
+}
+
+@media (min-width: 640px) {
+  .redalia-h2-section {
+    font-size: 1.25rem;
+  }
+}
+
+/* Título de sección sobre franja oscura (sans + peso, sin competir con H1 display) */
+.redalia-h2-band {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+@media (min-width: 640px) {
+  .redalia-h2-band {
+    font-size: 1.5rem;
+  }
+}
+
+/* Acento fino bajo títulos de card (misma receta en cards claros) */
+.redalia-card-accent {
+  margin-bottom: 0.75rem;
+  height: 0.25rem;
+  width: 2.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #c9a227 0%, #8a6a1e 100%);
+}
+
+/* Botón primario institucional (misma receta en hero / CTAs oscuros) */
+.btn-redalia-gold-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #c9a227;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: #0f265c;
+  box-shadow: 0 10px 25px -8px rgba(15, 38, 92, 0.35);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-redalia-gold-solid:hover {
+  background-color: #d4b82e;
+}
+
+.btn-redalia-gold-solid:focus-visible,
+.btn-redalia-outline-on-navy:focus-visible,
+.btn-redalia-ghost-on-navy:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.65);
+  outline-offset: 2px;
+}
+
+.btn-redalia-outline-on-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: #fff;
+  transition: background-color 0.15s ease;
+}
+
+.btn-redalia-outline-on-navy:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.btn-redalia-ghost-on-navy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: rgba(255, 255, 255, 0.92);
+  transition: background-color 0.15s ease;
+}
+
+.btn-redalia-ghost-on-navy:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Secundario sobre fondo claro (formularios / páginas blancas) */
+.btn-redalia-outline-on-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(15, 38, 92, 0.2);
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  color: #0f265c;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-redalia-outline-on-light:hover {
+  background-color: #e8edf5;
+  border-color: rgba(15, 38, 92, 0.28);
+}
+
+.btn-redalia-outline-on-light:focus-visible {
+  outline: 2px solid rgba(15, 38, 92, 0.35);
+  outline-offset: 2px;
 }

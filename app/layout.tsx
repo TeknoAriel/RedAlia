@@ -21,12 +21,12 @@ const libreBaskerville = Libre_Baskerville({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} — ${siteConfig.tagline}`,
+    default: `${siteConfig.name} — ${siteConfig.brandLockup}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   openGraph: {
-    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    title: `${siteConfig.name} — ${siteConfig.brandLockup}`,
     description: siteConfig.description,
     locale: "es_CL",
     type: "website",

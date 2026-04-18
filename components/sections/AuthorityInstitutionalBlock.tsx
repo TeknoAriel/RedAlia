@@ -23,8 +23,8 @@ const pillars = [
 export function AuthorityInstitutionalBlock() {
   return (
     <div className="rounded-2xl border border-brand-navy/12 bg-white p-8 shadow-sm sm:p-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Institucional</p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
+      <p className="redalia-eyebrow redalia-eyebrow--onLight">Institucional</p>
+      <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-[1.75rem] lg:text-[2rem]">
         Cómo construimos confianza
       </h2>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
@@ -37,6 +37,7 @@ export function AuthorityInstitutionalBlock() {
             key={p.title}
             className="card-elevated rounded-xl border border-brand-navy/8 bg-brand-navy-soft/35 px-5 py-5"
           >
+            <div className="redalia-card-accent" />
             <h3 className="text-sm font-semibold text-brand-navy">{p.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">{p.text}</p>
           </li>

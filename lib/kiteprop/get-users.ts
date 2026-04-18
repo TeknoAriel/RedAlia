@@ -5,7 +5,7 @@ import { kitepropGetJson } from "@/lib/kiteprop/client";
 const ALLOWED_LIMITS = new Set([5, 10, 15, 20, 25]);
 
 /**
- * `GET /users` según documentación pública — autenticación **Bearer** (`KITEPROP_ACCESS_TOKEN`).
+ * `GET /users` según documentación pública — autenticación **Bearer** (`KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET`).
  * No usar hasta tener token válido y permisos confirmados; el resultado es `unknown` hasta modelar el shape real.
  *
  * @see docs/kiteprop-data-model.md

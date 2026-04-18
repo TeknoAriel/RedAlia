@@ -8,7 +8,7 @@ import { getWhatsappContact } from "@/lib/public-contact";
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Contacto comercial Redalia: correo, WhatsApp y formulario para coordinar reunión o presentación.",
+    "Contacto comercial Redalia: correo, WhatsApp y formulario para coordinar conversación o presentación.",
 };
 
 const confianza = [
@@ -24,15 +24,15 @@ export default function ContactoPage() {
     <div>
       <PageHero
         variant="navy-gradient"
-        eyebrow="Contacto comercial"
+        eyebrow="Contacto"
         title="Hablemos de encaje comercial y próximos pasos"
-        lead="Presentaciones, dudas sobre la red o evaluación con tu corredora. El equipo responde con criterio comercial y transparencia sobre proceso y membresía."
+        lead="Presentaciones, dudas sobre Redalia o evaluación con tu corredora. El equipo responde con criterio comercial y transparencia sobre proceso y membresía."
       />
 
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="text-lg font-semibold text-brand-navy">Por qué conviene escribirnos ahora</h2>
+            <h2 className="redalia-h2-section">Por qué conviene escribirnos ahora</h2>
             <ul className="mt-6 space-y-3 text-sm text-muted">
               {confianza.map((t) => (
                 <li key={t} className="flex gap-2">
@@ -41,7 +41,7 @@ export default function ContactoPage() {
                 </li>
               ))}
             </ul>
-            <h2 className="mt-10 text-lg font-semibold text-brand-navy">Canales directos</h2>
+            <h2 className="redalia-h2-section mt-10">Canales directos</h2>
             <ul className="mt-4 space-y-4 text-sm text-muted">
               <li>
                 <span className="font-medium text-brand-navy">Correo</span>
@@ -76,17 +76,14 @@ export default function ContactoPage() {
                 {siteConfig.contact.schedule}
               </li>
             </ul>
-            <Link
-              href="/planes"
-              className="mt-8 inline-flex rounded-full border border-brand-navy/20 px-5 py-2.5 text-sm font-semibold text-brand-navy hover:bg-brand-navy-soft"
-            >
-              Revisar planes antes de escribir
+            <Link href="/planes" className="btn-redalia-outline-on-light mt-8">
+              Ver membresía
             </Link>
           </div>
           <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-semibold text-brand-navy">Enviar mensaje</h2>
+            <h2 className="redalia-h2-section">Enviar mensaje</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Contanos brevemente tu corredora, zona y qué te gustaría resolver (presentación, canje, planes). Cuanto más
+              Contanos brevemente tu corredora, zona y qué te gustaría resolver (presentación, canje, membresía). Cuanto más
               concreto el mensaje, más útil será nuestra respuesta.
             </p>
             <div className="mt-6">

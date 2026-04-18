@@ -8,10 +8,12 @@ export function normalizePublicDisplayName(name: string): string {
 const scopeOrder: Record<PublicPartnerScope, number> = {
   agency: 0,
   advertiser: 1,
+  agent: 2,
+  sub_agent: 3,
 };
 
 /**
- * Orden institucional: más publicaciones primero; luego inmobiliaria antes que anunciante; luego nombre.
+ * Orden institucional: más publicaciones primero; luego rol (inmobiliaria → anunciante → agente → subagente); luego nombre.
  */
 export function sortPublicDirectoryEntries(
   entries: PublicPartnerDirectoryRowDraft[],

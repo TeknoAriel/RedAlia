@@ -10,50 +10,50 @@ import { PartnerLogosStrip } from "@/components/sections/PartnerLogosStrip";
 import { TangibleValueForBrokers } from "@/components/sections/TangibleValueForBrokers";
 import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
 import { getProperties } from "@/lib/get-properties";
+import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data";
+import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
+import { siteConfig } from "@/lib/site-config";
 
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
 
-const trustSignals = [
-  {
-    title: "Estructura comercial",
-    text: "Reglas de colaboración y canje acordadas entre socios, con respaldo del equipo de la red.",
-  },
-  {
-    title: "Incorporación por perfil",
-    text: "Conversación previa sobre zona, operación y expectativas antes de sumar oferta al ecosistema.",
-  },
-  {
-    title: "Foco en cierres",
-    text: "Prioridad a visitas, propuestas y negocios concretos, no a volumen de reuniones sin resultado.",
-  },
+/** Pilares explícitos de la propuesta institucional (copy breve por ítem). */
+const pilaresRedalia = [
+  { title: "Negocios reales", text: "Prioridad a visitas, ofertas y cierres concretos —no a ruido ni volumen vacío." },
+  { title: "Comunidad profesional", text: "Corredoras y agentes que comparten estándar de rigurosidad comercial." },
+  { title: "Canje y colaboración eficiente", text: "Oportunidades que circulan con reglas claras y seguimiento serio." },
+  { title: "Honestidad y transparencia", text: "Roles y acuerdos que se entienden desde el inicio, sin letra chica escondida." },
+  { title: "Profesionalismo", text: "Respeto por tu marca y por la relación directa con comprador o arrendatario." },
+  { title: "Capacitación continua", text: "Formación aplicable al terreno: negociación, operación y buenas prácticas." },
+  { title: "Tecnología al servicio de la comunidad", text: "Herramientas que ordenan difusión y gestión sin sustituir el criterio del corredor." },
+  { title: "Más y mejores cierres", text: "Meta explícita de la red: ejecutar mejor entre socios, no solo exponer más." },
 ];
 
 const benefits = [
   {
     title: "Canje y cartera en circulación",
-    text: "Ampliás lo que podés ofrecer al cliente y otros socios profesionalizan la difusión de tus publicaciones.",
+    text: "Más alternativas concretas para el cliente y socios que mueven tu oferta con el mismo estándar profesional.",
   },
   {
-    title: "Visibilidad dentro de la red",
-    text: "Tu marca en un entorno de corredores; menos ruido que en portales abiertos y más intención comercial.",
+    title: "Visibilidad dentro de la comunidad",
+    text: "Tu marca entre pares que negocian; menos dispersión que en portales abiertos y más intención de cierre.",
   },
   {
     title: "Coordinación con respaldo",
-    text: "Criterios compartidos para seguimiento y difusión, con acompañamiento según tu plan de participación.",
+    text: "Criterios compartidos para difusión y seguimiento, con acompañamiento según tu plan de membresía.",
   },
   {
     title: "Capacitación aplicable",
-    text: "Formación en práctica comercial y herramientas para usar el día siguiente en visitas y negociación.",
+    text: "Instancias pensadas para el día siguiente en terreno: visitas, propuestas y negociación con rigor.",
   },
   {
     title: "Alineación a tu escala",
-    text: "Corredoras y agentes reciben orientación acorde a tamaño de equipo, territorio y tipo de operación.",
+    text: "Orientación según tamaño de equipo, territorio y tipo de operación —sin receta única forzada.",
   },
   {
     title: "Tu criterio, tu cliente",
-    text: "La red potencia canales y colaboración; la relación directa con el comprador o arrendatario sigue siendo tuya.",
+    text: "La comunidad potencia canales y colaboración; la relación con la contraparte sigue siendo tuya.",
   },
 ];
 
@@ -62,6 +62,7 @@ export default async function HomePage() {
   const listingCount = catalog.ok ? catalog.properties.length : 0;
   const directorySnapshot =
     catalog.ok ? buildPublicDirectorySnapshot(catalog.properties, { featuredMax: 8 }) : null;
+  const mcpOverlay = await loadPublicMcpNetworkOverlay();
 
   return (
     <>
@@ -69,57 +70,67 @@ export default async function HomePage() {
         variant="navy-image"
         imageSrc={heroImage}
         imageAlt=""
-        prepend={<SectionLogoMark size="lg" align="start" className="mb-2" />}
-        eyebrow="Red inmobiliaria colaborativa · Chile"
-        title="Redalia: más negocios para tu corredora, con canje y colaboración profesional"
-        lead="Unimos corredoras y agentes para que compartan oportunidades con criterio, ordenen la operación y ganen exposición dentro de una red seria —sin sustituir tu marca ni tu relación con el cliente."
-        footnote="Incorporación conversada · Estándares entre socios · Catálogo y formación alineados a la operación de la red"
+        prepend={
+          <>
+            <SectionLogoMark size="lg" align="start" className="mb-4" />
+            <p className="redalia-eyebrow redalia-eyebrow--onNavy redalia-eyebrow--compact max-w-xl">
+              {siteConfig.brandLockup}
+            </p>
+            <p className="redalia-hero-tagline mt-2">{siteConfig.tagline}</p>
+          </>
+        }
+        title="Redalia: negocios reales, canje y colaboración profesional para tu corredora"
+        lead="Corredoras y agentes en Chile comparten oportunidades con criterio, ordenan la operación y fortalecen su marca dentro de una comunidad seria —sin sustituir tu relación directa con el cliente."
+        footnote="Incorporación conversada · Estándares entre socios · Membresía con acompañamiento · Capacitación y catálogo alineados a la operación"
         contentClassName="py-20 sm:py-24 lg:py-28"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
-          <Link
-            href="/contacto"
-            className="inline-flex items-center justify-center rounded-full bg-brand-gold px-8 py-3.5 text-sm font-semibold text-brand-navy shadow-lg transition hover:bg-[#d4b82e]"
-          >
-            Pedir reunión comercial
+          <Link href="/contacto" className="btn-redalia-gold-solid px-8 py-3.5">
+            Coordinar conversación comercial
           </Link>
-          <Link
-            href="/unete"
-            className="inline-flex items-center justify-center rounded-full border border-white/40 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Postular a la red
+          <Link href="/unete" className="btn-redalia-outline-on-navy px-8 py-3.5">
+            Postular como socio
           </Link>
-          <Link
-            href="/propiedades"
-            className="inline-flex items-center justify-center rounded-full border border-white/20 px-8 py-3.5 text-sm font-semibold text-white/95 transition hover:bg-white/10"
-          >
-            Ver oportunidades publicadas
+          <Link href="/propiedades" className="btn-redalia-ghost-on-navy px-8 py-3.5">
+            Ver catálogo
           </Link>
         </div>
       </PageHero>
 
-      <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
-
-      <PartnerDirectoryPreview feedOk={catalog.ok} snapshot={directorySnapshot} />
-
-      <section className="border-b border-brand-navy/10 bg-white py-12 sm:py-14">
+      <section className="border-b border-brand-navy/10 bg-gradient-to-b from-brand-navy-soft via-white to-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-brand-navy/55">
-            Por qué la red se siente distinta
-          </p>
-          <ul className="mt-8 grid gap-6 sm:grid-cols-3">
-            {trustSignals.map((t) => (
+          <SectionHeader
+            align="center"
+            eyebrow="Propuesta institucional"
+            title="Pilares de Redalia"
+            description="Criterios explícitos que ordenan la relación entre socios y el trato con el mercado: negocio antes que volumen, y comunidad antes que exposición vacía."
+            titleVariant="display"
+          />
+          <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {pilaresRedalia.map((t, index) => (
               <li
                 key={t.title}
-                className="card-elevated rounded-2xl border border-brand-navy/10 bg-brand-navy-soft/50 px-5 py-6 text-center"
+                className="card-elevated relative rounded-2xl border border-brand-navy/10 border-l-[3px] border-l-brand-gold bg-white py-6 pl-5 pr-4 shadow-sm sm:py-7 sm:pl-6 sm:pr-5"
               >
-                <h3 className="text-sm font-semibold text-brand-navy">{t.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">{t.text}</p>
+                <span
+                  className="font-display text-2xl font-bold tabular-nums text-brand-gold-deep/90"
+                  aria-hidden
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h3 className="mt-2 text-base font-semibold leading-snug text-brand-navy">{t.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{t.text}</p>
               </li>
             ))}
           </ul>
         </div>
       </section>
+
+      <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
+
+      {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
+
+      <PartnerDirectoryPreview feedOk={catalog.ok} snapshot={directorySnapshot} />
 
       <TangibleValueForBrokers />
 
@@ -145,10 +156,10 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-xl ring-1 ring-brand-navy/10">
-            <span className="img-tech-wrap relative block h-full w-full">
+            <span className="img-editorial relative block h-full w-full">
               <Image
                 src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=82"
-                alt="Equipo profesional en entorno corporativo moderno"
+                alt="Equipo de corretaje en reunión de trabajo"
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -170,45 +181,42 @@ export default async function HomePage() {
           <SectionLogoMark size="sm" className="mb-5" />
           <SectionHeader
             align="center"
-            eyebrow="Valor para socios"
-            title="Lo que la red pone sobre la mesa"
-            description="Beneficios tangibles para quienes viven el corretaje: colaboración, visibilidad, formación y respaldo comercial."
+            eyebrow="Pertenencia y valor"
+            title="Lo que la comunidad pone sobre la mesa"
+            description="Beneficios concretos para quien vive el corretaje: canje, colaboración, visibilidad entre pares, capacitación y respaldo para cerrar mejor."
             titleVariant="display"
           />
-          <ul className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {benefits.map((b) => (
               <li
                 key={b.title}
                 className="card-elevated relative overflow-hidden rounded-2xl border border-brand-navy/10 bg-white p-6 transition hover:border-brand-gold/35"
               >
-                <div className="mb-3 h-1 w-12 rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-deep" />
+                <div className="redalia-card-accent" />
                 <h3 className="text-lg font-semibold text-brand-navy">{b.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{b.text}</p>
               </li>
             ))}
           </ul>
           <div className="mt-10 text-center">
-            <Link
-              href="/colaboracion"
-              className="inline-flex rounded-full border border-brand-navy/20 bg-white px-6 py-3 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40"
-            >
-              Profundizar: colaboración y canje
+            <Link href="/colaboracion" className="btn-redalia-outline-on-light px-6 py-3">
+              Canje y colaboración
             </Link>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <div className="section-tech-panel mb-10 px-6 py-10 sm:px-10 sm:py-12">
+        <div className="section-institutional-panel mb-10 py-10 pl-6 pr-6 sm:py-12 sm:pl-8 sm:pr-10">
           <SectionLogoMark size="md" className="relative z-[1] mb-5" />
           <div className="relative z-[1] mx-auto max-w-2xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Formación</p>
-            <h2 className="font-display mt-3 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-[1.75rem] lg:text-[2rem]">
-              Capacitación al servicio del negocio
+            <p className="redalia-eyebrow redalia-eyebrow--onLight">Formación</p>
+            <h2 className="redalia-h2-section mt-1 max-w-none text-center sm:text-[1.35rem] lg:text-[1.4rem]">
+              Capacitación continua al servicio del cierre
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-              Instancias continuas en práctica comercial, herramientas y actualización del rubro, para desempeñar con más
-              seguridad frente a clientes y socios.
+              Instancias regulares en práctica comercial y actualización del rubro, para negociar con más seguridad
+              frente a clientes y con rigor frente a socios de la red.
             </p>
             <Link
               href="/capacitacion"
@@ -221,10 +229,10 @@ export default async function HomePage() {
 
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-brand-navy/10 lg:order-2">
-            <span className="img-tech-wrap relative block h-full w-full">
+            <span className="img-editorial relative block h-full w-full">
               <Image
                 src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=82"
-                alt="Reunión estratégica y networking profesional"
+                alt="Coordinación entre equipos de corretaje"
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -271,34 +279,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-brand-navy-soft/60 py-16 sm:py-20">
+      <section className="border-t border-brand-navy/10 bg-brand-navy-soft/60 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionLogoMark size="sm" className="mb-5" />
           <SectionHeader
             align="center"
-            eyebrow="Audiencias"
-            title="Corredoras y agentes en el mismo marco"
-            description="Una sola red con recorridos distintos según rol: escala, marca y forma de captar negocios."
+            eyebrow="Recorridos según rol"
+            title="Corredoras y agentes en la misma comunidad"
+            description="Un solo marco de pertenencia, con recorridos distintos según rol: escala, marca y forma de captar negocios reales."
             titleVariant="display"
           />
           <div className="mt-10 grid gap-8 lg:grid-cols-2">
-            <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-8 shadow-sm">
-              <h3 className="text-xl font-bold text-brand-navy">Para corredoras</h3>
+            <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-8 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Para corredoras</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 Coordinación entre equipos, más canales para tu oferta y estructura de canje que respete tu independencia
                 frente al mercado.
               </p>
               <Link href="/planes" className="mt-6 inline-flex text-sm font-semibold text-brand-gold-deep hover:underline">
-                Ver niveles de membresía →
+                Ver membresía →
               </Link>
             </div>
-            <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-8 shadow-sm">
-              <h3 className="text-xl font-bold text-brand-navy">Para agentes inmobiliarios</h3>
+            <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-8 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Para agentes inmobiliarios</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Más propiedades para ofrecer, red de colegas con foco en cierre y respaldo para ordenar tu pipeline.
+                Más oportunidades para ofrecer, colegas con foco en cierre y respaldo institucional para ordenar tu
+                pipeline comercial.
               </p>
               <Link href="/unete" className="mt-6 inline-flex text-sm font-semibold text-brand-gold-deep hover:underline">
-                Iniciar postulación →
+                Postular como socio →
               </Link>
             </div>
           </div>
@@ -306,17 +315,20 @@ export default async function HomePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <SectionLogoMark size="sm" className="mb-8" />
+        <p className="redalia-eyebrow redalia-eyebrow--muted mx-auto !mb-0 max-w-xl text-center">
+          Pertenencia a la comunidad
+        </p>
+        <SectionLogoMark size="sm" className="mb-6 mt-3" />
         <CTASection
-          title="¿Tu corredora está lista para más colaboración seria?"
-          description="Agendá una reunión comercial sin compromiso: revisamos canje, visibilidad y el nivel de participación que mejor calce con tu operación."
+          title="¿Tu corredora quiere sumarse a Redalia?"
+          description="Coordinamos una conversación sin compromiso: canje, transparencia en la colaboración y membresía con acompañamiento, según la escala de tu operación en Chile."
           primaryHref="/contacto"
-          primaryLabel="Coordinar reunión"
+          primaryLabel="Coordinar conversación comercial"
           secondaryHref="/unete"
-          secondaryLabel="Completar postulación"
+          secondaryLabel="Postular como socio"
           tertiaryHref="/propiedades"
-          tertiaryLabel="Explorar catálogo"
-          footnote="Te respondemos por el canal que indiques, en días hábiles, con propuesta clara de próximos pasos."
+          tertiaryLabel="Ver catálogo"
+          footnote="Respuesta en días hábiles, por el canal que indiques, con claridad y sin presión indebida."
         />
       </section>
     </>

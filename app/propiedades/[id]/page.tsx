@@ -4,11 +4,16 @@ import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getPropertyById } from "@/lib/get-properties";
-import { propertyFichaConsultarRow, scopedPartnerKey, socioScopeLabelEs } from "@/lib/agencies";
 import {
-  partnerMatchesStaticMatrizAliases,
-  partnerShouldHideFromPublicaBlock,
-} from "@/lib/master-agency";
+  fichaInmobiliariaOperativaChipEs,
+  partnersRoughlyEqual,
+  propertyFichaConsultarRow,
+  propertyFichaInmobiliariaOperativa,
+  scopedPartnerKey,
+  socioScopeLabelEs,
+  sociosGridLinkLabel,
+} from "@/lib/agencies";
+import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
@@ -71,10 +76,15 @@ export default async function PropertyDetailPage({ params }: Props) {
 
   const op = labelForOperation(p.operation);
   const consultar = propertyFichaConsultarRow(p);
-  const publica = fichaPublicaPartner(p);
-  const showInmobiliaria = Boolean(
-    p.agency?.name?.trim() && !partnerMatchesStaticMatrizAliases(p.agency),
-  );
+  const inmob = propertyFichaInmobiliariaOperativa(p);
+  const publicaRaw = fichaPublicaPartner(p);
+  const publica =
+    publicaRaw?.scope === "agent" &&
+    inmob?.scope === "agent" &&
+    partnersRoughlyEqual(publicaRaw.row, inmob)
+      ? null
+      : publicaRaw;
+  const showInmobiliaria = Boolean(inmob);
   const showConsultarBlock = Boolean(
     consultar &&
       !(
@@ -92,7 +102,7 @@ export default async function PropertyDetailPage({ params }: Props) {
     showPublisherEmpty;
   const consultMailto =
     consultar?.email?.trim() ??
-    (showInmobiliaria ? p.agency?.email?.trim() : undefined) ??
+    (inmob ? inmob.email?.trim() : undefined) ??
     (publica ? publica.row.email?.trim() : undefined) ??
     siteConfig.contact.email;
 
@@ -145,40 +155,40 @@ export default async function PropertyDetailPage({ params }: Props) {
                   Agencia y contacto
                 </h2>
 
-                {showInmobiliaria && p.agency?.name && (
+                {showInmobiliaria && inmob && (
                   <div className="space-y-3">
                     <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
-                      Inmobiliaria
+                      {fichaInmobiliariaOperativaChipEs[inmob.scope]}
                     </span>
                     <div className="flex items-start gap-3">
-                      {p.agency.logoUrl ? (
+                      {inmob.logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={p.agency.logoUrl}
+                          src={inmob.logoUrl}
                           alt=""
                           className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
                         />
                       ) : (
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                          {p.agency.name.slice(0, 2).toUpperCase()}
+                          {inmob.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-navy">{p.agency.name}</p>
+                        <p className="text-sm font-semibold text-brand-navy">{inmob.name}</p>
                         <Link
                           href={`/propiedades?socio=${encodeURIComponent(
-                            scopedPartnerKey("agency", p.agency.id, p.agency.name),
+                            scopedPartnerKey(inmob.scope, inmob.id, inmob.name),
                           )}`}
                           className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
                         >
-                          Ver propiedades de esta agencia
+                          {sociosGridLinkLabel(inmob.scope)}
                         </Link>
                         <PartnerContactLinks
-                          email={p.agency.email}
-                          phone={p.agency.phone}
-                          mobile={p.agency.mobile}
-                          whatsapp={p.agency.whatsapp}
-                          webUrl={p.agency.webUrl}
+                          email={inmob.email}
+                          phone={inmob.phone}
+                          mobile={inmob.mobile}
+                          whatsapp={inmob.whatsapp}
+                          webUrl={inmob.webUrl}
                           className="mt-3"
                         />
                       </div>

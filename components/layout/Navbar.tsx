@@ -5,15 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { getMembersPortalUrl } from "@/lib/public-contact";
+import { siteConfig } from "@/lib/site-config";
 
 const membersPortalUrl = getMembersPortalUrl();
 
+/** Orden: institución → comunidad operativa → catálogo y accesos destacados aparte. */
 const navTextLinks = [
-  { href: "/", label: "Home" },
-  { href: "/que-es", label: "Qué es" },
-  { href: "/colaboracion", label: "Colaboración" },
+  { href: "/", label: "Inicio" },
+  { href: "/que-es", label: "Qué es Redalia" },
+  { href: "/colaboracion", label: "Canje y colaboración" },
   { href: "/socios", label: "Socios" },
-  { href: "/planes", label: "Planes" },
+  { href: "/capacitacion", label: "Capacitación" },
+  { href: "/planes", label: "Membresía" },
   { href: "/contacto", label: "Contacto" },
 ];
 
@@ -38,15 +41,22 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-4 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-3" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5"
+          onClick={() => setOpen(false)}
+        >
           <Image
             src="/logo-redalia.png"
-            alt="Redalia"
+            alt={siteConfig.name}
             width={220}
             height={66}
-            className="h-12 w-auto sm:h-14"
+            className="h-6 w-auto shrink-0 sm:h-7"
             priority
           />
+          <span className="hidden max-w-[13rem] sm:block lg:max-w-[16rem]">
+            <span className="redalia-nav-lockup block">{siteConfig.brandLockup}</span>
+          </span>
         </Link>
 
         <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 xl:flex" aria-label="Principal">
@@ -81,7 +91,7 @@ export function Navbar() {
                   : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e] hover:shadow-lg"
               }`}
             >
-              Propiedades
+              Catálogo
             </Link>
             <a
               href={membersPortalUrl}
@@ -127,6 +137,9 @@ export function Navbar() {
 
       {open && (
         <div className="border-t border-brand-navy/10 bg-white px-4 py-4 xl:hidden">
+          <p className="redalia-nav-lockup mb-3 border-b border-brand-navy/10 pb-3 text-center text-xs sm:hidden">
+            {siteConfig.brandLockup}
+          </p>
           <nav className="flex flex-col gap-1" aria-label="Móvil">
             <div className="flex flex-col gap-1 border-b border-brand-navy/10 pb-3">
               {navTextLinks.map(({ href, label }) => {
@@ -156,14 +169,14 @@ export function Navbar() {
             <div className="space-y-2 pt-3">
               <Link
                 href="/propiedades"
-                className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-[0.9375rem] font-semibold shadow-md transition ${
+                className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-sm font-semibold shadow-md transition ${
                   propiedadesActive
                     ? "bg-brand-navy text-white ring-2 ring-brand-gold/60"
                     : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e]"
                 }`}
                 onClick={() => setOpen(false)}
               >
-                Propiedades
+                Catálogo
               </Link>
               <a
                 href={membersPortalUrl}

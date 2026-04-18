@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Socios",
   description:
-    "Directorio institucional de Redalia: inmobiliarias y anunciantes con publicaciones en el catálogo, criterios de pertenencia y colaboración profesional en Chile.",
+    "Directorio institucional de la comunidad Redalia: socios con publicaciones en el catálogo, criterios de pertenencia y colaboración profesional en Chile.",
 };
 
 const perfilCards = [
@@ -41,7 +41,7 @@ const estandares = [
   },
   {
     title: "Colaboración con trazabilidad",
-    text: "Canje y referencias de propiedades se apoyan en criterios de la red y en el trabajo directo entre corredores.",
+    text: "Canje y referencias de propiedades se apoyan en criterios de la comunidad y en el trabajo directo entre corredores.",
   },
   {
     title: "Pertenencia con prestigio",
@@ -61,9 +61,9 @@ export default async function SociosPage() {
     <div className="bg-background">
       <PageHero
         variant="navy-solid"
-        eyebrow="Pertenencia · Redalia"
-        title="Directorio institucional de socios"
-        lead="Inmobiliarias y anunciantes con publicaciones en el catálogo público de la red. Podés abrir la ficha institucional de cada marca o ir directo al listado filtrado de propiedades. El ingreso formal a Redalia se coordina con el equipo comercial."
+        eyebrow="Socios"
+        title="Socios de la comunidad inmobiliaria"
+        lead="Corredoras, oficinas y anunciantes con publicaciones en el catálogo público. Cada ficha refleja presencia verificable en la comunidad: podés abrir el perfil institucional o ir al listado filtrado. El ingreso formal se coordina con el equipo comercial."
       >
         {result.ok && listingCount > 0 ? (
           <div className="flex flex-wrap gap-4 border-t border-white/15 pt-8">
@@ -97,13 +97,15 @@ export default async function SociosPage() {
 
       <section className="strip-navy border-b border-white/10 py-12 text-white">
         <div className="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Marco de pertenencia</p>
-          <h2 className="mx-auto mt-2 max-w-3xl text-2xl font-bold tracking-tight sm:text-3xl">
+          <p className="redalia-eyebrow redalia-eyebrow--onNavy mx-auto max-w-xl text-center !mb-0">
+            Marco de pertenencia
+          </p>
+          <h2 className="redalia-h2-band mx-auto mt-3 max-w-3xl text-center">
             Por qué importa ser socio de Redalia
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">
-            No es solo aparecer en un listado: es acceder a una comunidad que negocia junta, con estándares y
-            visibilidad profesional.
+            No es solo aparecer en un listado: es formar parte de una comunidad que cierra negocios con estándares,
+            transparencia y visibilidad profesional entre pares.
           </p>
           <ul className="mt-10 grid gap-6 text-left sm:grid-cols-2">
             {estandares.map((e) => (
@@ -111,7 +113,7 @@ export default async function SociosPage() {
                 key={e.title}
                 className="rounded-2xl border border-white/15 bg-white/[0.06] px-6 py-6 backdrop-blur-sm"
               >
-                <div className="mb-3 h-1 w-10 rounded-full bg-brand-gold" />
+                <div className="redalia-card-accent" />
                 <h3 className="text-base font-semibold text-white">{e.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-white/78">{e.text}</p>
               </li>
@@ -122,8 +124,9 @@ export default async function SociosPage() {
 
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
         <SectionHeader
-          title="Perfiles que conviven en la red"
-          description="Diferentes escalas, mismo estándar de seriedad comercial y disposición a colaborar con criterio."
+          title="Perfiles que conviven en la comunidad"
+          description="Diferentes escalas, mismo estándar de seriedad comercial y disposición a colaborar con criterio y honestidad."
+          titleVariant="display"
         />
         <ul className="mt-10 grid gap-6 sm:grid-cols-3">
           {perfilCards.map((c) => (
@@ -131,7 +134,7 @@ export default async function SociosPage() {
               key={c.title}
               className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm"
             >
-              <div className="mb-3 h-1 w-10 rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-deep" />
+              <div className="redalia-card-accent" />
               <h3 className="text-base font-semibold text-brand-navy">{c.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{c.text}</p>
             </li>
@@ -144,7 +147,7 @@ export default async function SociosPage() {
           </Link>{" "}
           o{" "}
           <Link href="/planes" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-            Planes
+            Membresía
           </Link>
           .
         </p>
@@ -154,9 +157,9 @@ export default async function SociosPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
-            eyebrow="Directorio institucional"
-            title="Inmobiliarias y anunciantes en el catálogo"
-            description="Listado derivado de publicaciones activas: orden por actividad en el catálogo, sin duplicar marcas y excluyendo la capa matriz del feed cuando corresponde. Los contactos son los publicados en cada ficha."
+            eyebrow="Directorio"
+            title="Socios con presencia en el catálogo"
+            description="Listado derivado de publicaciones activas: orden por actividad, sin duplicar marcas y excluyendo la capa matriz del feed cuando corresponde. Los contactos son los publicados en cada ficha —transparencia frente al mercado."
             titleVariant="display"
           />
 
@@ -175,9 +178,9 @@ export default async function SociosPage() {
               </p>
               <Link
                 href="/contacto"
-                className="mt-5 inline-flex rounded-full bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-mid"
+                className="mt-5 inline-flex rounded-full bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-navy-mid"
               >
-                Contacto
+                Coordinar conversación comercial
               </Link>
             </div>
           )}
@@ -185,7 +188,7 @@ export default async function SociosPage() {
           {result.ok && entries.length === 0 && (
             <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-2xl border border-brand-gold/25 bg-white shadow-lg">
               <div className="border-b border-brand-navy/10 bg-brand-navy px-6 py-4 text-center text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold">Directorio</p>
+                <p className="redalia-eyebrow redalia-eyebrow--onNavy !mb-0 text-center">Directorio</p>
                 <p className="mt-1 text-sm text-white/85">Sin entradas que cumplan los criterios actuales</p>
               </div>
               <div className="px-8 py-12 text-center">
@@ -195,11 +198,8 @@ export default async function SociosPage() {
                   acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link
-                    href="/contacto"
-                    className="inline-flex rounded-full bg-brand-gold px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-[#d4b82e]"
-                  >
-                    Reservar lugar en la red
+                  <Link href="/contacto" className="btn-redalia-gold-solid min-w-[200px]">
+                    Coordinar conversación comercial
                   </Link>
                   <Link
                     href="/propiedades"
@@ -226,13 +226,13 @@ export default async function SociosPage() {
 
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
         <CTASection
-          title="¿Querés sumar tu corredora al directorio y a la colaboración?"
-          description="Coordinamos una reunión para revisar admisión, visibilidad y plan de participación —sin compromiso."
+          title="¿Querés sumar tu corredora al directorio y a la comunidad?"
+          description="Coordinamos una reunión para revisar admisión, visibilidad y plan de membresía —sin compromiso y con claridad."
           primaryHref="/contacto"
-          primaryLabel="Hablar con el equipo"
+          primaryLabel="Coordinar conversación comercial"
           secondaryHref="/unete"
-          secondaryLabel="Enviar postulación"
-          footnote="Si ya operás con la red, el equipo te indicará los pasos para visibilidad pública cuando corresponda."
+          secondaryLabel="Postular como socio"
+          footnote="Si ya operás con la comunidad, el equipo te indicará los pasos para visibilidad pública cuando corresponda."
         />
       </section>
     </div>

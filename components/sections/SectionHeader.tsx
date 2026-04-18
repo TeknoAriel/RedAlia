@@ -21,12 +21,8 @@ export function SectionHeader({
       : "text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl";
   return (
     <div className={`mb-10 sm:mb-12 ${alignClass}`}>
-      {eyebrow && (
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">
-          {eyebrow}
-        </p>
-      )}
-      <h2 className={titleClass}>{title}</h2>
+      {eyebrow && <p className="redalia-eyebrow redalia-eyebrow--onLight">{eyebrow}</p>}
+      <h2 className={`${titleClass}${eyebrow ? " mt-2" : ""}`}>{title}</h2>
       {description && (
         <p className="mt-3 text-base leading-relaxed text-muted sm:text-lg">{description}</p>
       )}

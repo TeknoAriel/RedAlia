@@ -17,9 +17,10 @@ Abrir [http://localhost:3000](http://localhost:3000).
 |----------|-----|
 | `NEXT_PUBLIC_SITE_URL` | URL pública (ej. `https://redalia.vercel.app`) |
 | `KITEPROP_PROPERTIES_URL` | JSON de difusión KiteProp. Si falta, se usa `data/kiteprop-sample.json` |
+| `KITEPROP_API_SECRET` | Opcional: **una** secret `kp_…` para API REST + mismo valor que usa el MCP (fallback de key/Bearer/leads). Ver **`docs/kiteprop-credentials.md`**. |
 | `LEADS_WEBHOOK_URL` | Opcional: POST de formularios Contacto / Únete |
 
-Copiá `.env.example` como referencia.
+Copiá `.env.example` como referencia. Credenciales KiteProp / MCP: **`docs/kiteprop-credentials.md`**.
 
 ## Feed JSON (jerarquía agencia)
 

@@ -70,6 +70,11 @@ export type ScopedPartnerOnProperty = {
   webUrl: string | null;
 };
 
+/** Fila de inmobiliaria/oficina en ficha (excluye anunciante). */
+export type ScopedInmobiliariaOperativa = Omit<ScopedPartnerOnProperty, "scope"> & {
+  scope: "agency" | "agent" | "sub_agent";
+};
+
 export function distinctScopedPartnersOnProperty(p: NormalizedProperty): ScopedPartnerOnProperty[] {
   const tuples: { scope: PartnerScope; data: PropertyPartner | null | undefined }[] = [
     { scope: "agency", data: p.agency },
@@ -158,12 +163,19 @@ export function extractAgenciasCatalog(properties: NormalizedProperty[]): SocioC
   return extractSociosCatalog(properties).filter((e) => e.scope === "agency");
 }
 
-/** Grilla /socios: `agency` e `advertiser` del JSON. Solo se omite la fila si el nombre o id (env) son claramente la marca matriz — no por id compartido con `masterAgency` en el feed. */
+/** Grilla /socios: corredoras, anunciantes y oficinas/agente del feed (cuando no hay `agency` distinta de matriz). Solo se omite la fila si el nombre o id (env) son claramente la marca matriz — no por id compartido con `masterAgency` en el feed. */
 export function extractSociosGridCatalog(properties: NormalizedProperty[]): SocioCatalogEntry[] {
   const map = new Map<string, SocioCatalogEntry>();
   for (const p of properties) {
     for (const row of distinctScopedPartnersOnProperty(p)) {
-      if (row.scope !== "agency" && row.scope !== "advertiser") continue;
+      if (
+        row.scope !== "agency" &&
+        row.scope !== "advertiser" &&
+        row.scope !== "agent" &&
+        row.scope !== "sub_agent"
+      ) {
+        continue;
+      }
       const rowPartner: PropertyPartner = {
         id: row.id,
         name: row.name,
@@ -196,7 +208,7 @@ export function extractSociosGridCatalog(properties: NormalizedProperty[]): Soci
       }
     }
   }
-  const scopeOrder: PartnerScope[] = ["agency", "advertiser"];
+  const scopeOrder: PartnerScope[] = ["agency", "advertiser", "agent", "sub_agent"];
   return Array.from(map.values()).sort((x, y) => {
     const ox = scopeOrder.indexOf(x.scope);
     const oy = scopeOrder.indexOf(y.scope);
@@ -206,16 +218,61 @@ export function extractSociosGridCatalog(properties: NormalizedProperty[]): Soci
 }
 
 /** Etiqueta en tarjeta de socios (grilla). */
-export const sociosCardRoleLabelEs: Record<"agency" | "advertiser", string> = {
+export const sociosCardRoleLabelEs: Record<PartnerScope, string> = {
   agency: "Inmobiliaria",
   advertiser: "Anunciante",
+  agent: "Oficina / agente",
+  sub_agent: "Subagente",
 };
 
 export function sociosGridLinkLabel(scope: PartnerScope): string {
   if (scope === "agency") return "Ver propiedades de esta agencia";
   if (scope === "advertiser") return "Ver propiedades de este anunciante";
+  if (scope === "agent") return "Ver propiedades de esta oficina o agente";
+  if (scope === "sub_agent") return "Ver propiedades de este subagente";
   return "Ver propiedades";
 }
+
+/**
+ * Ficha / tarjeta: inmobiliaria u oficina operativa (no matriz). Orden: agency → agent → sub_agent. No incluye anunciante.
+ */
+export function propertyFichaInmobiliariaOperativa(
+  p: NormalizedProperty,
+): ScopedInmobiliariaOperativa | null {
+  const order: {
+    scope: "agency" | "agent" | "sub_agent";
+    data: PropertyPartner | null | undefined;
+  }[] = [
+    { scope: "agency", data: p.agency },
+    { scope: "agent", data: p.agentAgency },
+    { scope: "sub_agent", data: p.subAgentAgency },
+  ];
+  for (const { scope, data } of order) {
+    const row = partnerFromProperty(scope, data);
+    if (!row) continue;
+    if (partnerMatchesStaticMatrizAliases(data)) continue;
+    return {
+      scope,
+      key: scopedPartnerKey(scope, row.id, row.name),
+      id: row.id,
+      name: row.name,
+      logoUrl: row.logoUrl,
+      email: row.email,
+      phone: row.phone,
+      mobile: row.mobile,
+      whatsapp: row.whatsapp,
+      webUrl: row.webUrl,
+    };
+  }
+  return null;
+}
+
+/** Chip del bloque “Inmobiliaria” en ficha cuando el origen no es solo `agency`. */
+export const fichaInmobiliariaOperativaChipEs: Record<"agency" | "agent" | "sub_agent", string> = {
+  agency: "Inmobiliaria",
+  agent: "Oficina a cargo",
+  sub_agent: "Subagente",
+};
 
 /**
  * Ficha: quién recibe el “Consultar” — agente, si no anunciante, si no inmobiliaria; se omite la matriz globalizadora (Aina).

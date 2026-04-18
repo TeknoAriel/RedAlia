@@ -12,6 +12,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "audit:feed-socios": "node scripts/audit-feed-socios.mjs",
+    "audit:kiteprop-network": "node scripts/kiteprop-network-audit.mjs",
     "sync:pull": "git fetch origin --prune && git pull --rebase origin main",
     "sync": "npm run sync:pull && git push origin main"
   },

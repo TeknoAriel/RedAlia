@@ -47,7 +47,7 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 ## Vercel (panel)
 
 - **Build:** `npm run build` · **Install:** `npm ci` (`vercel.json`).
-- Variable **`KITEPROP_PROPERTIES_URL`** para el JSON en runtime.
+- Variables típicas: **`KITEPROP_PROPERTIES_URL`** (JSON catálogo), opcional **`KITEPROP_API_SECRET`** (misma secret `kp_…` para pruebas REST y leads si aplica). Detalle: `docs/kiteprop-credentials.md`.
 
 ## Los cambios no aparecen en la web
 

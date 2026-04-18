@@ -7,19 +7,19 @@ import { Field, LeadForm } from "@/components/forms/LeadForm";
 export const metadata: Metadata = {
   title: "Únete",
   description:
-    "Postulá a formar parte de Redalia: red colaborativa inmobiliaria en Chile, con foco en canje, visibilidad y acompañamiento profesional.",
+    "Postulá a la comunidad profesional Redalia en Chile: negocios reales, canje y colaboración entre pares, capacitación y acompañamiento con estándares claros.",
 };
 
 const despues = [
   "Revisamos tu postulación y, si hay encaje, te contactamos por correo o teléfono en días hábiles.",
-  "Coordinamos una conversación para conocer tu operación y responder dudas sobre colaboración, planes y proceso.",
+  "Coordinamos una conversación para conocer tu operación y responder dudas sobre colaboración, membresía y proceso.",
   "Si ambas partes avanzan, te guiamos en la incorporación: alineación comercial, accesos y próximos pasos concretos.",
 ];
 
 const incentivos = [
-  "Evaluación seria de encaje: la red crece con socios alineados, no con altas masivas.",
-  "Acceso a colaboración y canje bajo el marco que acordemos en tu plan.",
-  "Visibilidad y formación acorde al nivel de membresía que corresponda a tu operación.",
+  "Evaluación seria de encaje: la comunidad crece con socios alineados, no con altas masivas.",
+  "Acceso a canje y colaboración bajo el marco que acordemos en tu plan de membresía.",
+  "Visibilidad institucional y capacitación acorde al nivel que corresponda a tu operación.",
 ];
 
 export default function UnetePage() {
@@ -27,15 +27,12 @@ export default function UnetePage() {
     <div>
       <PageHero
         variant="navy-solid"
-        eyebrow="Incorporación"
-        title="Postulá a una red que prioriza el negocio compartido"
-        lead="Si sos corredor o parte de una corredora y buscás más circulación de oportunidades, visibilidad entre profesionales y un marco serio para colaborar, este es el punto de partida."
+        eyebrow="Únete"
+        title="Postulá como socio en una comunidad orientada a cierres"
+        lead="Si sos corredor o parte de una corredora y buscás más circulación de oportunidades, visibilidad entre pares y un marco claro de colaboración y membresía, este es el punto de partida."
       >
-        <Link
-          href="/contacto"
-          className="inline-flex text-sm font-semibold text-brand-gold underline-offset-2 hover:underline"
-        >
-          Preferís hablar antes de completar el formulario → Contacto
+        <Link href="/contacto" className="btn-redalia-outline-on-navy">
+          Preferís conversar antes: ir a Contacto
         </Link>
       </PageHero>
 
@@ -44,7 +41,7 @@ export default function UnetePage() {
           <div>
             <SectionHeader
               title="Por qué vale la pena completar la postulación"
-              description="Es el camino más rápido para que el equipo evalúe encaje territorial, perfil comercial y expectativas —y te devuelva una respuesta fundamentada."
+              description="Es el camino más directo para que el equipo evalúe encaje territorial, perfil comercial y expectativas de cierre —y te devuelva una respuesta fundamentada, sin vueltas."
               titleVariant="display"
             />
             <ul className="mt-6 space-y-3 text-sm text-muted">
@@ -55,12 +52,12 @@ export default function UnetePage() {
                 </li>
               ))}
             </ul>
-            <h2 className="mt-10 text-lg font-semibold text-brand-navy">A quién está dirigido</h2>
+            <h2 className="mt-10 font-display text-xl font-bold text-brand-navy">A quién está dirigido</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Agentes inmobiliarios independientes, equipos de venta y corredoras que quieren escalar resultados con una
-              estructura común y estándares compartidos.
+              Agentes independientes, equipos de venta y corredoras que quieren más y mejores cierres con una estructura
+              común, transparencia y estándares compartidos entre profesionales.
             </p>
-            <h2 className="mt-10 text-lg font-semibold text-brand-navy">Qué sucede después de enviar</h2>
+            <h2 className="redalia-h2-section mt-10">Qué sucede después de enviar</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted">
               {despues.map((t) => (
                 <li key={t}>{t}</li>
@@ -68,10 +65,10 @@ export default function UnetePage() {
             </ol>
           </div>
           <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-semibold text-brand-navy">Formulario de postulación</h2>
+            <h2 className="redalia-h2-section">Formulario de postulación</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Los datos nos permiten preparar la primera conversación con información. Incluí ciudad, tipo de operación y,
-              si podés, volumen aproximado de equipo.
+              Los datos nos permiten preparar la primera conversación con contexto. Incluí ciudad, tipo de operación y,
+              si podés, tamaño aproximado del equipo.
             </p>
             <div className="mt-6">
               <LeadForm kind="join" submitLabel="Enviar postulación">

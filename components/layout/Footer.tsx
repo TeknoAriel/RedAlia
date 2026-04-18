@@ -3,13 +3,14 @@ import { siteConfig } from "@/lib/site-config";
 import { getLinkedInUrl, getWhatsappContact } from "@/lib/public-contact";
 
 const footerLinks = [
+  { href: "/", label: "Inicio" },
   { href: "/que-es", label: "Qué es Redalia" },
-  { href: "/colaboracion", label: "Colaboración y canje" },
-  { href: "/capacitacion", label: "Capacitación" },
-  { href: "/servicios", label: "Servicios" },
+  { href: "/colaboracion", label: "Canje y colaboración" },
   { href: "/socios", label: "Socios" },
-  { href: "/propiedades", label: "Propiedades" },
-  { href: "/planes", label: "Planes" },
+  { href: "/capacitacion", label: "Capacitación" },
+  { href: "/planes", label: "Membresía" },
+  { href: "/propiedades", label: "Catálogo" },
+  { href: "/servicios", label: "Servicios" },
   { href: "/unete", label: "Únete" },
   { href: "/contacto", label: "Contacto" },
 ];
@@ -24,16 +25,18 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div className="lg:col-span-2">
             <Link href="/" className="inline-block">
-              <p className="text-2xl font-bold tracking-tight text-white">{siteConfig.name}</p>
-              <p className="mt-1 text-sm font-medium tracking-wide text-brand-gold">{siteConfig.tagline}</p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white">{siteConfig.name}</p>
+              <p className="redalia-footer-brandline mt-2">{siteConfig.brandLockup}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/70">{siteConfig.tagline}</p>
             </Link>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-white/80">
-              Red de corredoras y agentes en Chile, enfocada en colaboración comercial, canje de oportunidades,
-              visibilidad compartida y formación continua, con respaldo operativo serio.
+              Comunidad profesional de negocios inmobiliarios en Chile: canje ordenado, colaboración con criterio,
+              honestidad en los acuerdos y herramientas serias para que la comunidad ejecute mejor —sin perder el trato
+              directo con el cliente.
             </p>
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-gold">Sitio</h3>
+            <h3 className="redalia-footer-col-title">Navegación</h3>
             <ul className="mt-4 space-y-2">
               {footerLinks.map(({ href, label }) => (
                 <li key={href}>
@@ -45,7 +48,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-gold">Contacto</h3>
+            <h3 className="redalia-footer-col-title">Contacto</h3>
             <ul className="mt-4 space-y-2 text-sm text-white/85">
               <li>
                 <a href={`mailto:${siteConfig.contact.email}`} className="hover:text-white">
@@ -75,7 +78,7 @@ export function Footer() {
             © {new Date().getFullYear()} {siteConfig.name}. Todos los derechos reservados.
           </p>
           <p className="max-w-md sm:text-right">
-            Las fichas e imágenes corresponden a socios y operaciones vinculadas a la red.
+            Las fichas e imágenes corresponden a socios y operaciones vinculadas a la comunidad.
           </p>
         </div>
         <div className="mt-6 border-t border-white/10 pt-6 text-center">

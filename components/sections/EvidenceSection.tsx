@@ -8,8 +8,10 @@ export function EvidenceSection() {
 
   return (
     <div className="rounded-2xl border border-brand-navy/12 bg-white p-8 shadow-sm sm:p-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Socios</p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">Lo que dicen quienes operan con la red</h2>
+      <p className="redalia-eyebrow redalia-eyebrow--onLight">Socios</p>
+      <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-[1.75rem] lg:text-[2rem]">
+        Lo que dicen quienes operan en la comunidad
+      </h2>
       <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {publicTestimonials.map((t, i) => (
           <li key={i} className="card-elevated flex flex-col rounded-xl border border-brand-navy/10 bg-brand-navy-soft/30 p-6">

@@ -17,13 +17,13 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <SectionLogoMark size="sm" className="mb-5" />
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-gold-deep">Directorio</p>
-          <h2 className="font-display mt-3 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-3xl">
-            Inmobiliarias y anunciantes en el catálogo
+          <p className="redalia-eyebrow redalia-eyebrow--onLight">Comunidad activa</p>
+          <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-[1.75rem] lg:text-[2rem]">
+            Socios con presencia en el catálogo
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-            Marcas con publicaciones activas en la red. Cada una tiene una ficha institucional propia; los datos
-            provienen del listado público de oportunidades y el contacto es el publicado en las fichas.
+            Corredoras y anunciantes con publicaciones vigentes: ficha institucional propia, datos alineados al listado
+            público y contacto transparente según lo publicado en cada caso.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
                 href="/propiedades"
                 className="inline-flex rounded-full bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-mid"
               >
-                Ver oportunidades
+                Ver catálogo
               </Link>
               <Link
                 href="/socios"
@@ -69,7 +69,7 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
           <>
             <dl className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-6 text-center sm:gap-10">
               <div className="rounded-xl border border-brand-navy/10 bg-white px-6 py-4 shadow-sm">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-brand-navy/60">
+                <dt className="redalia-eyebrow redalia-eyebrow--muted !mb-0 !normal-case !tracking-wide">
                   Publicaciones en catálogo
                 </dt>
                 <dd className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
@@ -77,8 +77,8 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
                 </dd>
               </div>
               <div className="rounded-xl border border-brand-navy/10 bg-white px-6 py-4 shadow-sm">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-brand-navy/60">
-                  Inmobiliarias y anunciantes listados
+                <dt className="redalia-eyebrow redalia-eyebrow--muted !mb-0 !normal-case !tracking-wide">
+                  Socios en directorio
                 </dt>
                 <dd className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
                   {stats.directoryCount.toLocaleString("es-CL")}

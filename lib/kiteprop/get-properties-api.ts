@@ -5,7 +5,7 @@ import { kitepropGetJson } from "@/lib/kiteprop/client";
 const ALLOWED_LIMITS = new Set([15, 30, 50]);
 
 /**
- * `GET /properties` según documentación pública — autenticación **Bearer** (`KITEPROP_ACCESS_TOKEN`).
+ * `GET /properties` según documentación pública — autenticación **Bearer** (`KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET`).
  * El catálogo público del sitio sigue usando el JSON de difusión (`KITEPROP_PROPERTIES_URL`); esto es solo capa de descubrimiento / futura convergencia.
  *
  * @see docs/kiteprop-data-model.md

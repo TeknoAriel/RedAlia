@@ -8,7 +8,7 @@ export function PartnerLogosStrip() {
   return (
     <section className="border-y border-brand-navy/10 bg-white py-10">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+        <p className="redalia-eyebrow redalia-eyebrow--muted text-center">
           Aliados y socios institucionales
         </p>
         <ul className="mt-8 flex flex-wrap items-center justify-center gap-10 opacity-90 grayscale sm:gap-14">

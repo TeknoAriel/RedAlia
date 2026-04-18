@@ -18,7 +18,7 @@ function summarizeDataShape(data: unknown): string[] {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  MISSING_KEY: "KiteProp API key not configured",
+  MISSING_KEY: "KiteProp API key not configured (set KITEPROP_API_KEY or KITEPROP_API_SECRET)",
   TIMEOUT: "KiteProp API request timed out",
   NETWORK: "Could not reach KiteProp API",
   HTTP_ERROR: "KiteProp API returned an error status",

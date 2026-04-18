@@ -1,3 +1,4 @@
+import { resolveLeadBearerTokenOrNull } from "@/lib/kiteprop/env-credentials";
 import { siteConfig } from "@/lib/site-config";
 
 /**
@@ -5,7 +6,7 @@ import { siteConfig } from "@/lib/site-config";
  *
  * Prioridad:
  * 1) LEADS_WEBHOOK_URL — POST JSON (Make, Zapier, función serverless propia, etc.)
- * 2) KITEPROP_LEAD_POST_URL + KITEPROP_API_TOKEN — POST a la ruta que indique la documentación de KiteProp
+ * 2) KITEPROP_LEAD_POST_URL + bearer (`KITEPROP_API_TOKEN` o `KITEPROP_API_SECRET`) — POST a KiteProp
  * 3) Sin configuración: acepta el lead (modo noop) para no bloquear UX en desarrollo
  */
 
@@ -74,7 +75,7 @@ export async function dispatchLead(payload: LeadPayload): Promise<DispatchResult
   }
 
   const kpUrl = process.env.KITEPROP_LEAD_POST_URL?.trim();
-  const kpToken = process.env.KITEPROP_API_TOKEN?.trim();
+  const kpToken = resolveLeadBearerTokenOrNull();
   if (kpUrl && kpToken) {
     try {
       const body = toKitepropContactShape(payload);
