@@ -9,7 +9,7 @@ import { ListingPulseStrip } from "@/components/sections/ListingPulseStrip";
 import { PartnerLogosStrip } from "@/components/sections/PartnerLogosStrip";
 import { TangibleValueForBrokers } from "@/components/sections/TangibleValueForBrokers";
 import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
-import { getProperties } from "@/lib/get-properties";
+import { getProperties, getPartnerDirectoryExtraDrafts } from "@/lib/get-properties";
 import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
@@ -61,7 +61,12 @@ export default async function HomePage() {
   const catalog = await getProperties();
   const listingCount = catalog.ok ? catalog.properties.length : 0;
   const directorySnapshot =
-    catalog.ok ? buildPublicDirectorySnapshot(catalog.properties, { featuredMax: 8 }) : null;
+    catalog.ok
+      ? buildPublicDirectorySnapshot(catalog.properties, {
+          featuredMax: 8,
+          extraDirectoryDrafts: getPartnerDirectoryExtraDrafts(catalog),
+        })
+      : null;
   const mcpOverlay = await loadPublicMcpNetworkOverlay();
 
   return (

@@ -33,6 +33,12 @@ function extractAccessToken(raw: unknown): string | null {
   if (typeof raw === "string" && raw.length > 8) return raw.trim();
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
+  // AINA / Laravel: data_get($json, 'data.access_token')
+  const data = o.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const at = (data as Record<string, unknown>).access_token;
+    if (typeof at === "string" && at.length > 8) return at.trim();
+  }
   const fromEnvelope = unwrapKitepropSuccessData(raw);
   if (fromEnvelope && typeof fromEnvelope === "object" && !Array.isArray(fromEnvelope)) {
     const t = pickTokenFromObject(fromEnvelope as Record<string, unknown>, 4);

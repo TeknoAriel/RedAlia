@@ -1,3 +1,4 @@
+export { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public-catalog-from-network";
 export { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
 export { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
 export { kitepropLoginForNetworkBearer } from "@/lib/kiteprop-network/login";
@@ -8,9 +9,15 @@ export {
   getKitepropAuthLoginPath,
   getKitepropNetworkOrganizationsPathResolved,
   getKitepropNetworkPropertiesPathResolved,
+  getKitepropPropertiesSourceMode,
   isKitepropNetworkAuditEnabled,
+  pathEmbedsNetworkToken,
 } from "@/lib/kiteprop-network/network-env";
-export { extractEntityArrayFromNetworkResponse } from "@/lib/kiteprop-network/extract-lists";
+export {
+  extractEntityArrayFromNetworkResponse,
+  extractOrganizationArrayFromNetworkResponse,
+  extractPropertyArrayFromNetworkResponse,
+} from "@/lib/kiteprop-network/extract-lists";
 export { summarizeObjectKeys, summarizeChildObjectsKeys } from "@/lib/kiteprop-network/shape-audit";
 export { extractAdvertiserObject, extractAdvertiserIdHints, ADVERTISER_OBJECT_KEYS } from "@/lib/kiteprop-network/extract-advertiser";
 export { mapUnknownNetworkAdvertiserToPublicDraft } from "@/lib/kiteprop-network/map-network-advertiser-to-public-draft";

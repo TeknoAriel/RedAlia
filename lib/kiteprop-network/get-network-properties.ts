@@ -1,7 +1,7 @@
 import "server-only";
 
 import { kitepropGetJson } from "@/lib/kiteprop/client";
-import { extractEntityArrayFromNetworkResponse } from "@/lib/kiteprop-network/extract-lists";
+import { extractPropertyArrayFromNetworkResponse } from "@/lib/kiteprop-network/extract-lists";
 import { getKitepropNetworkPropertiesPathResolved } from "@/lib/kiteprop-network/network-env";
 import { resolveNetworkRequestContext } from "@/lib/kiteprop-network/network-request-context";
 
@@ -12,10 +12,10 @@ export type NetworkPropertiesResult =
 export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
   const path = getKitepropNetworkPropertiesPathResolved();
   if (!path) {
-    return { ok: false, error: "MISSING_PROPERTIES_PATH_OR_NETWORK_ID", status: null };
+    return { ok: false, error: "MISSING_PROPERTIES_PATH_OR_NETWORK_ID_OR_TOKEN", status: null };
   }
 
-  const ctx = await resolveNetworkRequestContext();
+  const ctx = await resolveNetworkRequestContext("properties");
   if (!ctx.ok) {
     return { ok: false, error: ctx.error, status: null };
   }
@@ -24,12 +24,13 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
     auth: "bearer",
     bearerOverride: ctx.bearer,
     extraHeaders: ctx.extraHeaders,
+    query: { status: "active" },
   });
 
   if (!res.ok) {
     return { ok: false, error: res.errorCode, status: res.status };
   }
 
-  const items = extractEntityArrayFromNetworkResponse(res.data);
+  const items = extractPropertyArrayFromNetworkResponse(res.data);
   return { ok: true, status: res.status, items };
 }

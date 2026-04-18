@@ -4,7 +4,7 @@ import { PageHero } from "@/components/layout/PageHero";
 import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import { getProperties } from "@/lib/get-properties";
+import { getProperties, getPartnerDirectoryExtraDrafts } from "@/lib/get-properties";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +51,12 @@ const estandares = [
 
 export default async function SociosPage() {
   const result = await getProperties();
-  const snapshot = result.ok ? buildPublicDirectorySnapshot(result.properties, { featuredMax: 8 }) : null;
+  const snapshot = result.ok
+    ? buildPublicDirectorySnapshot(result.properties, {
+        featuredMax: 8,
+        extraDirectoryDrafts: getPartnerDirectoryExtraDrafts(result),
+      })
+    : null;
   const entries = snapshot?.entries ?? [];
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;

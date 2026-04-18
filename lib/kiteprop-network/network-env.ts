@@ -10,6 +10,27 @@ export function isKitepropNetworkAuditEnabled(): boolean {
   return trim("KITEPROP_NETWORK_AUDIT_ENABLED") === "1";
 }
 
+/**
+ * Origen del catálogo público (`getProperties`):
+ * - `json` (default): feed `KITEPROP_PROPERTIES_URL` o sample local.
+ * - `network`: solo API de red AINA (requiere credenciales red + login).
+ * - `network_fallback_json`: intenta red; si falla o viene vacío, usa el flujo JSON.
+ */
+export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
+
+export function getKitepropPropertiesSourceMode(): KitepropPropertiesSourceMode {
+  const v = trim("KITEPROP_PROPERTIES_SOURCE")?.toLowerCase() ?? "";
+  if (v === "network" || v === "network_only" || v === "aina") return "network";
+  if (
+    v === "network_fallback_json" ||
+    v === "network+json" ||
+    v === "aina_fallback_json"
+  ) {
+    return "network_fallback_json";
+  }
+  return "json";
+}
+
 export function getKitepropApiUserOrNull(): string | null {
   return trim("KITEPROP_API_USER");
 }
@@ -28,29 +49,60 @@ export function getKitepropNetworkTokenOrNull(): string | null {
 }
 
 /**
- * Path relativo a `KITEPROP_API_BASE_URL` para listar organizaciones de la red.
- * Puede incluir `{networkId}` sustituido por `KITEPROP_NETWORK_ID`.
- * Si no está definido y hay `KITEPROP_NETWORK_ID`, default: `/networks/{networkId}/organizations`.
+ * Sustituye placeholders en paths de red. Soporta `{networkId}` y `{networkToken}`.
+ * Coincide con el estilo AINA (Laravel): token en el path, no solo en cabeceras.
+ */
+function applyNetworkPathTemplate(template: string): string {
+  const id = getKitepropNetworkIdOrNull();
+  const tok = getKitepropNetworkTokenOrNull();
+  let p = template;
+  if (id) p = p.split("{networkId}").join(encodeURIComponent(id));
+  if (tok) p = p.split("{networkToken}").join(encodeURIComponent(tok));
+  return p;
+}
+
+/**
+ * True si el path ya incluye el token de red (AINA: evitar duplicar en X-Network-Token).
+ */
+export function pathEmbedsNetworkToken(path: string, networkToken: string): boolean {
+  if (!path || !networkToken) return false;
+  return path.includes(networkToken) || path.includes(encodeURIComponent(networkToken));
+}
+
+/**
+ * Organizaciones de red — mismo contrato que AINA (`KitePropApi::networkOrganizations`):
+ * `GET /api/v1/networks/{networkId}/{networkToken}/organizations` con Bearer = JWT de login.
+ *
+ * - Custom: `KITEPROP_NETWORK_ORGANIZATIONS_PATH` con `{networkId}` y/o `{networkToken}`.
+ * - Default: requiere `KITEPROP_NETWORK_ID` y `KITEPROP_NETWORK_TOKEN`.
  */
 export function getKitepropNetworkOrganizationsPathResolved(): string | null {
   const id = getKitepropNetworkIdOrNull();
+  const tok = getKitepropNetworkTokenOrNull();
   const custom = trim("KITEPROP_NETWORK_ORGANIZATIONS_PATH");
   if (custom) {
-    return id ? custom.split("{networkId}").join(id) : custom;
+    return applyNetworkPathTemplate(custom);
   }
-  if (!id) return null;
-  return `/networks/${encodeURIComponent(id)}/organizations`;
+  if (!id || !tok) return null;
+  return `/networks/${encodeURIComponent(id)}/${encodeURIComponent(tok)}/organizations`;
 }
 
-/** Igual que organizaciones; default `/networks/{networkId}/properties`. */
+/**
+ * Propiedades de red — mismo contrato que AINA (`KitePropApi::networkProperties`):
+ * `GET /api/v1/properties/network/{networkId}/{networkToken}` + query `status=active` (ver getter).
+ *
+ * - Custom: `KITEPROP_NETWORK_PROPERTIES_PATH` con placeholders.
+ * - Default: requiere id y token de red.
+ */
 export function getKitepropNetworkPropertiesPathResolved(): string | null {
   const id = getKitepropNetworkIdOrNull();
+  const tok = getKitepropNetworkTokenOrNull();
   const custom = trim("KITEPROP_NETWORK_PROPERTIES_PATH");
   if (custom) {
-    return id ? custom.split("{networkId}").join(id) : custom;
+    return applyNetworkPathTemplate(custom);
   }
-  if (!id) return null;
-  return `/networks/${encodeURIComponent(id)}/properties`;
+  if (!id || !tok) return null;
+  return `/properties/network/${encodeURIComponent(id)}/${encodeURIComponent(tok)}`;
 }
 
 /** Path de login (relativo a base). Default `auth/login` → …/api/v1/auth/login */

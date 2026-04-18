@@ -390,8 +390,22 @@ function summaryFromDescription(desc: string, max = 180): string {
 export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | null {
   if (!isRecord(raw)) return null;
 
-  const idNum =
-    pickNumber(raw, ["id", "ID", "property_id", "codigo", "external_id"]) ?? 0;
+  let idNum =
+    pickNumber(raw, [
+      "id",
+      "ID",
+      "property_id",
+      "propertyId",
+      "listing_id",
+      "listingId",
+      "codigo",
+      "external_id",
+      "externalId",
+    ]) ?? 0;
+  if (!idNum) {
+    const sid = pickString(raw, ["id", "property_id", "propertyId", "listing_id", "listingId"]);
+    if (sid && /^\d+$/.test(sid)) idNum = parseInt(sid, 10);
+  }
   if (!idNum) return null;
 
   const title =

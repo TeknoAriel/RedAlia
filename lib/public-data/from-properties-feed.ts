@@ -85,11 +85,13 @@ function buildStats(
 }
 
 /**
- * Directorio público a partir del catálogo ya normalizado (feed JSON / remoto).
- * Aplica reglas de calidad, orden institucional y saneo de contactos. No llama a la API REST de KiteProp.
+ * Directorio público a partir del catálogo ya normalizado (feed JSON / remoto / red AINA).
+ * Aplica reglas de calidad, orden institucional y saneo de contactos.
+ * `extraDirectoryDrafts`: organizaciones de red (`kpnet:org:…`) que no dupliquen `partnerKey` ya derivado del catálogo.
  */
 export function buildPublicPartnerDirectoryFromFeed(
   properties: NormalizedProperty[],
+  extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null,
 ): PublicPartnerDirectoryEntry[] {
   const catalog = extractSociosGridCatalog(properties);
   const raw: PublicPartnerDirectoryRowDraft[] = [];
@@ -100,6 +102,16 @@ export function buildPublicPartnerDirectoryFromFeed(
     );
     if (mapped) raw.push(mapped);
   }
+
+  if (extraDirectoryDrafts?.length) {
+    const keys = new Set(raw.map((r) => r.partnerKey));
+    for (const d of extraDirectoryDrafts) {
+      if (keys.has(d.partnerKey)) continue;
+      keys.add(d.partnerKey);
+      raw.push(d);
+    }
+  }
+
   return finalizeDirectoryEntries(raw);
 }
 
@@ -108,10 +120,14 @@ export function buildPublicPartnerDirectoryFromFeed(
  */
 export function buildPublicDirectorySnapshot(
   properties: NormalizedProperty[],
-  options?: { featuredMax?: number },
+  options?: {
+    featuredMax?: number;
+    /** Organizaciones de red AINA u otros borradores institucionales (sin duplicar `partnerKey`). */
+    extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null;
+  },
 ): PublicDirectorySnapshot {
   const featuredMax = options?.featuredMax ?? DEFAULT_FEATURED_MAX;
-  const entries = buildPublicPartnerDirectoryFromFeed(properties);
+  const entries = buildPublicPartnerDirectoryFromFeed(properties, options?.extraDirectoryDrafts);
   const featured = entries.slice(0, Math.min(featuredMax, entries.length));
   const stats = buildStats(properties, entries);
   return { entries, featured, stats };

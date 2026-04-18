@@ -52,6 +52,8 @@ export type KitepropGetJsonOptions = {
   extraHeaders?: Record<string, string>;
   /** Si `auth === "bearer"`, usa este token en lugar del Bearer de variables de entorno. */
   bearerOverride?: string | null;
+  /** Query string (p. ej. `status: "active"` en red AINA / properties). */
+  query?: Record<string, string | undefined>;
 };
 
 /**
@@ -66,6 +68,20 @@ function applyExtraHeaders(
   for (const [k, v] of Object.entries(extra)) {
     if (k.trim() && v) headers[k.trim()] = v;
   }
+}
+
+function appendQueryString(
+  pathPart: string,
+  query?: Record<string, string | undefined>,
+): string {
+  if (!query) return pathPart;
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== "") sp.set(k, v);
+  }
+  const q = sp.toString();
+  if (!q) return pathPart;
+  return pathPart.includes("?") ? `${pathPart}&${q}` : `${pathPart}?${q}`;
 }
 
 export async function kitepropGetJson<T = unknown>(
@@ -94,7 +110,7 @@ export async function kitepropGetJson<T = unknown>(
   }
 
   const base = getKitePropApiBaseUrl();
-  const pathPart = path.startsWith("/") ? path : `/${path}`;
+  const pathPart = appendQueryString(path.startsWith("/") ? path : `/${path}`, options?.query);
   const url = `${base}${pathPart}`;
 
   const controller = new AbortController();

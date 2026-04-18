@@ -11,36 +11,39 @@ Integración **server-only** para alinearse con lo que hoy consume **AINA** cont
 | **`KITEPROP_API_BASE_URL`** | Base REST (default en código: `https://www.kiteprop.com/api/v1`). |
 | **`KITEPROP_API_USER`** | Email o usuario para `POST …/auth/login`. |
 | **`KITEPROP_API_PASSWORD`** | Contraseña para login. **Nunca** en frontend. |
-| **`KITEPROP_NETWORK_ID`** | Identificador de red (sustituye `{networkId}` en paths por defecto). |
-| **`KITEPROP_NETWORK_TOKEN`** | Token de red (cabecera configurable; opcionalmente Bearer si flag abajo). |
+| **`KITEPROP_NETWORK_ID`** | Id de red (segmento de URL, mismo que AINA `network_id`). |
+| **`KITEPROP_NETWORK_TOKEN`** | Token de red: en los **defaults AINA** va en el **path** (`…/networks/{id}/{token}/…`), no como Bearer. Opcionalmente cabecera si usás paths custom sin token en URL. |
 | **`KITEPROP_NETWORK_AUDIT_ENABLED`** | Debe ser `1` para habilitar `GET /api/test-kiteprop-network-audit`. |
+| **`KITEPROP_PROPERTIES_SOURCE`** | `json` (default), `network` / `aina` (catálogo + directorio desde API de red), o `network_fallback_json` (intenta red y si falla usa el feed JSON). |
 | **`KITEPROP_AUTH_LOGIN_PATH`** | Default `auth/login`. |
-| **`KITEPROP_NETWORK_ORGANIZATIONS_PATH`** | Path relativo opcional; puede incluir `{networkId}`. Si falta y hay `NETWORK_ID`: default `/networks/{networkId}/organizations`. |
-| **`KITEPROP_NETWORK_PROPERTIES_PATH`** | Idem; default `/networks/{networkId}/properties`. |
+| **`KITEPROP_NETWORK_ORGANIZATIONS_PATH`** | Opcional. Placeholders `{networkId}` y `{networkToken}`. Si falta: `GET /networks/{id}/{token}/organizations` (relativo a `KITEPROP_API_BASE_URL`). |
+| **`KITEPROP_NETWORK_PROPERTIES_PATH`** | Opcional. Si falta: `GET /properties/network/{id}/{token}` + query fija `status=active` (igual que AINA). |
 
 ### Opcionales adicionales (ya soportados en código)
 
 | Variable | Rol |
 |----------|-----|
-| **`KITEPROP_NETWORK_TOKEN_AS_BEARER`** | Si es exactamente `1`, el Bearer de las peticiones GET de red es `KITEPROP_NETWORK_TOKEN`. Por defecto **no**: se espera JWT de login (o `KITEPROP_ACCESS_TOKEN` / secret vía Bearer de env). |
+| **`KITEPROP_NETWORK_TOKEN_AS_BEARER`** | Si es `1`, el Bearer de las GET de red es `KITEPROP_NETWORK_TOKEN` (caso raro; AINA usa JWT de login + token en path). |
 | **`KITEPROP_AUTH_LOGIN_USER_FIELD`** / **`KITEPROP_AUTH_LOGIN_PASSWORD_FIELD`** | Nombres de campos del JSON de login (default `email` / `password`). |
-| **`KITEPROP_NETWORK_ID_HEADER`** / **`KITEPROP_NETWORK_TOKEN_HEADER`** | Nombres de cabecera (default `X-Network-Id`, `X-Network-Token`). |
+| **`KITEPROP_NETWORK_ID_HEADER`** / **`KITEPROP_NETWORK_TOKEN_HEADER`** | Solo si el token **no** va en la URL: cabeceras (default `X-Network-Id`, `X-Network-Token`). Con defaults AINA suelen ir **vacías**. |
 | **`KITEPROP_ACCESS_TOKEN`** / **`KITEPROP_API_SECRET`** | Bearer alternativo si no hay login por password. Ver `lib/kiteprop/env-credentials.ts`. |
 
 **No hardcodear** credenciales en el repo. Los defaults de **path** son plantillas razonables; si AINA usa otros paths, copiarlos del código de AINA a las variables `…_PATH`.
 
-## Auth flow
+## Auth flow (AINA / `KitePropApi`)
 
-1. Si `KITEPROP_NETWORK_TOKEN_AS_BEARER=1` y hay `KITEPROP_NETWORK_TOKEN` → Bearer = ese token (+ cabecera de id de red si aplica).
-2. Si no: si hay `KITEPROP_API_USER` y `KITEPROP_API_PASSWORD` → `POST` login (`KITEPROP_AUTH_LOGIN_PATH`), extraer `access_token` / `token` / anidados comunes; cache en memoria del proceso (~50 min).
+1. Si `KITEPROP_NETWORK_TOKEN_AS_BEARER=1` y hay `KITEPROP_NETWORK_TOKEN` → Bearer = ese token.
+2. Si no: si hay `KITEPROP_API_USER` y `KITEPROP_API_PASSWORD` → `POST` login, leer **`data.access_token`** (y otros formatos compatibles); cache en memoria del proceso (~50 min).
 3. Si no: Bearer desde `KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET` (`resolveRestBearerTokenOrNull`).
-4. Peticiones GET de red: `Authorization: Bearer …` + cabeceras `X-Network-Id` / `X-Network-Token` cuando las variables están definidas (salvo token usado solo como Bearer en el paso 1).
+4. GET de red: **`Authorization: Bearer <JWT>`** (mismo patrón que `Http::withToken` en Laravel). Con paths por defecto AINA, **no** se envían `X-Network-*` porque `network_id` y `network_token` ya van en la URL.
 
-## Endpoints consumidos (plantilla)
+## Endpoints consumidos (AINA)
 
-- `POST {base}/{KITEPROP_AUTH_LOGIN_PATH}` — cuerpo `{ [userField]: user, [passwordField]: pass }`.
-- `GET {base}/{organizationsPath}` — lista de organizaciones de red.
-- `GET {base}/{propertiesPath}` — lista de propiedades de red.
+Relativos a `{base}` = `KITEPROP_API_BASE_URL` (default `https://www.kiteprop.com/api/v1`):
+
+- `POST {base}/auth/login` — JSON `{ "email": "…", "password": "…" }` (nombres configurables).
+- `GET {base}/networks/{networkId}/{networkToken}/organizations`
+- `GET {base}/properties/network/{networkId}/{networkToken}?status=active`
 
 El **shape real** depende del contrato desplegado: usar la ruta de auditoría con credenciales reales y revisar `firstPropertyKeyNames` / `unmappedFirstKeys`.
 

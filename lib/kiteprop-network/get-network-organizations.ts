@@ -1,7 +1,7 @@
 import "server-only";
 
 import { kitepropGetJson } from "@/lib/kiteprop/client";
-import { extractEntityArrayFromNetworkResponse } from "@/lib/kiteprop-network/extract-lists";
+import { extractOrganizationArrayFromNetworkResponse } from "@/lib/kiteprop-network/extract-lists";
 import {
   getKitepropNetworkOrganizationsPathResolved,
 } from "@/lib/kiteprop-network/network-env";
@@ -14,10 +14,10 @@ export type NetworkOrganizationsResult =
 export async function getNetworkOrganizations(): Promise<NetworkOrganizationsResult> {
   const path = getKitepropNetworkOrganizationsPathResolved();
   if (!path) {
-    return { ok: false, error: "MISSING_ORGANIZATIONS_PATH_OR_NETWORK_ID", status: null };
+    return { ok: false, error: "MISSING_ORGANIZATIONS_PATH_OR_NETWORK_ID_OR_TOKEN", status: null };
   }
 
-  const ctx = await resolveNetworkRequestContext();
+  const ctx = await resolveNetworkRequestContext("organizations");
   if (!ctx.ok) {
     return { ok: false, error: ctx.error, status: null };
   }
@@ -32,6 +32,6 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
     return { ok: false, error: res.errorCode, status: res.status };
   }
 
-  const items = extractEntityArrayFromNetworkResponse(res.data);
+  const items = extractOrganizationArrayFromNetworkResponse(res.data);
   return { ok: true, status: res.status, items };
 }

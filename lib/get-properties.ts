@@ -1,11 +1,16 @@
+import "server-only";
+
 import { readFile } from "fs/promises";
 import path from "path";
 import { cache } from "react";
 import { getKitepropPropertiesUrl } from "@/lib/config";
 import { normalizePropertyList } from "@/lib/kiteprop-adapter";
+import { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public-catalog-from-network";
+import { getKitepropPropertiesSourceMode } from "@/lib/kiteprop-network/network-env";
+import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
-export type PropertiesSource = "remote" | "sample" | "empty";
+export type PropertiesSource = "remote" | "sample" | "empty" | "network";
 
 export type GetPropertiesResult =
   | {
@@ -14,6 +19,11 @@ export type GetPropertiesResult =
       source: PropertiesSource;
       /** true si el catálogo remoto falló y se usó el archivo de referencia local */
       usedSampleFallback?: boolean;
+      /**
+       * Organizaciones de la red AINA (`GET …/organizations`) para enriquecer `/socios`
+       * sin duplicar claves ya derivadas del catálogo.
+       */
+      partnerDirectoryExtraDrafts?: PublicPartnerDirectoryRowDraft[];
     }
   | { ok: false; error: string; properties: [] };
 
@@ -51,11 +61,8 @@ async function fetchRemotePayload(url: string): Promise<unknown> {
   return parseJsonPayload(text);
 }
 
-/**
- * Catálogo: feed remoto si hay URL; si falla, archivo de referencia local.
- * Sin URL, solo muestra referencia local (estable para demos y desarrollo).
- */
-export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
+/** Feed JSON remoto o sample local (comportamiento histórico). */
+async function loadFromJsonFlow(): Promise<GetPropertiesResult> {
   const url = getKitepropPropertiesUrl();
 
   if (url) {
@@ -104,7 +111,74 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
       properties: [],
     };
   }
+}
+
+/**
+ * Catálogo público:
+ * - Por defecto (`KITEPROP_PROPERTIES_SOURCE` ausente o `json`): feed JSON (`KITEPROP_PROPERTIES_URL` o sample local).
+ * - `network` / `aina`: API de red AINA (propiedades activas + organizaciones para directorio).
+ * - `network_fallback_json`: intenta red; si falla o no hay datos, usa el flujo JSON.
+ */
+export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
+  const mode = getKitepropPropertiesSourceMode();
+
+  const tryNetwork = async (): Promise<
+    | {
+        ok: true;
+        properties: NormalizedProperty[];
+        organizationDrafts: PublicPartnerDirectoryRowDraft[];
+      }
+    | { ok: false; error: string }
+  > => {
+    const net = await loadPublicCatalogFromNetwork();
+    if (!net.ok) return { ok: false, error: net.error };
+    return {
+      ok: true,
+      properties: net.properties,
+      organizationDrafts: net.organizationDrafts,
+    };
+  };
+
+  if (mode === "network") {
+    const net = await tryNetwork();
+    if (!net.ok) {
+      return { ok: false, error: net.error, properties: [] };
+    }
+    const hasData = net.properties.length > 0 || net.organizationDrafts.length > 0;
+    return {
+      ok: true,
+      properties: net.properties,
+      source: hasData ? "network" : "empty",
+      partnerDirectoryExtraDrafts:
+        net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
+    };
+  }
+
+  if (mode === "network_fallback_json") {
+    const net = await tryNetwork();
+    if (
+      net.ok &&
+      (net.properties.length > 0 || net.organizationDrafts.length > 0)
+    ) {
+      return {
+        ok: true,
+        properties: net.properties,
+        source: "network",
+        partnerDirectoryExtraDrafts:
+          net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
+      };
+    }
+  }
+
+  return loadFromJsonFlow();
 });
+
+/** Organizaciones de red para `buildPublicDirectorySnapshot` / `buildPublicPartnerDirectoryFromFeed`. */
+export function getPartnerDirectoryExtraDrafts(
+  result: GetPropertiesResult,
+): PublicPartnerDirectoryRowDraft[] | undefined {
+  return result.ok ? result.partnerDirectoryExtraDrafts : undefined;
+}
 
 export async function getPropertyById(
   id: string,

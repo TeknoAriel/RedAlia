@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PartnerProfileView } from "@/components/public-directory/PartnerProfileView";
-import { getProperties } from "@/lib/get-properties";
+import { getProperties, getPartnerDirectoryExtraDrafts } from "@/lib/get-properties";
 import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
 import { buildPublicPartnerDirectoryFromFeed } from "@/lib/public-data/from-properties-feed";
 import { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";
@@ -39,7 +39,10 @@ export default async function SocioProfilePage({ params }: PageProps) {
   if (!result.ok) {
     notFound();
   }
-  const entries = buildPublicPartnerDirectoryFromFeed(result.properties);
+  const entries = buildPublicPartnerDirectoryFromFeed(
+    result.properties,
+    getPartnerDirectoryExtraDrafts(result),
+  );
   const entry = findPartnerEntryByPublicSlug(entries, slug);
   if (!entry) {
     notFound();
