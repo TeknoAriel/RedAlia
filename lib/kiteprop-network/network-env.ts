@@ -12,9 +12,8 @@ export function isKitepropNetworkAuditEnabled(): boolean {
 
 /**
  * Origen del catálogo público (`getProperties`):
- * - `json` (default): feed `KITEPROP_PROPERTIES_URL` o sample local.
- * - `network`: solo API de red AINA (requiere credenciales red + login).
- * - `network_fallback_json`: intenta red; si falla o viene vacío, usa el flujo JSON.
+ * - `json` (default): feed JSON de difusión (`KITEPROP_PROPERTIES_URL` o default en `lib/config.ts`), no REST `/properties`.
+ * - `network` / `network_fallback_json`: intenta API de red AINA; **si no hay propiedades o falla**, mismo feed JSON + socios desde el feed (organizaciones de red solo si aplica).
  */
 export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
 

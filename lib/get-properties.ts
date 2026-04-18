@@ -52,6 +52,7 @@ async function fetchRemotePayload(url: string): Promise<unknown> {
       Accept: "application/json",
       "Cache-Control": "no-cache, no-store, must-revalidate",
       Pragma: "no-cache",
+      "User-Agent": "RedaliaFeedFetcher/1.0 (+https://redalia.cl)",
     },
   });
   if (!res.ok) {
@@ -115,9 +116,9 @@ async function loadFromJsonFlow(): Promise<GetPropertiesResult> {
 
 /**
  * Catálogo público:
- * - Por defecto (`KITEPROP_PROPERTIES_SOURCE` ausente o `json`): feed JSON (`KITEPROP_PROPERTIES_URL` o sample local).
- * - `network` / `aina`: API de red AINA (propiedades activas + organizaciones para directorio).
- * - `network_fallback_json`: intenta red; si falla o no hay datos, usa el flujo JSON.
+ * - Por defecto (`KITEPROP_PROPERTIES_SOURCE` ausente o `json`): feed JSON de difusión (env o URL por defecto en `lib/config.ts`), **no** REST `/properties`.
+ * - `network` / `aina`: intenta API de red (mismo patrón que `KitePropApi` Laravel); si falla o **0 propiedades**, vuelve al feed JSON para no dejar el catálogo vacío.
+ * - `network_fallback_json`: igual que arriba pero intenta red primero solo si querés ese orden explícito.
  */
 export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   const mode = getKitepropPropertiesSourceMode();
@@ -139,27 +140,10 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     };
   };
 
-  if (mode === "network") {
+  if (mode === "network" || mode === "network_fallback_json") {
     const net = await tryNetwork();
-    if (!net.ok) {
-      return { ok: false, error: net.error, properties: [] };
-    }
-    const hasData = net.properties.length > 0 || net.organizationDrafts.length > 0;
-    return {
-      ok: true,
-      properties: net.properties,
-      source: hasData ? "network" : "empty",
-      partnerDirectoryExtraDrafts:
-        net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
-    };
-  }
 
-  if (mode === "network_fallback_json") {
-    const net = await tryNetwork();
-    if (
-      net.ok &&
-      (net.properties.length > 0 || net.organizationDrafts.length > 0)
-    ) {
+    if (net.ok && net.properties.length > 0) {
       return {
         ok: true,
         properties: net.properties,
@@ -168,6 +152,32 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
           net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
       };
     }
+
+    const json = await loadFromJsonFlow();
+
+    if (!json.ok) {
+      if (mode === "network" && !net.ok) {
+        return { ok: false, error: net.error, properties: [] };
+      }
+      return json;
+    }
+
+    const orgExtras =
+      net.ok && net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined;
+    if (json.properties.length > 0) {
+      return { ...json, partnerDirectoryExtraDrafts: orgExtras };
+    }
+
+    if (net.ok && net.organizationDrafts.length > 0) {
+      return {
+        ok: true,
+        properties: [],
+        source: "empty",
+        partnerDirectoryExtraDrafts: net.organizationDrafts,
+      };
+    }
+
+    return json;
   }
 
   return loadFromJsonFlow();

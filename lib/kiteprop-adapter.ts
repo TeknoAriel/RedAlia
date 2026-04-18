@@ -595,17 +595,31 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
   };
 }
 
-/** Acepta array raíz o envoltorio con distintas claves. */
+/** Acepta array raíz o envoltorio con distintas claves (feeds de difusión KiteProp / externos). */
 export function extractRawList(payload: unknown): unknown[] {
   if (Array.isArray(payload)) return payload;
   if (!isRecord(payload)) return [];
   const inner =
     payload.properties ??
-    payload.data ??
+    payload.publicaciones ??
+    payload.publications ??
+    payload.listings ??
+    payload.listing ??
     payload.items ??
+    payload.data ??
     payload.results ??
-    payload.publicaciones;
+    payload.inmuebles ??
+    payload.avisos;
   if (Array.isArray(inner)) return inner;
+  const nested = payload.response ?? payload.body ?? payload.content;
+  if (isRecord(nested)) {
+    const inner2 =
+      nested.properties ??
+      nested.publicaciones ??
+      nested.items ??
+      nested.data;
+    if (Array.isArray(inner2)) return inner2;
+  }
   return [];
 }
 
