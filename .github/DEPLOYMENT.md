@@ -15,7 +15,7 @@
 
 | Momento | Qué corre |
 |--------|------------|
-| **PR y push a `main`** | Un solo job **`CI — listo para merge`**: `npm ci` **una vez**, luego ESLint → TypeScript → `next build`. Menos minutos que tres jobs con tres instalaciones. |
+| **PR y push a `main`** | Un solo job **`CI — listo para merge`**: `npm ci` **una vez**, luego ESLint → TypeScript → `next build` (Node **24** en Actions). |
 | **Push a `main`** (tras CI OK) | **Vercel CLI (opcional)** solo si están `VERCEL_TOKEN`, `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID`. Al terminar el deploy CLI, **smoke HTTP** opcional con `PRODUCTION_URL` (sin sleeps: solo `curl` con reintentos cortos). |
 
 ### `verify-deployment.yml` — alineado al deploy real (integración Git)
@@ -29,6 +29,17 @@ Cuando Vercel (u otro integrador) notifica a GitHub un **`deployment_status`** e
 
 - **PR:** cancela el run anterior del mismo PR (`cancel-in-progress: true`).
 - **Vercel CLI:** grupo `vercel-production-deploy`, `cancel-in-progress: false`, para no pisar despliegues.
+
+### `deploy-ready-after-ci.yml` — «ready» tras CI en `main` (sin depender solo de Vercel)
+
+Cuando el workflow **CI** termina **en éxito** por **push** a **`main`**, corre **`deploy-readiness`** contra la variable **`PRODUCTION_URL`** (misma lógica que `verify:deploy`), con **reintentos** ante 502/503/504 y red inestable.
+
+- Si **`PRODUCTION_URL`** no está definida, el job termina con *notice* (no falla): en ese caso el «ready» lo da solo **`verify-deployment.yml`** si Vercel envía `deployment_status` + URL.
+- Con **Vercel Git + `PRODUCTION_URL` definida**, tenés **dos señales** de readiness (deploy event + post-CI); podés quedarte con una sola desactivando la variable o el workflow si preferís menos ruido.
+
+### `repo-branch-alignment.yml` — ramas remotas vs `main` (sin tocar Git)
+
+Semanal (martes) o **Run workflow**: genera una tabla en el **Summary** del run con, por cada rama remota, cuántos commits va **atrás** de `origin/main` y cuántos **adelante**. Sirve para ver PRs desactualizados. Local: `git fetch origin && npm run repo:branch-alignment`.
 
 ## Alinear el repo local con `origin/main`
 
@@ -48,7 +59,10 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 
 | Nombre | Tipo | Uso |
 |--------|------|-----|
-| `PRODUCTION_URL` | Variable | URL base **https** pública. Tras deploy **por CLI**, se usa en `npm run verify:deploy` (mismo script que `verify-deployment.yml`). |
+| `PRODUCTION_URL` | Variable | URL base **https** pública. Tras deploy **por CLI**, post-CI (`deploy-ready-after-ci`) y smoke manual. |
+| `DEPLOY_READINESS_ATTEMPTS` | Variable (opc.) | Reintentos por ruta ante 5xx/red (default **5** en script; el workflow post-CI usa **6** si no definís esta var). |
+| `DEPLOY_READINESS_RETRY_MS` | Variable (opc.) | Pausa entre reintentos en ms (default **3500**). |
+| `REPO_ALIGN_EXCLUDE_PREFIXES` | Variable (opc.) | Prefijos de ramas a omitir en el informe (default `dependabot/`). |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Secret | Deploy por Actions; si faltan, se asume **solo** integración Git de Vercel. |
 | `BRANCH_PROTECTION_TOKEN` | Secret | PAT con **Administration** del repo (fine-grained) o `repo` (classic). Usa [`.github/workflows/apply-branch-protection.yml`](./workflows/apply-branch-protection.yml) / `scripts/apply-branch-protection.mjs`. Si no existe, el workflow se omite. |
 
@@ -69,7 +83,8 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 
 - [ ] Ruleset en `main` exige **`CI — listo para merge`**.
 - [ ] Sin secretos `VERCEL_*` si ya desplegás con Git en Vercel (o al revés, desactivá el auto-deploy duplicado en Vercel).
-- [ ] `PRODUCTION_URL` (variable del repo) si usás deploy por CLI — habilita **deploy readiness** al final del job Vercel.
-- [ ] Tras un deploy importante: revisar que **`Verificar deploy`** haya quedado verde en GitHub (o ejecutar **Deploy readiness (manual)**).
+- [ ] `PRODUCTION_URL` (variable del repo) para **Deploy ready (post-CI main)** y/o readiness tras CLI.
+- [ ] Tras un deploy importante: **`Verificar deploy`** (evento Vercel) y/o **`Deploy ready (post-CI main)`** en verde.
+- [ ] Opcional: **Informe alineación ramas** (Actions) para ver ramas atrasadas respecto de `main`.
 - [ ] Local: `DEPLOY_READINESS_URL=https://tu-preview.vercel.app npm run verify:deploy`
 - [ ] `npm run sync:pull` antes de trabajar para alinear con `main`.

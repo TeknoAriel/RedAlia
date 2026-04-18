@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   ci:
@@ -96,7 +97,11 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         env:
           DEPLOY_READINESS_URL: ${{ vars.PRODUCTION_URL }}
+          DEPLOY_READINESS_ATTEMPTS: ${{ vars.DEPLOY_READINESS_ATTEMPTS }}
+          DEPLOY_READINESS_RETRY_MS: ${{ vars.DEPLOY_READINESS_RETRY_MS }}
+          DEPLOY_READINESS_JSON_SUMMARY: "1"
         run: |
+          set -euo pipefail
           if [ -z "$DEPLOY_READINESS_URL" ]; then
             echo "::notice::Variable PRODUCTION_URL no definida: omitiendo verificación post-CLI."
             exit 0

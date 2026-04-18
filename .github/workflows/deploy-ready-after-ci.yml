@@ -1,0 +1,59 @@
+# Tras un push a main con CI verde, verifica readiness en la URL de producción declarada.
+# Complementa Vercel: no depende de `deployment_status` ni de deploy por CLI.
+#
+# Variable del repo: PRODUCTION_URL (https://… sin barra final).
+# Reintentos: ver `scripts/deploy-readiness.mjs` (DEPLOY_READINESS_ATTEMPTS, etc.).
+
+name: Deploy ready (post-CI main)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy-ready-after-ci-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  verify-production-url:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verificar PRODUCTION_URL
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          DEPLOY_READINESS_ATTEMPTS: ${{ vars.DEPLOY_READINESS_ATTEMPTS }}
+          DEPLOY_READINESS_RETRY_MS: ${{ vars.DEPLOY_READINESS_RETRY_MS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PRODUCTION_URL:-}" ]; then
+            echo "::notice::Variable PRODUCTION_URL no definida: omitido deploy-ready-after-ci (configurá la URL pública de producción en Settings → Variables)."
+            exit 0
+          fi
+          export DEPLOY_READINESS_URL="$PRODUCTION_URL"
+          export DEPLOY_READINESS_ATTEMPTS="${DEPLOY_READINESS_ATTEMPTS:-6}"
+          export DEPLOY_READINESS_RETRY_MS="${DEPLOY_READINESS_RETRY_MS:-4000}"
+          export DEPLOY_READINESS_JSON_SUMMARY=1
+          echo "## Deploy readiness (post-CI en main)" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: \`$DEPLOY_READINESS_URL\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit CI: \`${{ github.event.workflow_run.head_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          set -o pipefail
+          node scripts/deploy-readiness.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"

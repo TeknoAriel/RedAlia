@@ -5,11 +5,25 @@
  *   DEPLOY_READINESS_URL=https://tu-dominio.vercel.app node scripts/deploy-readiness.mjs
  *   node scripts/deploy-readiness.mjs https://tu-dominio.vercel.app
  *
+ * Reintentos (cold start / CDN):
+ *   DEPLOY_READINESS_ATTEMPTS (default 5), DEPLOY_READINESS_RETRY_MS (default 3500)
+ *   Reintenta solo 502, 503, 504 y errores de red (sin body HTTP).
+ *
  * Sale con código 1 si alguna petición falla (HTTP no OK, timeout, red).
  */
 
 const TIMEOUT_MS = 25_000;
 const PATHS = ["/", "/propiedades", "/socios", "/contacto"];
+
+function readinessAttempts() {
+  const n = parseInt(process.env.DEPLOY_READINESS_ATTEMPTS || "5", 10);
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, 15) : 5;
+}
+
+function readinessRetryMs() {
+  const n = parseInt(process.env.DEPLOY_READINESS_RETRY_MS || "3500", 10);
+  return Number.isFinite(n) && n >= 200 ? Math.min(n, 60_000) : 3500;
+}
 
 function normalizeBase(raw) {
   const u = String(raw || "").trim();
@@ -23,7 +37,7 @@ function normalizeBase(raw) {
   }
 }
 
-async function checkUrl(url) {
+async function checkUrlOnce(url) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -43,6 +57,25 @@ async function checkUrl(url) {
   } finally {
     clearTimeout(t);
   }
+}
+
+function isTransientFailure(r) {
+  if (r.ok) return false;
+  if (r.status === 502 || r.status === 503 || r.status === 504) return true;
+  if (r.status == null && r.error) return true;
+  return false;
+}
+
+async function checkUrl(url) {
+  const max = readinessAttempts();
+  const delay = readinessRetryMs();
+  let last = await checkUrlOnce(url);
+  for (let i = 1; i < max && isTransientFailure(last); i++) {
+    process.stderr.write(` (reintento ${i}/${max - 1} en ${delay}ms) `);
+    await new Promise((r) => setTimeout(r, delay));
+    last = await checkUrlOnce(url);
+  }
+  return last;
 }
 
 async function main() {
@@ -83,9 +116,37 @@ async function main() {
       process.exit(0);
     }
     console.error(`\nDeploy readiness: ${failed.length}/${results.length} fallos.`);
+    if (process.env.DEPLOY_READINESS_JSON_SUMMARY === "1") {
+      console.log(
+        JSON.stringify({
+          ok: false,
+          base,
+          failed: failed.map((r) => ({
+            url: r.url,
+            status: r.status,
+            error: r.error,
+          })),
+        }),
+      );
+    }
     process.exit(1);
   }
   console.error(`\nDeploy readiness: ${results.length} rutas OK (${base}).`);
+  if (process.env.DEPLOY_READINESS_JSON_SUMMARY === "1") {
+    const summary = {
+      ok: true,
+      base,
+      paths: PATHS,
+      results: results.map((r) => ({
+        path: r.url.replace(base, "") || "/",
+        status: r.status,
+        ok: r.ok,
+      })),
+      attempts: readinessAttempts(),
+      retryMs: readinessRetryMs(),
+    };
+    console.log(JSON.stringify(summary));
+  }
 }
 
 main().catch((e) => {
