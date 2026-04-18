@@ -16,9 +16,10 @@ Podés seguir usando solo las variables “clásicas”; no es obligatorio defin
 |------|------------------------|----------------------|---------------------------|
 | `GET /profile`, `X-API-Key` | `KITEPROP_API_KEY` | `KITEPROP_API_SECRET` | `X-API-Key` |
 | `GET /properties`, `GET /users`, Bearer | `KITEPROP_ACCESS_TOKEN` | `KITEPROP_API_SECRET` | `Authorization: Bearer` |
+| Mismo GET con **Bearer + key** (`KITEPROP_REST_BEARER_WITH_API_KEY=1`) | Bearer: token estático **o** JWT vía `KITEPROP_API_USER` + `KITEPROP_API_PASSWORD` (login) | `KITEPROP_API_KEY` o secret | `Authorization: Bearer` **y** `X-API-Key` |
 | POST leads (`KITEPROP_LEAD_POST_URL`) | `KITEPROP_API_TOKEN` | `KITEPROP_API_SECRET` | `Authorization: Bearer` |
 
-Implementación: `lib/kiteprop/env-credentials.ts` + `lib/kiteprop/client.ts` + `lib/lead-dispatch.ts`.
+Implementación: `lib/kiteprop/env-credentials.ts` + `lib/kiteprop/client.ts` + `lib/kiteprop/resolve-rest-bearer.ts` + `lib/lead-dispatch.ts`.
 
 ## MCP (Cursor) — mismo valor, otro archivo
 

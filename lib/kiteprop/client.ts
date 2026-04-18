@@ -31,7 +31,7 @@ export function getKitePropBearerTokenOrNull(): string | null {
   return resolveRestBearerTokenOrNull();
 }
 
-export type KitepropGetAuth = "api_key" | "bearer" | "none";
+export type KitepropGetAuth = "api_key" | "bearer" | "bearer_with_api_key" | "none";
 
 export type KitepropClientErrorCode =
   | "MISSING_KEY"
@@ -105,6 +105,24 @@ export async function kitepropGetJson<T = unknown>(
       return { ok: false, status: null, errorCode: "MISSING_BEARER" };
     }
     headers.Authorization = `Bearer ${token}`;
+  } else if (auth === "bearer_with_api_key") {
+    let token = options?.bearerOverride?.trim() || null;
+    if (!token) {
+      const { resolveRestBearerFromEnvOrPasswordLogin } = await import(
+        "@/lib/kiteprop/resolve-rest-bearer"
+      );
+      const resolved = await resolveRestBearerFromEnvOrPasswordLogin();
+      if (!resolved.ok) {
+        return { ok: false, status: null, errorCode: "MISSING_BEARER" };
+      }
+      token = resolved.token;
+    }
+    const apiKey = getKitePropApiKeyOrNull();
+    if (!apiKey) {
+      return { ok: false, status: null, errorCode: "MISSING_KEY" };
+    }
+    headers.Authorization = `Bearer ${token}`;
+    headers["X-API-Key"] = apiKey;
   } else {
     return { ok: false, status: null, errorCode: "MISSING_KEY" };
   }
@@ -151,7 +169,7 @@ export async function kitepropGetJson<T = unknown>(
 }
 
 export type KitepropPostJsonOptions = {
-  auth?: KitepropGetAuth;
+  auth?: Extract<KitepropGetAuth, "api_key" | "bearer" | "none">;
   extraHeaders?: Record<string, string>;
   bearerOverride?: string | null;
 };

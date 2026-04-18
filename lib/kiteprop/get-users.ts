@@ -1,12 +1,12 @@
 import "server-only";
 
 import { kitepropGetJson } from "@/lib/kiteprop/client";
+import { isKitepropRestBearerWithApiKeyEnabled } from "@/lib/kiteprop/env-credentials";
 
 const ALLOWED_LIMITS = new Set([5, 10, 15, 20, 25]);
 
 /**
- * `GET /users` según documentación pública — autenticación **Bearer** (`KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET`).
- * No usar hasta tener token válido y permisos confirmados; el resultado es `unknown` hasta modelar el shape real.
+ * `GET /users` — Bearer (env o login) y, si `KITEPROP_REST_BEARER_WITH_API_KEY=1`, `X-API-Key`.
  *
  * @see docs/kiteprop-data-model.md
  */
@@ -18,5 +18,6 @@ export function getKitePropUsersPage(query?: { page?: number; limit?: number }) 
     page: String(page),
     limit: String(limit),
   });
-  return kitepropGetJson<unknown>(`/users?${qs.toString()}`, { auth: "bearer" });
+  const auth = isKitepropRestBearerWithApiKeyEnabled() ? "bearer_with_api_key" : "bearer";
+  return kitepropGetJson<unknown>(`/users?${qs.toString()}`, { auth });
 }

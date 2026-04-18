@@ -56,7 +56,7 @@ export async function GET() {
       paginationNote:
         "El wrapper `getKitePropPropertiesApiPage` solo envía `limit` ∈ {15,30,50} (validación local; confirmar límites en doc oficial KiteProp).",
       authentication:
-        "Header Authorization: Bearer — variable KITEPROP_ACCESS_TOKEN o, si preferís una sola secret, KITEPROP_API_SECRET (mismo valor kp_… que en MCP; no X-API-Key en esta ruta).",
+        "Bearer: KITEPROP_ACCESS_TOKEN / KITEPROP_API_SECRET o login KITEPROP_API_USER+PASSWORD. Si KITEPROP_REST_BEARER_WITH_API_KEY=1, además X-API-Key (KITEPROP_API_KEY o secret).",
     },
     upstreamHttpStatus: analysis.upstreamHttpStatus,
     envelopeTopLevelKeys: analysis.envelopeTopLevelKeys,

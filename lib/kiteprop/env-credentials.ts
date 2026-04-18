@@ -32,3 +32,12 @@ export function resolveRestBearerTokenOrNull(): string | null {
 export function resolveLeadBearerTokenOrNull(): string | null {
   return trimEnv("KITEPROP_API_TOKEN") ?? getKitepropSharedSecretOrNull();
 }
+
+/**
+ * Si es `1`, los GET REST tipo `GET /properties` y `GET /users` envían **Bearer + `X-API-Key`**:
+ * Bearer desde `KITEPROP_ACCESS_TOKEN` / secret **o** JWT de login (`KITEPROP_API_USER` + `KITEPROP_API_PASSWORD`);
+ * clave en `KITEPROP_API_KEY` o fallback `KITEPROP_API_SECRET`.
+ */
+export function isKitepropRestBearerWithApiKeyEnabled(): boolean {
+  return trimEnv("KITEPROP_REST_BEARER_WITH_API_KEY") === "1";
+}

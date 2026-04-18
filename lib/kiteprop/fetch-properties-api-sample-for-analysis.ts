@@ -62,7 +62,9 @@ export async function fetchKitePropPropertiesApiSampleForAnalysis(options?: {
       errorCode: result.errorCode,
       message:
         result.errorCode === "MISSING_BEARER"
-          ? "Bearer not configured (set KITEPROP_ACCESS_TOKEN or KITEPROP_API_SECRET for GET /properties)"
+          ? "Bearer not configured: KITEPROP_ACCESS_TOKEN or KITEPROP_API_SECRET; if KITEPROP_REST_BEARER_WITH_API_KEY=1, define KITEPROP_API_USER + KITEPROP_API_PASSWORD for JWT login instead of a static token"
+          : result.errorCode === "MISSING_KEY"
+            ? "X-API-Key missing (set KITEPROP_API_KEY or KITEPROP_API_SECRET when KITEPROP_REST_BEARER_WITH_API_KEY=1)"
           : result.errorCode === "HTTP_ERROR"
             ? "KiteProp returned an error HTTP status for GET /properties"
             : result.errorCode === "TIMEOUT"
