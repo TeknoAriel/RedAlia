@@ -3,7 +3,7 @@
 ## Sistema de deploy seguro (resumen)
 
 1. **Un solo camino a producción** — O bien Vercel despliega desde Git (recomendado), o bien Actions usa `VERCEL_*` + `amondnet/vercel-action`. No actives los dos para el mismo `main` (doble deploy y estados confusos).
-2. **Calidad antes de publicar** — La rama `main` debe pasar **`CI — listo para merge`** (`npm ci` → lint → typecheck → `next build`). Regla en GitHub: *Require status checks*.
+2. **Calidad antes de publicar** — La rama `main` debe pasar **`CI — listo para merge`** (`npm ci` → lint → typecheck → `next build`). **Configuración paso a paso en GitHub:** [`.github/SETUP_BRANCH_PROTECTION.md`](./SETUP_BRANCH_PROTECTION.md) (no se puede aplicar desde el repo sin permisos de admin en la org).
 3. **Comprobar que el deploy esté “ready”** — Tras éxito del hosting, GitHub recibe `deployment_status` → workflow **`Verificar deploy`** ejecuta `scripts/deploy-readiness.mjs` contra `environment_url` (home, propiedades, socios, contacto). Si falla, el run queda rojo: revisá Vercel y logs antes de asumir “atraso” del código.
 4. **Verificación manual** — Actions → **Deploy readiness (manual)** → indicá la URL base. O local: `DEPLOY_READINESS_URL=https://… npm run verify:deploy`.
 5. **Secretos** — `VERCEL_TOKEN`, credenciales KiteProp y URLs sensibles solo en **GitHub Secrets / Vercel Environment**; nunca en commits. PRs desde forks no reciben secretos de Actions.
