@@ -1,5 +1,14 @@
 # Flujos de deploy y reglas de control
 
+## Sistema de deploy seguro (resumen)
+
+1. **Un solo camino a producción** — O bien Vercel despliega desde Git (recomendado), o bien Actions usa `VERCEL_*` + `amondnet/vercel-action`. No actives los dos para el mismo `main` (doble deploy y estados confusos).
+2. **Calidad antes de publicar** — La rama `main` debe pasar **`CI — listo para merge`** (`npm ci` → lint → typecheck → `next build`). Regla en GitHub: *Require status checks*.
+3. **Comprobar que el deploy esté “ready”** — Tras éxito del hosting, GitHub recibe `deployment_status` → workflow **`Verificar deploy`** ejecuta `scripts/deploy-readiness.mjs` contra `environment_url` (home, propiedades, socios, contacto). Si falla, el run queda rojo: revisá Vercel y logs antes de asumir “atraso” del código.
+4. **Verificación manual** — Actions → **Deploy readiness (manual)** → indicá la URL base. O local: `DEPLOY_READINESS_URL=https://… npm run verify:deploy`.
+5. **Secretos** — `VERCEL_TOKEN`, credenciales KiteProp y URLs sensibles solo en **GitHub Secrets / Vercel Environment**; nunca en commits. PRs desde forks no reciben secretos de Actions.
+6. **Variables de entorno** — Documentación en `README.md` y `docs/kiteprop-credentials.md`; producción y preview separados en Vercel cuando aplique.
+
 ## Flujo automático
 
 ### `ci.yml` — calidad y build (sin cola innecesaria)
@@ -39,7 +48,7 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 
 | Nombre | Tipo | Uso |
 |--------|------|-----|
-| `PRODUCTION_URL` | Variable | URL pública. Se usa **solo** tras un deploy **por CLI** en Actions (smoke inmediatamente después). |
+| `PRODUCTION_URL` | Variable | URL base **https** pública. Tras deploy **por CLI**, se usa en `npm run verify:deploy` (mismo script que `verify-deployment.yml`). |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Secret | Deploy por Actions; si faltan, se asume **solo** integración Git de Vercel. |
 
 **No duplicar producción:** o integración Git de Vercel, o CLI con secretos — no ambos para el mismo `main`.
@@ -59,5 +68,7 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 
 - [ ] Ruleset en `main` exige **`CI — listo para merge`**.
 - [ ] Sin secretos `VERCEL_*` si ya desplegás con Git en Vercel (o al revés, desactivá el auto-deploy duplicado en Vercel).
-- [ ] `PRODUCTION_URL` solo si usás deploy por CLI y querés smoke post-deploy.
+- [ ] `PRODUCTION_URL` (variable del repo) si usás deploy por CLI — habilita **deploy readiness** al final del job Vercel.
+- [ ] Tras un deploy importante: revisar que **`Verificar deploy`** haya quedado verde en GitHub (o ejecutar **Deploy readiness (manual)**).
+- [ ] Local: `DEPLOY_READINESS_URL=https://tu-preview.vercel.app npm run verify:deploy`
 - [ ] `npm run sync:pull` antes de trabajar para alinear con `main`.

@@ -31,7 +31,8 @@ Copiá `.env.example` como referencia. Credenciales KiteProp / MCP: **`docs/kite
 
 ## Deploy y CI
 
-- **GitHub Actions:** un solo job **`CI — listo para merge`** (`npm ci` + lint + typecheck + build). En `main`, **Vercel CLI** opcional si hay secretos `VERCEL_*`; smoke con `PRODUCTION_URL` solo **después** de ese deploy. **`verify-deployment.yml`** hace smoke cuando GitHub recibe `deployment_status` con URL (alineado al deploy de Vercel por Git).
+- **GitHub Actions:** **`CI — listo para merge`** (`npm ci` + lint + typecheck + build). Opcional: deploy **Vercel CLI** con secretos `VERCEL_*` + verificación `npm run verify:deploy` usando variable **`PRODUCTION_URL`**.
+- **Post-deploy:** **`verify-deployment.yml`** corre `scripts/deploy-readiness.mjs` cuando Vercel envía `deployment_status` + `environment_url` (rutas `/`, `/propiedades`, `/socios`, `/contacto`). Manual: workflow **Deploy readiness (manual)** en Actions, o `DEPLOY_READINESS_URL=… npm run verify:deploy`.
 - **Repo alineado con `main`:** `npm run sync:pull` (o `npm run sync` si además querés push).
 - Reglas recomendadas (branch protection, secretos, no duplicar Vercel): **[`.github/DEPLOYMENT.md`](.github/DEPLOYMENT.md)**.
 - Conectá el repo a [Vercel](https://vercel.com): root = raíz del repo, framework **Next.js**.

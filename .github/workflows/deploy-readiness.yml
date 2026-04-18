@@ -1,0 +1,32 @@
+# Verificación manual o programada de una URL ya desplegada (sin acoplarse a Vercel).
+# Útil: tras DNS, canary, o comprobar preview antes de promover.
+
+name: Deploy readiness (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL base https (ej. https://redalia.vercel.app)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rutas críticas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Comprobar deploy
+        env:
+          DEPLOY_READINESS_URL: ${{ github.event.inputs.base_url }}
+        run: node scripts/deploy-readiness.mjs

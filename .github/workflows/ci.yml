@@ -47,6 +47,8 @@ jobs:
     timeout-minutes: 25
     needs: [ci]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      NODE_VERSION: "20"
     concurrency:
       group: vercel-production-deploy
       cancel-in-progress: false
@@ -90,15 +92,13 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: "--prod"
 
-      - name: Smoke tras deploy CLI (sin demoras artificiales)
+      - name: Deploy readiness tras CLI (rutas críticas)
         if: steps.gate.outputs.deploy == 'true'
         env:
-          SMOKE_URL: ${{ vars.PRODUCTION_URL }}
+          DEPLOY_READINESS_URL: ${{ vars.PRODUCTION_URL }}
         run: |
-          if [ -z "$SMOKE_URL" ]; then
-            echo "::notice::PRODUCTION_URL no definida: omitiendo smoke post-CLI."
+          if [ -z "$DEPLOY_READINESS_URL" ]; then
+            echo "::notice::Variable PRODUCTION_URL no definida: omitiendo verificación post-CLI."
             exit 0
           fi
-          echo "Probando $SMOKE_URL (tras despliegue CLI)…"
-          curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors -o /dev/null "$SMOKE_URL"
-          echo "OK"
+          node scripts/deploy-readiness.mjs

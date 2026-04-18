@@ -1,5 +1,5 @@
-# Se dispara cuando GitHub recibe un estado de deployment (p. ej. Vercel tras integración Git).
-# Alinea la verificación HTTP con el deploy real, sin correr antes que el hosting.
+# Tras un deployment exitoso (p. ej. Vercel → GitHub), verifica rutas críticas del sitio.
+# Misma lógica que `scripts/deploy-readiness.mjs` (sin secretos).
 
 name: Verificar deploy
 
@@ -12,19 +12,24 @@ permissions:
 
 jobs:
   smoke-deployment-url:
-    name: Smoke URL del deployment
+    name: Deploy readiness (post-deploy)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     if: github.event.deployment_status.state == 'success'
     steps:
-      - name: HTTP al environment_url
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Rutas críticas en environment_url
         env:
-          URL: ${{ github.event.deployment_status.environment_url }}
+          DEPLOY_READINESS_URL: ${{ github.event.deployment_status.environment_url }}
         run: |
-          if [ -z "$URL" ]; then
-            echo "::notice::Sin environment_url en el evento; omitido (normal en algunos integradores)."
+          if [ -z "$DEPLOY_READINESS_URL" ]; then
+            echo "::notice::Sin environment_url; omitido (algunos integradores no lo envían)."
             exit 0
           fi
-          echo "Probando $URL …"
-          curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors -o /dev/null "$URL"
-          echo "OK"
+          echo "Entorno: ${{ github.event.deployment_status.environment }}"
+          node scripts/deploy-readiness.mjs
