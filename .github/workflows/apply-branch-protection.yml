@@ -1,0 +1,43 @@
+# Aplica reglas de protección en `main` vía API (sin entrar a Settings).
+# Requiere un secreto con permiso de administración del repositorio; el GITHUB_TOKEN del workflow no alcanza.
+#
+# Secreto: BRANCH_PROTECTION_TOKEN
+#   Fine-grained PAT: permiso "Administration" del repositorio → Read and write.
+#   Classic PAT: scope repo (dueño del repo).
+#
+# Disparadores: manual (Actions → Run workflow) o cron semanal (idempotente).
+
+name: Aplicar branch protection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "45 8 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apply-branch-protection
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Aplicar política en main
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BRANCH_PROTECTION_TOKEN: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
+          BRANCH: main
+          REQUIRE_PR: "1"
+          STRICT_UP_TO_DATE: "1"
+          ENFORCE_ADMINS: "1"
+        run: node scripts/apply-branch-protection.mjs

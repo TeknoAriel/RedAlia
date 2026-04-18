@@ -33,7 +33,7 @@ Copiá `.env.example` como referencia. Credenciales KiteProp / MCP: **`docs/kite
 
 - **GitHub Actions:** **`CI — listo para merge`** (`npm ci` + lint + typecheck + build). Opcional: deploy **Vercel CLI** con secretos `VERCEL_*` + verificación `npm run verify:deploy` usando variable **`PRODUCTION_URL`**.
 - **Post-deploy:** **`verify-deployment.yml`** corre `scripts/deploy-readiness.mjs` cuando Vercel envía `deployment_status` + `environment_url` (rutas `/`, `/propiedades`, `/socios`, `/contacto`). Manual: workflow **Deploy readiness (manual)** en Actions, o `DEPLOY_READINESS_URL=… npm run verify:deploy`.
-- **Proteger `main`:** seguí [`.github/SETUP_BRANCH_PROTECTION.md`](.github/SETUP_BRANCH_PROTECTION.md) para exigir el check **`CI — listo para merge`** antes de mergear.
+- **Proteger `main`:** con secreto `BRANCH_PROTECTION_TOKEN` + workflow **Aplicar branch protection** (o `npm run repo:apply-branch-protection`) según [`.github/SETUP_BRANCH_PROTECTION.md`](.github/SETUP_BRANCH_PROTECTION.md); alternativa manual en la misma guía.
 - **Repo alineado con `main`:** `npm run sync:pull` (o `npm run sync` si además querés push).
 - Reglas recomendadas (branch protection, secretos, no duplicar Vercel): **[`.github/DEPLOYMENT.md`](.github/DEPLOYMENT.md)**.
 - Conectá el repo a [Vercel](https://vercel.com): root = raíz del repo, framework **Next.js**.

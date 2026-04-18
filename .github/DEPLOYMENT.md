@@ -3,7 +3,7 @@
 ## Sistema de deploy seguro (resumen)
 
 1. **Un solo camino a producción** — O bien Vercel despliega desde Git (recomendado), o bien Actions usa `VERCEL_*` + `amondnet/vercel-action`. No actives los dos para el mismo `main` (doble deploy y estados confusos).
-2. **Calidad antes de publicar** — La rama `main` debe pasar **`CI — listo para merge`** (`npm ci` → lint → typecheck → `next build`). **Configuración paso a paso en GitHub:** [`.github/SETUP_BRANCH_PROTECTION.md`](./SETUP_BRANCH_PROTECTION.md) (no se puede aplicar desde el repo sin permisos de admin en la org).
+2. **Calidad antes de publicar** — La rama `main` debe pasar **`CI — listo para merge`** (`npm ci` → lint → typecheck → `next build`). **Automático:** secreto `BRANCH_PROTECTION_TOKEN` + workflow [`.github/workflows/apply-branch-protection.yml`](./workflows/apply-branch-protection.yml) o `npm run repo:apply-branch-protection` (ver [`.github/SETUP_BRANCH_PROTECTION.md`](./SETUP_BRANCH_PROTECTION.md)). **Manual en UI:** misma guía, opciones A/B.
 3. **Comprobar que el deploy esté “ready”** — Tras éxito del hosting, GitHub recibe `deployment_status` → workflow **`Verificar deploy`** ejecuta `scripts/deploy-readiness.mjs` contra `environment_url` (home, propiedades, socios, contacto). Si falla, el run queda rojo: revisá Vercel y logs antes de asumir “atraso” del código.
 4. **Verificación manual** — Actions → **Deploy readiness (manual)** → indicá la URL base. O local: `DEPLOY_READINESS_URL=https://… npm run verify:deploy`.
 5. **Secretos** — `VERCEL_TOKEN`, credenciales KiteProp y URLs sensibles solo en **GitHub Secrets / Vercel Environment**; nunca en commits. PRs desde forks no reciben secretos de Actions.
@@ -50,6 +50,7 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 |--------|------|-----|
 | `PRODUCTION_URL` | Variable | URL base **https** pública. Tras deploy **por CLI**, se usa en `npm run verify:deploy` (mismo script que `verify-deployment.yml`). |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Secret | Deploy por Actions; si faltan, se asume **solo** integración Git de Vercel. |
+| `BRANCH_PROTECTION_TOKEN` | Secret | PAT con **Administration** del repo (fine-grained) o `repo` (classic). Usa [`.github/workflows/apply-branch-protection.yml`](./workflows/apply-branch-protection.yml) / `scripts/apply-branch-protection.mjs`. Si no existe, el workflow se omite. |
 
 **No duplicar producción:** o integración Git de Vercel, o CLI con secretos — no ambos para el mismo `main`.
 
