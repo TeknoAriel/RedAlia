@@ -24,7 +24,6 @@ concurrency:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    if: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +31,7 @@ jobs:
         with:
           node-version: "20"
 
+      # No usar `secrets` en `jobs.*.if` — GitHub lo rechaza al validar el workflow.
       - name: Aplicar política en main
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -40,4 +40,9 @@ jobs:
           REQUIRE_PR: "1"
           STRICT_UP_TO_DATE: "1"
           ENFORCE_ADMINS: "1"
-        run: node scripts/apply-branch-protection.mjs
+        run: |
+          if [ -z "$BRANCH_PROTECTION_TOKEN" ]; then
+            echo "::notice::Sin secreto BRANCH_PROTECTION_TOKEN: no se aplica nada (salida OK)."
+            exit 0
+          fi
+          node scripts/apply-branch-protection.mjs
