@@ -1,0 +1,52 @@
+# Verifica que la API de red (AINA / KiteProp) devuelva listas de propiedades y organizaciones.
+# Mismas variables que en Vercel; sin Next: `node scripts/network-ingest-verify.mjs`.
+#
+# Secretos sugeridos (mismos nombres que en el proyecto):
+#   KITEPROP_API_USER, KITEPROP_API_PASSWORD, KITEPROP_NETWORK_ID, KITEPROP_NETWORK_TOKEN
+# Opcional: KITEPROP_API_BASE_URL, KITEPROP_NETWORK_*_PATH, KITEPROP_ACCESS_TOKEN, etc.
+
+name: Verificar ingest API red
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  network-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      KITEPROP_API_BASE_URL: ${{ vars.KITEPROP_API_BASE_URL }}
+      KITEPROP_API_USER: ${{ secrets.KITEPROP_API_USER }}
+      KITEPROP_API_PASSWORD: ${{ secrets.KITEPROP_API_PASSWORD }}
+      KITEPROP_NETWORK_ID: ${{ secrets.KITEPROP_NETWORK_ID }}
+      KITEPROP_NETWORK_TOKEN: ${{ secrets.KITEPROP_NETWORK_TOKEN }}
+      KITEPROP_ACCESS_TOKEN: ${{ secrets.KITEPROP_ACCESS_TOKEN }}
+      KITEPROP_API_SECRET: ${{ secrets.KITEPROP_API_SECRET }}
+      KITEPROP_NETWORK_ORGANIZATIONS_PATH: ${{ vars.KITEPROP_NETWORK_ORGANIZATIONS_PATH }}
+      KITEPROP_NETWORK_PROPERTIES_PATH: ${{ vars.KITEPROP_NETWORK_PROPERTIES_PATH }}
+      KITEPROP_NETWORK_TOKEN_AS_BEARER: ${{ vars.KITEPROP_NETWORK_TOKEN_AS_BEARER }}
+      KITEPROP_AUTH_LOGIN_PATH: ${{ vars.KITEPROP_AUTH_LOGIN_PATH }}
+      NETWORK_VERIFY_MIN_PROPERTIES: ${{ vars.NETWORK_VERIFY_MIN_PROPERTIES }}
+      NETWORK_VERIFY_MIN_ORGANIZATIONS: ${{ vars.NETWORK_VERIFY_MIN_ORGANIZATIONS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ingest red (propiedades + organizaciones)
+        run: |
+          if [ -z "${KITEPROP_API_USER:-}" ] && [ -z "${KITEPROP_ACCESS_TOKEN:-}" ] && [ -z "${KITEPROP_API_SECRET:-}" ] && [ "${KITEPROP_NETWORK_TOKEN_AS_BEARER:-}" != "1" ]; then
+            echo "::error::Definí secretos KITEPROP_API_USER + KITEPROP_API_PASSWORD (o ACCESS_TOKEN/API_SECRET, o token de red como Bearer)."
+            exit 1
+          fi
+          if [ -z "${KITEPROP_NETWORK_ID:-}" ] || [ -z "${KITEPROP_NETWORK_TOKEN:-}" ]; then
+            echo "::error::Definí KITEPROP_NETWORK_ID y KITEPROP_NETWORK_TOKEN (o paths custom en variables del repo)."
+            exit 1
+          fi
+          node scripts/network-ingest-verify.mjs

@@ -111,6 +111,18 @@ Si el shape difiere (p. ej. anunciante bajo otra clave), ajustar `ADVERTISER_OBJ
 5. Volcar en la sección **Auditoría real** arriba el shape agregado (solo claves y muestras no sensibles).
 6. Cuando el shape sea estable, activar **feature flag** de origen del directorio (sin tocar MCP, Home, buscador ni UI pública hasta decisión explícita).
 
+## Verificar ingest (propiedades + inmobiliarias) sin levantar Next
+
+Script **standalone** (misma auth y paths que el código en `lib/kiteprop-network`):
+
+```bash
+npm run verify:network-ingest
+```
+
+Cargá antes las variables (`KITEPROP_API_USER`, `KITEPROP_API_PASSWORD`, `KITEPROP_NETWORK_ID`, `KITEPROP_NETWORK_TOKEN`, opcional `KITEPROP_API_BASE_URL`). Imprime JSON con conteos y sale con código **1** si falla login, HTTP de listados o si los conteos quedan por debajo de `NETWORK_VERIFY_MIN_PROPERTIES` / `NETWORK_VERIFY_MIN_ORGANIZATIONS` (default **1** cada uno).
+
+En GitHub: workflow **Verificar ingest API red** (`network-ingest-verify.yml`), manual, usando los mismos secretos/variables que documenta la tabla de arriba.
+
 ## Archivos
 
 - `lib/kiteprop-network/*` — cliente, extracción de anunciante, shape-audit, `redalia-socio-network-model.ts`.
