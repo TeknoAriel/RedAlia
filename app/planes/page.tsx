@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
@@ -14,7 +15,7 @@ const plans = [
   {
     key: "inicial",
     name: "Plan inicial",
-    pitch: "Presencia en la comunidad y circulación básica de oportunidades para equipos que validan el modelo.",
+    pitch: "Presencia institucional en la comunidad y circulación ordenada de oportunidades para equipos que validan el modelo con seriedad.",
     bullets: [
       "Participación en flujos de canje y colaboración definidos",
       "Visibilidad acorde al nivel entre socios de la red",
@@ -26,7 +27,7 @@ const plans = [
   {
     key: "profesional",
     name: "Plan profesional",
-    pitch: "Mayor visibilidad entre pares, más coordinación comercial y soporte reforzado para escalar canje y cierres.",
+    pitch: "Mayor visibilidad entre pares, coordinación comercial más cercana y soporte reforzado para escalar canje y cierres con criterio.",
     bullets: [
       "Mayor visibilidad y prioridad en flujos de difusión acordados",
       "Herramientas y criterios ampliados para publicaciones y seguimiento",
@@ -39,7 +40,7 @@ const plans = [
   {
     key: "corporativo",
     name: "Plan corporativo",
-    pitch: "Diseño a medida para varias sucursales o marcas con coordinación central y territorios definidos.",
+    pitch: "Diseño a medida para varias sucursales o marcas, con coordinación central y territorios definidos según tu operación en Chile.",
     bullets: [
       "Arquitectura según perfil, territorio y número de oficinas o marcas",
       "Coordinación con responsables por zona o unidad de negocio",
@@ -85,18 +86,22 @@ function Cell({ ok }: { ok: boolean }) {
 
 export default function PlanesPage() {
   return (
-    <div>
+    <div className="bg-background">
       <PageHero
         variant="light"
+        prepend={<SectionLogoMark size="sm" className="mb-5" />}
         eyebrow="Membresía"
-        title="Membresía para operar con la comunidad"
-        lead="Tres niveles de referencia para orientar la conversación: publicaciones, visibilidad institucional, canje y colaboración entre pares. Montos y alcance finos se definen en reunión, según perfil y territorio —sin precios genéricos publicados acá."
+        title="Operar con la comunidad, con propuesta clara"
+        lead="Tres niveles de referencia para orientar la conversación: publicaciones, visibilidad institucional, canje y colaboración entre pares. Montos y alcance finos se definen en reunión, según perfil y territorio —sin cifras genéricas en la web."
+        footnote="La membresía se entiende como relación comercial de largo plazo, con incorporación conversada y estándares compartidos."
+        contentClassName="py-20 sm:py-24"
       />
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          title="Elegí el punto de partida; afinamos en conjunto"
-          description="La tabla resume enfoques típicos. El contrato y los beneficios concretos —cierres, canje y acompañamiento— se ajustan a tu corredora en la propuesta comercial."
+          eyebrow="Niveles"
+          title="Elegís el punto de partida; afinamos en conjunto"
+          description="La comparación resume enfoques típicos. El contrato y los beneficios concretos —cierres, canje y acompañamiento— se ajustan a tu corredora en la propuesta comercial."
           titleVariant="display"
         />
         <div className="mt-12 grid gap-8 lg:grid-cols-3">
@@ -111,16 +116,16 @@ export default function PlanesPage() {
             >
               {plan.featured && (
                 <span className="mb-3 inline-flex w-fit rounded-full bg-brand-navy px-3 py-1 text-xs font-semibold text-white">
-                  Mayor demanda en equipos en crecimiento
+                  Referencia habitual para equipos en crecimiento
                 </span>
               )}
-              <h2 className="text-xl font-bold text-brand-navy">{plan.name}</h2>
+              <h2 className="font-display text-xl font-bold text-brand-navy">{plan.name}</h2>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-muted">{plan.pitch}</p>
               <p className="mt-4 rounded-lg bg-brand-navy-soft/60 px-3 py-2 text-xs leading-relaxed text-brand-navy/90">
-                <strong className="font-semibold text-brand-navy">Ideal si:</strong> {plan.profile}
+                <strong className="font-semibold text-brand-navy">Encaja si:</strong> {plan.profile}
               </p>
-              <p className="mt-6 text-xl font-semibold text-brand-navy">Inversión</p>
-              <p className="text-sm text-muted">A cotizar en asesoría, según alcance acordado.</p>
+              <p className="mt-6 font-display text-lg font-semibold text-brand-navy">Cotización comercial</p>
+              <p className="text-sm text-muted">Se define en asesoría, según alcance y territorio acordados.</p>
               <ul className="mt-6 space-y-2 text-sm text-brand-navy/90">
                 {plan.bullets.map((b) => (
                   <li key={b} className="flex gap-2">
@@ -133,8 +138,8 @@ export default function PlanesPage() {
                 href="/contacto"
                 className={`mt-8 inline-flex w-full justify-center text-center text-sm font-semibold transition ${
                   plan.featured
-                    ? "btn-redalia-gold-solid"
-                    : "rounded-full border border-brand-navy/20 px-5 py-3 text-brand-navy hover:bg-brand-navy-soft"
+                    ? "btn-redalia-gold-solid px-8 py-3.5"
+                    : "rounded-full border border-brand-navy/25 bg-white px-8 py-3.5 text-brand-navy shadow-sm hover:border-brand-gold/35 hover:bg-brand-navy-soft/50"
                 }`}
               >
                 {plan.cta}
@@ -144,27 +149,22 @@ export default function PlanesPage() {
         </div>
       </section>
 
-      <section className="border-y border-brand-navy/10 bg-white py-14 sm:py-16">
+      <section className="border-y border-brand-navy/10 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
-            title="Comparación entre niveles"
-            description="Referencia cualitativa. La propuesta final puede combinar elementos según tu operación."
+            eyebrow="Comparación"
+            title="Qué distingue cada nivel"
+            description="Referencia cualitativa. La propuesta final puede combinar elementos según tu operación y lo que acordemos en la conversación comercial."
             titleVariant="display"
           />
-          <div className="mt-8 overflow-x-auto rounded-2xl border border-brand-navy/10 shadow-sm">
+          <div className="mt-10 overflow-x-auto rounded-2xl border border-brand-navy/10 shadow-sm">
             <table className="w-full min-w-[640px] border-collapse text-left text-sm">
               <thead>
-                <tr className="bg-brand-navy-soft/80">
-                  <th className="border-b border-brand-navy/10 px-4 py-3 font-semibold text-brand-navy">Criterio</th>
-                  <th className="border-b border-brand-navy/10 px-3 py-3 text-center font-semibold text-brand-navy">
-                    Inicial
-                  </th>
-                  <th className="border-b border-brand-navy/10 px-3 py-3 text-center font-semibold text-brand-navy">
-                    Profesional
-                  </th>
-                  <th className="border-b border-brand-navy/10 px-3 py-3 text-center font-semibold text-brand-navy">
-                    Corporativo
-                  </th>
+                <tr className="bg-brand-navy text-white">
+                  <th className="border-b border-white/15 px-4 py-3.5 font-semibold">Criterio</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Inicial</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Profesional</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Corporativo</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,28 +184,33 @@ export default function PlanesPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-brand-navy-soft/40 p-8 sm:p-10">
-          <h2 className="font-display text-xl font-bold text-brand-navy">Membresía con foco en negocios reales</h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted">
-            Redalia es una comunidad profesional chilena: orden, honestidad y transparencia entre socios, tecnología al
-            servicio de la operación y foco en que cada corredora siga controlando su marca. El valor está en claridad
-            comercial, proceso de ingreso y resultados medibles para quien ejecuta en el mercado hoy.
+          <p className="redalia-eyebrow redalia-eyebrow--muted !mb-0">Criterio Redalia</p>
+          <h2 className="font-display mt-2 text-xl font-bold text-brand-navy sm:text-2xl">
+            Membresía con foco en negocios reales
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
+            Redalia es una comunidad profesional en Chile: orden, honestidad y transparencia entre socios, tecnología al
+            servicio de la operación y respeto por la marca de cada corredora. El valor está en la claridad comercial, en
+            el proceso de ingreso conversado y en resultados que se puedan sostener en el tiempo.
           </p>
         </div>
       </section>
 
-      <section className="border-y border-brand-navy/10 bg-brand-navy-soft/50 py-14 sm:py-16">
+      <section className="border-y border-brand-navy/10 bg-brand-navy-soft/50 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
+            eyebrow="Incorporación"
             title="Proceso de ingreso a la membresía"
-            description="Transparencia en las etapas para que tomes la decisión con información, no con presión."
+            description="Etapas transparentes para que la decisión se tome con información, sin presión indebida."
             titleVariant="display"
           />
           <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {pasos.map((s) => (
-              <li key={s.title} className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-5">
-                <p className="text-sm font-semibold text-brand-navy">{s.title}</p>
+              <li key={s.title} className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6">
+                <div className="redalia-card-accent" />
+                <p className="font-display text-sm font-semibold text-brand-navy">{s.title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{s.text}</p>
               </li>
             ))}
@@ -213,10 +218,11 @@ export default function PlanesPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
+        <SectionLogoMark size="sm" className="mx-auto mb-5" />
         <CTASection
           title="¿Querés la propuesta escrita para tu corredora?"
-          description="En una reunión breve dejamos fijo alcance, nivel sugerido y próximos pasos —con transparencia comercial y sin presión."
+          description="En una reunión breve dejamos fijo alcance, nivel sugerido y próximos pasos —con transparencia comercial y el mismo tono institucional que en el resto de la red."
           primaryHref="/contacto"
           primaryLabel="Coordinar conversación comercial"
           secondaryHref="/unete"

@@ -16,13 +16,24 @@
  *   KITEPROP_ACCESS_TOKEN o KITEPROP_API_SECRET — Bearer si no hay user/pass
  *   KITEPROP_NETWORK_ID_HEADER / KITEPROP_NETWORK_TOKEN_HEADER
  *   NETWORK_VERIFY_MIN_PROPERTIES (default 1), NETWORK_VERIFY_MIN_ORGANIZATIONS (default 1)
+ *   KITEPROP_API_TIMEOUT_MS (opc., ms; clamp 5000–120000, default 25000 acá para alinear con ingest largo)
+ *   KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH=1 + page/limit (misma lógica que lib/kiteprop-network/get-network-properties.ts)
+ *   KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT (15|30|50, default 50), KITEPROP_NETWORK_PROPERTIES_MAX_PAGES (default 100)
+ *   KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH=1, KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT, KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES
  *
  * Uso:
  *   set -a && source .env.local && set +a && node scripts/network-ingest-verify.mjs
  */
 
-const TIMEOUT_MS = 25_000;
 const DEFAULT_BASE = "https://www.kiteprop.com/api/v1";
+
+function requestTimeoutMs() {
+  const raw = trimEnv("KITEPROP_API_TIMEOUT_MS");
+  if (!raw) return 25_000;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n)) return 25_000;
+  return Math.min(120_000, Math.max(5_000, n));
+}
 
 function trimEnv(name) {
   const v = process.env[name]?.trim();
@@ -121,6 +132,211 @@ function extractOrganizationArray(raw) {
   return [];
 }
 
+const PAGE_LIMITS = new Set([15, 30, 50]);
+
+function coerceNetworkPropertyRecord(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const nested = raw.property ?? raw.listing ?? raw.listing_object ?? raw.detail;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return { ...nested, ...raw };
+  }
+  return raw;
+}
+
+function pickNumber(obj, keys) {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v === undefined || v === null) continue;
+    const n = typeof v === "number" ? v : parseFloat(String(v).replace(",", "."));
+    if (!Number.isFinite(n)) continue;
+    return n;
+  }
+  return null;
+}
+
+function stablePropertyIdFromRaw(raw) {
+  const flat = coerceNetworkPropertyRecord(raw);
+  if (!flat || typeof flat !== "object" || Array.isArray(flat)) return null;
+  let idNum =
+    pickNumber(flat, [
+      "id",
+      "ID",
+      "property_id",
+      "propertyId",
+      "listing_id",
+      "listingId",
+      "codigo",
+      "external_id",
+      "externalId",
+    ]) ?? 0;
+  if (!idNum) {
+    for (const k of ["id", "property_id", "propertyId", "listing_id", "listingId"]) {
+      const v = flat[k];
+      if (typeof v === "string" && /^\d+$/.test(v.trim())) {
+        idNum = parseInt(v.trim(), 10);
+        break;
+      }
+    }
+  }
+  if (!idNum) return null;
+  return String(Math.round(idNum));
+}
+
+function stableOrgIdFromRaw(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  for (const k of ["id", "organization_id", "organizationId", "uuid", "slug"]) {
+    const v = raw[k];
+    if (typeof v === "number" && Number.isFinite(v)) return String(v);
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return null;
+}
+
+function pickPositiveInt(o, keys) {
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) return Math.floor(v);
+    if (typeof v === "string" && /^\d+$/.test(v.trim())) return parseInt(v.trim(), 10);
+  }
+  return null;
+}
+
+function paginationHintFromObject(o) {
+  const last = pickPositiveInt(o, ["last_page", "lastPage", "last"]);
+  const cur = pickPositiveInt(o, ["current_page", "currentPage", "page"]);
+  const per = pickPositiveInt(o, ["per_page", "perPage", "limit"]);
+  const total = pickPositiveInt(o, ["total", "total_count", "totalCount"]);
+  if (last != null && cur != null) {
+    return { currentPage: cur, lastPage: last, perPage: per, total };
+  }
+  if (total != null && per != null && cur != null) {
+    return { currentPage: cur, lastPage: Math.max(1, Math.ceil(total / per)), perPage: per, total };
+  }
+  return null;
+}
+
+function extractPaginationHint(raw) {
+  const u = unwrapSuccessData(raw);
+  const roots = [u, raw].filter((x) => x != null);
+  for (const root of roots) {
+    if (!root || typeof root !== "object" || Array.isArray(root)) continue;
+    let h = paginationHintFromObject(root);
+    if (h) return h;
+    const meta = root.meta;
+    if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+      h = paginationHintFromObject(meta);
+      if (h) return h;
+    }
+    const nested = root.data;
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      h = paginationHintFromObject(nested);
+      if (h) return h;
+    }
+  }
+  return null;
+}
+
+async function fetchAllNetworkProperties(base, propPath, bearer, propHeaders) {
+  const paged = trimEnv("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH") === "1";
+  if (!paged) {
+    const propRes = await getJson(base, propPath, bearer, propHeaders, { status: "active" });
+    const items = propRes.ok ? extractPropertyArray(propRes.data) : [];
+    return { res: propRes, items };
+  }
+
+  const rawLimit = parseInt(trimEnv("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "50", 10);
+  const pageLimit = PAGE_LIMITS.has(rawLimit) ? rawLimit : 50;
+  const maxPages = Math.min(
+    500,
+    Math.max(1, parseInt(trimEnv("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || "100", 10) || 100),
+  );
+
+  const merged = [];
+  const seen = new Set();
+  let lastOkStatus = null;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const propRes = await getJson(base, propPath, bearer, propHeaders, {
+      status: "active",
+      page: String(page),
+      limit: String(pageLimit),
+    });
+    if (!propRes.ok) {
+      if (page === 1) return { res: propRes, items: [] };
+      break;
+    }
+    lastOkStatus = propRes.status;
+    const pageItems = extractPropertyArray(propRes.data);
+    const hint = extractPaginationHint(propRes.data);
+    let newlyAdded = 0;
+    for (const raw of pageItems) {
+      const sid = stablePropertyIdFromRaw(raw);
+      if (sid) {
+        if (seen.has(sid)) continue;
+        seen.add(sid);
+      }
+      merged.push(raw);
+      newlyAdded += 1;
+    }
+    if (pageItems.length === 0) break;
+    if (hint?.lastPage != null && hint.currentPage >= hint.lastPage) break;
+    if (pageItems.length < pageLimit) break;
+    if (newlyAdded === 0) break;
+  }
+
+  return { res: { ok: true, status: lastOkStatus, data: null }, items: merged };
+}
+
+async function fetchAllNetworkOrganizations(base, orgPath, bearer, orgHeaders) {
+  const paged = trimEnv("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH") === "1";
+  if (!paged) {
+    const orgRes = await getJson(base, orgPath, bearer, orgHeaders, {});
+    const items = orgRes.ok ? extractOrganizationArray(orgRes.data) : [];
+    return { res: orgRes, items };
+  }
+
+  const rawLimit = parseInt(trimEnv("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "50", 10);
+  const pageLimit = PAGE_LIMITS.has(rawLimit) ? rawLimit : 50;
+  const maxPages = Math.min(
+    200,
+    Math.max(1, parseInt(trimEnv("KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES") || "20", 10) || 20),
+  );
+
+  const merged = [];
+  const seen = new Set();
+  let lastOkStatus = null;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const orgRes = await getJson(base, orgPath, bearer, orgHeaders, {
+      page: String(page),
+      limit: String(pageLimit),
+    });
+    if (!orgRes.ok) {
+      if (page === 1) return { res: orgRes, items: [] };
+      break;
+    }
+    lastOkStatus = orgRes.status;
+    const pageItems = extractOrganizationArray(orgRes.data);
+    const hint = extractPaginationHint(orgRes.data);
+    let newlyAdded = 0;
+    for (const raw of pageItems) {
+      const sid = stableOrgIdFromRaw(raw);
+      if (sid) {
+        if (seen.has(sid)) continue;
+        seen.add(sid);
+      }
+      merged.push(raw);
+      newlyAdded += 1;
+    }
+    if (pageItems.length === 0) break;
+    if (hint?.lastPage != null && hint.currentPage >= hint.lastPage) break;
+    if (pageItems.length < pageLimit) break;
+    if (newlyAdded === 0) break;
+  }
+
+  return { res: { ok: true, status: lastOkStatus, data: null }, items: merged };
+}
+
 function normalizeBase(raw) {
   return (raw || DEFAULT_BASE).replace(/\/+$/, "");
 }
@@ -184,7 +400,7 @@ function pickTokenFromLoginResponse(raw) {
 
 async function fetchJson(method, url, { headers = {}, body } = {}) {
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const t = setTimeout(() => controller.abort(), requestTimeoutMs());
   try {
     const res = await fetch(url, {
       method,
@@ -337,13 +553,15 @@ async function main() {
     ),
   };
 
-  const [propRes, orgRes] = await Promise.all([
-    getJson(base, propPath, auth.bearer, propHeaders, { status: "active" }),
-    getJson(base, orgPath, auth.bearer, orgHeaders, {}),
+  const [propBundle, orgBundle] = await Promise.all([
+    fetchAllNetworkProperties(base, propPath, auth.bearer, propHeaders),
+    fetchAllNetworkOrganizations(base, orgPath, auth.bearer, orgHeaders),
   ]);
 
-  const properties = propRes.ok ? extractPropertyArray(propRes.data) : [];
-  const organizations = orgRes.ok ? extractOrganizationArray(orgRes.data) : [];
+  const propRes = propBundle.res;
+  const orgRes = orgBundle.res;
+  const properties = propBundle.items;
+  const organizations = orgBundle.items;
 
   const minP = Math.max(0, parseInt(trimEnv("NETWORK_VERIFY_MIN_PROPERTIES") || "1", 10) || 1);
   const minO = Math.max(0, parseInt(trimEnv("NETWORK_VERIFY_MIN_ORGANIZATIONS") || "1", 10) || 1);
@@ -356,11 +574,13 @@ async function main() {
       httpStatus: propRes.status,
       count: properties.length,
       ok: propRes.ok,
+      pagedFetch: trimEnv("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH") === "1",
     },
     organizations: {
       httpStatus: orgRes.status,
       count: organizations.length,
       ok: orgRes.ok,
+      pagedFetch: trimEnv("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH") === "1",
     },
     thresholds: { minProperties: minP, minOrganizations: minO },
   };

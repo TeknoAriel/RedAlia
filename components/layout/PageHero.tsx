@@ -7,6 +7,8 @@ type PageHeroProps = {
   eyebrow?: string;
   title: string;
   lead?: string;
+  /** Segundo párrafo bajo el lead (misma jerarquía visual, p. ej. cierre de promesa en Home). */
+  leadSecondary?: string;
   prepend?: ReactNode;
   children?: ReactNode;
   variant?: PageHeroVariant;
@@ -20,6 +22,7 @@ export function PageHero({
   eyebrow,
   title,
   lead,
+  leadSecondary,
   prepend,
   children,
   variant = "navy-solid",
@@ -44,7 +47,15 @@ export function PageHero({
           {lead && (
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">{lead}</p>
           )}
+          {leadSecondary && (
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">{leadSecondary}</p>
+          )}
           {children ? <div className="mt-10">{children}</div> : null}
+          {footnote ? (
+            <p className="mt-8 max-w-2xl border-t border-brand-navy/10 pt-6 text-xs leading-relaxed text-muted">
+              {footnote}
+            </p>
+          ) : null}
         </div>
       </section>
     );
@@ -69,6 +80,11 @@ export function PageHero({
       </h1>
       {lead && (
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/90 sm:text-lg">{lead}</p>
+      )}
+      {leadSecondary && (
+        <p className="mt-5 max-w-2xl border-l-2 border-brand-gold/80 pl-5 text-base leading-relaxed text-white/88 sm:text-lg">
+          {leadSecondary}
+        </p>
       )}
       {children ? <div className="mt-10">{children}</div> : null}
       {footnote ? (

@@ -3,7 +3,11 @@
  * Si no hay variable de entorno, se usa esta URL por defecto para que el catálogo no quede vacío en deploy.
  * Para otro feed, definí `KITEPROP_PROPERTIES_URL` en Vercel.
  */
-/** URL histórica de difusión; en producción puede responder 403 (ACL). No confiar solo en ella: ver fallback en `get-properties`. */
+/**
+ * URL histórica de difusión (referencia). Verificada: responde **403** sin credenciales/ACL adecuada.
+ * `get-properties` no la consulta salvo `KITEPROP_PROPERTIES_TRY_DEFAULT_FEED=1`; usá `KITEPROP_PROPERTIES_URL`
+ * con el JSON que te entrega KiteProp (difusión / externalsite) en Vercel.
+ */
 export const DEFAULT_KITEPROP_DIFUSION_FEED_URL =
   "https://static.kiteprop.com/kp/difusions/4b3c894a10d905c82e85b35c410d7d4099551504/externalsite-274-824a1c8e7d598497d49e0ad573e2a8dc63d82c63.json";
 

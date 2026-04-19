@@ -14,8 +14,8 @@ const outcomes = [
     text: "Menos idas y vueltas informales: criterios compartidos para seguimiento, visitas y priorización de oportunidades.",
   },
   {
-    title: "Marca intacta, comunidad fuerte",
-    text: "Seguís siendo vos frente al cliente; la comunidad suma canales y respaldo sin reemplazar tu identidad comercial.",
+    title: "Marca intacta, honorarios tuyos",
+    text: "Seguís siendo vos frente al cliente; la comunidad suma canales y respaldo sin reemplazar tu identidad ni ceder el 100% de tus honorarios.",
   },
 ];
 
@@ -32,7 +32,7 @@ export function TangibleValueForBrokers() {
         </h2>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">
           No es un club de contactos: es una estructura para compartir negocio con otros profesionales, con marco
-          comercial y foco en cierres.
+          comercial, foco en cierres y respeto por el 100% de tus honorarios cuando corresponde.
         </p>
         <ul className="mt-12 grid gap-6 sm:grid-cols-2">
           {outcomes.map((o) => (

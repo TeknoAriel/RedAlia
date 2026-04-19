@@ -7,6 +7,16 @@ import {
 
 const DEFAULT_BASE_URL = "https://www.kiteprop.com/api/v1";
 const DEFAULT_TIMEOUT_MS = 15_000;
+const MIN_TIMEOUT_MS = 5_000;
+const MAX_TIMEOUT_MS = 120_000;
+
+function getKitePropRequestTimeoutMs(): number {
+  const raw = process.env.KITEPROP_API_TIMEOUT_MS?.trim();
+  if (!raw) return DEFAULT_TIMEOUT_MS;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n)) return DEFAULT_TIMEOUT_MS;
+  return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, n));
+}
 
 function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/+$/, "");
@@ -132,7 +142,8 @@ export async function kitepropGetJson<T = unknown>(
   const url = `${base}${pathPart}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const timeoutMs = getKitePropRequestTimeoutMs();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(url, {
@@ -209,7 +220,8 @@ export async function kitepropPostJson<T = unknown>(
   const url = `${base}${pathPart}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const timeoutMs = getKitePropRequestTimeoutMs();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(url, {

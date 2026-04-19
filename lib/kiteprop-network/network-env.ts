@@ -14,6 +14,7 @@ export function isKitepropNetworkAuditEnabled(): boolean {
  * Origen del catálogo público (`getProperties`):
  * - `json` (default): feed JSON de difusión (`KITEPROP_PROPERTIES_URL` o default en `lib/config.ts`), no REST `/properties`.
  * - `network` / `network_fallback_json`: intenta API de red AINA; **si no hay propiedades o falla**, mismo feed JSON + socios desde el feed (organizaciones de red solo si aplica).
+ * - Con fuente `json`, `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` intenta además el endpoint de organizaciones y fusiona `partnerDirectoryExtraDrafts` sin cambiar el origen del listado de propiedades.
  */
 export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
 
@@ -28,6 +29,14 @@ export function getKitepropPropertiesSourceMode(): KitepropPropertiesSourceMode 
     return "network_fallback_json";
   }
   return "json";
+}
+
+/**
+ * Con `KITEPROP_PROPERTIES_SOURCE=json` (o omitido), si es `1` se llama a la API de organizaciones de red
+ * y se agregan borradores al directorio público (`partnerDirectoryExtraDrafts`). Si falla la red, el catálogo JSON sigue igual.
+ */
+export function isNetworkOrganizationsMergedWithJsonCatalog(): boolean {
+  return trim("KITEPROP_MERGE_NETWORK_ORGANIZATIONS") === "1";
 }
 
 export function getKitepropApiUserOrNull(): string | null {
@@ -135,4 +144,41 @@ export function getKitepropNetworkTokenHeaderName(): string {
  */
 export function isNetworkTokenUsedAsBearer(): boolean {
   return trim("KITEPROP_NETWORK_TOKEN_AS_BEARER") === "1";
+}
+
+const NETWORK_PAGE_LIMITS = new Set([15, 30, 50]);
+
+/**
+ * Si es `1`, se piden varias páginas con `page`/`limit` (misma convención que `GET /properties` en
+ * `lib/kiteprop/get-properties-api.ts`) hasta vaciar o agotar `last_page` / heurística de fin.
+ * Por defecto **desactivado**: un solo GET como hoy AINA.
+ */
+export function isNetworkPropertiesPagedFetchEnabled(): boolean {
+  return trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH") === "1";
+}
+
+export function getNetworkPropertiesPageLimit(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "50", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
+}
+
+export function getNetworkPropertiesMaxPages(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || "100", 10);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(500, Math.max(1, Math.floor(n)));
+}
+
+export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
+  return trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH") === "1";
+}
+
+export function getNetworkOrganizationsPageLimit(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "50", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
+}
+
+export function getNetworkOrganizationsMaxPages(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES") || "20", 10);
+  if (!Number.isFinite(n)) return 20;
+  return Math.min(200, Math.max(1, Math.floor(n)));
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
 import { PageHero } from "@/components/layout/PageHero";
 import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
@@ -18,15 +19,15 @@ export const metadata: Metadata = {
 const perfilCards = [
   {
     title: "Corredoras y estudios",
-    text: "Equipos que buscan ampliar canales de difusión, ordenar la colaboración entre oficinas y acceder a oportunidades fuera de su cartera inmediata.",
+    text: "Equipos que amplían canales con criterio, ordenan la colaboración entre oficinas y acceden a oportunidades fuera de la cartera inmediata, sin perder su marca.",
   },
   {
     title: "Agentes y ejecutivos",
-    text: "Profesionales que necesitan más stock para ofrecer, respaldo institucional y una red seria con la que coordinar visitas y cierres.",
+    text: "Profesionales con más stock para ofrecer, respaldo institucional y una red seria para coordinar visitas y cierres con transparencia frente al cliente.",
   },
   {
     title: "Operaciones con varias marcas",
-    text: "Estructuras que valoran la independencia comercial y, a la vez, un marco común para canje, estándares y formación.",
+    text: "Estructuras que valoran la independencia comercial y, al mismo tiempo, un marco común de canje, estándares y capacitación continua.",
   },
 ];
 
@@ -66,9 +67,12 @@ export default async function SociosPage() {
     <div className="bg-background">
       <PageHero
         variant="navy-solid"
+        prepend={<SectionLogoMark size="sm" className="mb-5 opacity-95" />}
         eyebrow="Socios"
-        title="Socios de la comunidad inmobiliaria"
-        lead="Corredoras, oficinas y anunciantes con publicaciones en el catálogo público. Cada ficha refleja presencia verificable en la comunidad: podés abrir el perfil institucional o ir al listado filtrado. El ingreso formal se coordina con el equipo comercial."
+        title="Comunidad con presencia verificable en Chile"
+        lead="Corredoras, oficinas y anunciantes que hoy publican en el catálogo público. Cada ficha refleja operación real en la red: perfil institucional y acceso al listado filtrado. El ingreso formal siempre se conversa con el equipo comercial."
+        footnote="Los datos del directorio se derivan de publicaciones activas y criterios de visibilidad de la comunidad —sin exposición superficial."
+        contentClassName="py-20 sm:py-24"
       >
         {result.ok && listingCount > 0 ? (
           <div className="flex flex-wrap gap-4 border-t border-white/15 pt-8">
@@ -119,7 +123,7 @@ export default async function SociosPage() {
                 className="rounded-2xl border border-white/15 bg-white/[0.06] px-6 py-6 backdrop-blur-sm"
               >
                 <div className="redalia-card-accent" />
-                <h3 className="text-base font-semibold text-white">{e.title}</h3>
+                <h3 className="font-display text-base font-semibold text-white">{e.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-white/78">{e.text}</p>
               </li>
             ))}
@@ -127,10 +131,11 @@ export default async function SociosPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          title="Perfiles que conviven en la comunidad"
-          description="Diferentes escalas, mismo estándar de seriedad comercial y disposición a colaborar con criterio y honestidad."
+          eyebrow="Perfiles"
+          title="Quiénes conviven en la comunidad"
+          description="Distintas escalas, mismo estándar de seriedad comercial y disposición a colaborar con criterio y rigor frente al mercado."
           titleVariant="display"
         />
         <ul className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -140,31 +145,31 @@ export default async function SociosPage() {
               className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm"
             >
               <div className="redalia-card-accent" />
-              <h3 className="text-base font-semibold text-brand-navy">{c.title}</h3>
+              <h3 className="font-display text-base font-semibold text-brand-navy">{c.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{c.text}</p>
             </li>
           ))}
         </ul>
         <p className="mt-10 max-w-3xl text-sm leading-relaxed text-muted">
-          El ingreso se coordina con el equipo de Redalia. Si querés el detalle del proceso comercial, visitá{" "}
-          <Link href="/unete" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-            Únete
+          El ingreso se coordina con el equipo de Redalia. Para el detalle del proceso comercial, revisá{" "}
+          <Link href="/unete" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
+            Postulación
           </Link>{" "}
           o{" "}
-          <Link href="/planes" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
+          <Link href="/planes" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
             Membresía
           </Link>
           .
         </p>
       </section>
 
-      <section className="border-y border-brand-navy/10 bg-[linear-gradient(180deg,#f1f5f9_0%,#fff_45%,#f8fafc_100%)] py-14 sm:py-16">
+      <section className="border-y border-brand-navy/10 bg-[linear-gradient(180deg,#f1f5f9_0%,#fff_45%,#f8fafc_100%)] py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
             eyebrow="Directorio"
             title="Socios con presencia en el catálogo"
-            description="Listado derivado de publicaciones activas: orden por actividad, sin duplicar marcas y excluyendo la capa matriz del feed cuando corresponde. Los contactos son los publicados en cada ficha —transparencia frente al mercado."
+            description="Listado derivado de publicaciones activas: orden institucional por actividad, sin duplicar marcas y con la matriz del feed tratada según las reglas acordadas. Los contactos son los publicados en cada ficha —criterio y transparencia frente al mercado."
             titleVariant="display"
           />
 
@@ -177,13 +182,14 @@ export default async function SociosPage() {
 
           {!result.ok && (
             <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-8 text-center shadow-sm">
-              <p className="font-medium text-brand-navy">Directorio no disponible por ahora</p>
-              <p className="mt-2 text-sm text-muted">
-                Volvé a intentar más tarde o escribinos y te orientamos sobre socios y publicaciones.
+              <p className="font-display text-lg font-semibold text-brand-navy">Vista del directorio en pausa</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                El listado público se restablece cuando el catálogo vuelve a estar disponible. Podés escribirnos y
+                coordinamos la información que necesités.
               </p>
               <Link
                 href="/contacto"
-                className="mt-5 inline-flex rounded-full bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-navy-mid"
+                className="mt-6 inline-flex rounded-full bg-brand-navy px-8 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-navy-mid"
               >
                 Coordinar conversación comercial
               </Link>
@@ -229,10 +235,11 @@ export default async function SociosPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionLogoMark size="sm" className="mx-auto mb-5" />
         <CTASection
           title="¿Querés sumar tu corredora al directorio y a la comunidad?"
-          description="Coordinamos una reunión para revisar admisión, visibilidad y plan de membresía —sin compromiso y con claridad."
+          description="Coordinamos una reunión para revisar admisión, visibilidad y plan de membresía —sin compromiso y con el mismo tono profesional que en el resto de la red."
           primaryHref="/contacto"
           primaryLabel="Coordinar conversación comercial"
           secondaryHref="/unete"

@@ -6,9 +6,11 @@ import type { PublicDirectorySnapshot } from "@/lib/public-data/types";
 type Props = {
   feedOk: boolean;
   snapshot: PublicDirectorySnapshot | null;
+  /** Si es false, no repetimos las fichas destacadas (p. ej. cuando ya van en carrusel arriba). */
+  showFeaturedGrid?: boolean;
 };
 
-export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
+export function PartnerDirectoryPreview({ feedOk, snapshot, showFeaturedGrid = true }: Props) {
   const hasDirectory = Boolean(snapshot && snapshot.entries.length > 0);
   const stats = snapshot?.stats;
 
@@ -19,19 +21,20 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
         <div className="mx-auto max-w-3xl text-center">
           <p className="redalia-eyebrow redalia-eyebrow--onLight">Comunidad activa</p>
           <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-brand-navy sm:text-[1.75rem] lg:text-[2rem]">
-            Socios con presencia en el catálogo
+            Directorio y presencia en catálogo
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-            Corredoras y anunciantes con publicaciones vigentes: ficha institucional propia, datos alineados al listado
-            público y contacto transparente según lo publicado en cada caso.
+            Cifras consolidadas de la red pública y acceso al listado completo de socios. Las fichas reflejan lo
+            publicado en cada caso, con criterio institucional y contacto transparente.
           </p>
         </div>
 
         {!feedOk && (
           <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-brand-navy/10 bg-white px-6 py-8 text-center shadow-sm">
-            <p className="text-sm font-medium text-brand-navy">Catálogo no disponible en este momento</p>
+            <p className="text-sm font-medium text-brand-navy">Vista de catálogo en pausa</p>
             <p className="mt-2 text-sm text-muted">
-              Cuando el listado esté en línea, acá verás un extracto del directorio institucional.
+              La comunidad y el directorio de socios siguen disponibles; las cifras del listado público se actualizan
+              cuando el feed vuelve a estar en línea.
             </p>
             <Link
               href="/socios"
@@ -44,9 +47,10 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
 
         {feedOk && !hasDirectory && (
           <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-brand-navy/10 bg-white px-6 py-8 text-center shadow-sm">
-            <p className="text-sm font-medium text-brand-navy">Directorio en actualización</p>
+            <p className="text-sm font-medium text-brand-navy">Directorio con criterio de publicación</p>
             <p className="mt-2 text-sm text-muted">
-              El catálogo está activo; aún no hay inmobiliarias o anunciantes visibles según los criterios de la red.
+              El catálogo está operativo; las fichas de socios aparecen cuando hay publicaciones que cumplen los
+              estándares de visibilidad de la red. Eso mantiene coherencia frente al mercado.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
@@ -93,13 +97,20 @@ export function PartnerDirectoryPreview({ feedOk, snapshot }: Props) {
               </p>
             )}
 
-            <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {snapshot.featured.map((entry) => (
-                <li key={entry.partnerKey}>
-                  <PartnerDirectoryCard entry={entry} variant="compact" />
-                </li>
-              ))}
-            </ul>
+            {showFeaturedGrid ? (
+              <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {snapshot.featured.map((entry) => (
+                  <li key={entry.partnerKey}>
+                    <PartnerDirectoryCard entry={entry} variant="compact" />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-muted">
+                Recorré socios destacados en el carrusel de arriba; acá consolidamos métricas y el acceso al directorio
+                completo.
+              </p>
+            )}
 
             <div className="mt-10 text-center">
               <Link
