@@ -1,5 +1,11 @@
 # Flujos de deploy y reglas de control
 
+## Por qué “Production” queda atrás de muchos deploys “Preview Ready”
+
+Vercel **no promueve** automáticamente Preview → Production. **Production** sigue el último commit desplegable en **`main`** (integración Git o CLI). Los commits en ramas `feat/*`, Dependabot o `preview` generan **Preview “Ready”**, pero **no mueven `main`**: hasta que esos cambios entren por **merge a `main`**, el deploy de producción seguirá en el SHA anterior. No es un fallo del “ready”: es el modelo Git + protección de rama (PR + CI obligatorio).
+
+**Qué hacer:** mergear PRs a `main` (o activar auto-merge / cola de merge). Para Dependabot, ver workflow **Dependabot auto-merge** abajo. Para alinear **`preview`** con **`main`**: merge o fast-forward (`git checkout preview && git merge origin/main && git push`).
+
 ## Sistema de deploy seguro (resumen)
 
 1. **Un solo camino a producción** — O bien Vercel despliega desde Git (recomendado), o bien Actions usa `VERCEL_*` + `amondnet/vercel-action`. No actives los dos para el mismo `main` (doble deploy y estados confusos).
@@ -41,6 +47,14 @@ Cuando el workflow **CI** termina **en éxito** por **push** a **`main`**, corre
 
 Semanal (martes) o **Run workflow**: genera una tabla en el **Summary** del run con, por cada rama remota, cuántos commits va **atrás** de `origin/main` y cuántos **adelante**. Sirve para ver PRs desactualizados. Local: `git fetch origin && npm run repo:branch-alignment`.
 
+### `branch-drift-daily.yml` — drift `preview` (u otras) vs `main`
+
+Diario (~12:30 UTC) + manual: tabla de cuántos commits lleva **`preview`** (o ramas en variable `REPO_DRIFT_BRANCHES`, coma-separadas) **atrás** de `main`. No modifica Git; solo avisa en el Summary si hay desalineación. Incluye el mismo informe amplio que `repo-branch-alignment`.
+
+### `dependabot-auto-merge.yml` — menos cola de PRs de deps
+
+En PRs abiertos por **dependabot[bot]** contra `main`, activa **`gh pr merge --auto --merge`** (omite **semver-major**). Requiere en el repo: **Settings → General → Pull Requests → Allow auto-merge**, y que las reglas de `main` permitan merge sin revisión humana en esos PRs (o actor de bypass). Si no se cumple, el paso falla o no hace nada útil: revisá reglas y logs del workflow.
+
 ## Alinear el repo local con `origin/main`
 
 ```bash
@@ -63,6 +77,7 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 | `DEPLOY_READINESS_ATTEMPTS` | Variable (opc.) | Reintentos por ruta ante 5xx/red (default **5** en script; el workflow post-CI usa **6** si no definís esta var). |
 | `DEPLOY_READINESS_RETRY_MS` | Variable (opc.) | Pausa entre reintentos en ms (default **3500**). |
 | `REPO_ALIGN_EXCLUDE_PREFIXES` | Variable (opc.) | Prefijos de ramas a omitir en el informe (default `dependabot/`). |
+| `REPO_DRIFT_BRANCHES` | Variable (opc.) | Ramas a vigilar frente a `main` en **Drift ramas vs main** (default `preview`). Ej: `preview,staging`. |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Secret | Deploy por Actions; si faltan, se asume **solo** integración Git de Vercel. |
 | `BRANCH_PROTECTION_TOKEN` | Secret | PAT con **Administration** del repo (fine-grained) o `repo` (classic). Usa [`.github/workflows/apply-branch-protection.yml`](./workflows/apply-branch-protection.yml) / `scripts/apply-branch-protection.mjs`. Si no existe, el workflow se omite. |
 

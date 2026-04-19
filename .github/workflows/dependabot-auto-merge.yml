@@ -1,0 +1,46 @@
+# Habilita merge automático en PRs de Dependabot cuando el repo tiene "Allow auto-merge"
+# y las reglas de rama lo permiten (p. ej. sin revisión humana obligatoria en PRs de bot).
+#
+# Requisitos en GitHub: Settings → General → Pull Requests → Allow auto-merge.
+# Si main exige revisión humana, agregá bypass para dependabot[bot] o usá reglas por ruta.
+#
+# No fusiona semver-major por defecto (ajustá el if si querés incluirlas).
+
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.draft == false
+    steps:
+      - name: Metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Omitir major (opcional, conservador)
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        run: |
+          echo "::notice::Dependabot major bump (${{ steps.meta.outputs.update-type }}): no se activa auto-merge. Revisión manual."
+          exit 0
+
+      - name: Activar auto-merge
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${{ github.event.pull_request.number }}" --auto --merge \
+            --repo "${{ github.repository }}"
+          echo "::notice::Auto-merge activado en PR #${{ github.event.pull_request.number }} (Dependabot)."

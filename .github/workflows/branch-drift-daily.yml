@@ -1,0 +1,74 @@
+# Informe diario: si `preview` (u otra rama configurable) va atrás de `main`, aparece en el Summary.
+# No modifica ramas (solo lectura). Para alinear preview: merge o fast-forward desde main (PR o local).
+#
+# Variable opcional: REPO_DRIFT_BRANCHES (coma) — default `preview`. Ej: `preview,staging`
+
+name: Drift ramas vs main
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 12 * * *"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch
+        run: git fetch origin --prune
+
+      - name: Comparar ramas con origin/main
+        env:
+          REPO_DRIFT_BRANCHES: ${{ vars.REPO_DRIFT_BRANCHES }}
+        run: |
+          set -euo pipefail
+          BRANCHES="${REPO_DRIFT_BRANCHES:-preview}"
+          echo "## Drift respecto de \`origin/main\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Rama | Commits que **main** tiene y esta rama **no** | Commits solo en esta rama |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|---:|---:|" >> "$GITHUB_STEP_SUMMARY"
+          MAIN_SHA=$(git rev-parse origin/main)
+          echo "**HEAD main:** \`$MAIN_SHA\` (\`$(git log -1 --oneline origin/main)\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          ALERT=0
+          IFS=',' read -ra ARR <<< "$BRANCHES"
+          for raw in "${ARR[@]}"; do
+            b=$(echo "$raw" | tr -d '[:space:]')
+            [ -z "$b" ] && continue
+            ref="origin/$b"
+            if ! git rev-parse --verify "$ref" >/dev/null 2>&1; then
+              echo "| \`$b\` | _(rama remota inexistente)_ | — |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            behind=$(git rev-list --count "$ref..origin/main" 2>/dev/null || echo 0)
+            ahead=$(git rev-list --count "origin/main..$ref" 2>/dev/null || echo 0)
+            echo "| \`$b\` | $behind | $ahead |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "${behind:-0}" -gt 0 ]; then
+              ALERT=1
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Atrás > 0**: esa rama no tiene los últimos commits de \`main\` (Vercel preview puede quedar desactualizada vs producción futura)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Adelante > 0**: hay trabajo en la rama aún no integrado a \`main\`." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$ALERT" -eq 1 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Al menos una rama monitorada va **atrás** de \`main\`: conviene merge/rebase desde \`main\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Informe alineación (tabla completa)
+        env:
+          REPO_ALIGN_EXCLUDE_PREFIXES: ${{ vars.REPO_ALIGN_EXCLUDE_PREFIXES }}
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          node scripts/repo-branch-alignment.mjs >> "$GITHUB_STEP_SUMMARY"
