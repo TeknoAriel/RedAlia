@@ -7,10 +7,11 @@ Objetivo: una sola tubería **ordenada y estable** para poblar el sitio; las fue
 | Orden | Fuente | Qué aporta | Variables |
 |------|---------|------------|-----------|
 | A | **Feed JSON de difusión KiteProp** | Listado de propiedades normalizadas + derivación de socios/agencias/agentes desde el mismo JSON (`NormalizedProperty` → directorio). | `KITEPROP_PROPERTIES_URL`, `KITEPROP_PROPERTIES_STRICT_EMPTY`, `KITEPROP_PROPERTIES_TRY_DEFAULT_FEED` |
-| B | **API de red (AINA)** | Propiedades vía `loadPublicCatalogFromNetwork` + borradores de organizaciones (`partnerDirectoryExtraDrafts`). | `KITEPROP_PROPERTIES_SOURCE=network` \| `network_fallback_json`, credenciales en `docs/kiteprop-network-aina.md`, paginación opcional `KITEPROP_NETWORK_*_PAGED_FETCH` |
+| B | **API de red (AINA)** — modo `network` | Propiedades **solo** desde `loadPublicCatalogFromNetwork` + organizaciones en la misma corrida. **Sin** feed JSON si la red falla o viene vacía. | `KITEPROP_PROPERTIES_SOURCE=network` (o `aina`), credenciales `docs/kiteprop-network-aina.md`, paginación opcional `KITEPROP_NETWORK_*_PAGED_FETCH` |
+| B″ | **API de red + fallback JSON** — modo `network_fallback_json` | Intenta B; si 0 propiedades o error de red, entonces feed JSON (`loadJsonFeedSnapshot`) + mismas reglas de muestra/strict. | `KITEPROP_PROPERTIES_SOURCE=network_fallback_json` + URL feed + credenciales |
 | B′ | **Solo organizaciones de red** (opcional) | Con catálogo **JSON**, suma socios institucionales del endpoint de organizaciones sin cambiar el origen de las propiedades. | `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` + mismas credenciales que B |
 
-**Regla hoy:** o predominan propiedades de **red** (si hay ítems), o el sitio sirve el **JSON** (con muestra embebida si el remoto falla o está vacío según flags). Los borradores de organización de red se **adjuntan** al resultado JSON cuando aplica (`getPartnerDirectoryExtraDrafts`).
+**Regla hoy:** depende de `KITEPROP_PROPERTIES_SOURCE` (ver **`docs/catalog-operaciones.md`**): `network` = solo red para propiedades; `network_fallback_json` = red luego JSON; `json` = solo feed. Los borradores de organización de red se **adjuntan** cuando la corrida de red los obtuvo o con `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` en modo JSON.
 
 ## 2. Modelo de ficha (registros consumidos)
 
@@ -35,7 +36,8 @@ Sin duplicar el dominio en tablas nuevas: el contrato canónico sigue siendo el 
 
 - **Solo JSON:** `KITEPROP_PROPERTIES_SOURCE` omitido o `json` → feed remoto / muestra; directorio derivado del JSON.
 - **JSON + socios de red:** mismo modo `json` + `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` y credenciales AINA → catálogo sigue siendo el JSON; el directorio suma organizaciones de la API (sin duplicar `partnerKey` ya presente en el feed). Ver `ingestMeta.networkOrganizations*` si falla la API de organizaciones.
-- **Red primero:** `network` / `aina` → red; si 0 propiedades o error de red, **JSON**; organizaciones de red pueden **sumarse** como `partnerDirectoryExtraDrafts` si la red respondió con borradores.
+- **Solo red (`network` / `aina`):** propiedades únicamente desde API de red; **no** se consulta el feed JSON. Listado vacío si la API no entrega ítems (pueden quedar organizaciones como extras).
+- **Red con fallback JSON (`network_fallback_json`):** primero red; si falla o 0 propiedades, entonces JSON + muestra/strict como en modo `json`.
 - **Producción ~2 h:** definir `CRON_SECRET` en Vercel (documentación oficial de Cron); el cron llama la ruta y fuerza nueva lectura tras vencer el TTL de caché.
 
 ## 5. Evolución (sin comprometer estabilidad)
@@ -61,7 +63,7 @@ Cuando existan **resultados medidos** más allá de lo documentado (shapes reale
 | ¿Falló la red pero siguió el JSON? | `ingestMeta.networkErrorCode` (códigos internos, sin PII). |
 | ¿Falló solo el merge de organizaciones (modo JSON + merge)? | `ingestMeta.networkOrganizationsErrorCode` (intento en `networkOrganizationsAttempted`). |
 | ¿Cuándo corrió la corrida? | `ingestMeta.completedAtMs`, `runId` para correlacionar con log. |
-| Listado vacío en web | Feed remoto vacío/403, `KITEPROP_PROPERTIES_STRICT_EMPTY=1`, o red sin props + JSON vacío: revisá env y `npm run verify:network-ingest` si usás red. |
+| Listado vacío en web | Modo `network`: API vacía o error (`networkErrorCode`). Modo `json` / fallback: feed 403/vacío, `KITEPROP_PROPERTIES_STRICT_EMPTY=1`. Siempre: caché/TTL/cron. Ver **`docs/catalog-operaciones.md`**. |
 | Log de una línea por corrida | `CATALOG_INGEST_LOG=1` en el entorno server (Vercel): JSON en stdout con el mismo shape que `ingestMeta` (sin secretos). |
 
 ### Cron `GET /api/cron/catalog`

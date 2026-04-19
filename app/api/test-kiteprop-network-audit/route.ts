@@ -55,10 +55,33 @@ export async function GET() {
     advertiserKeyNames: string[];
   } | null = null;
 
+  let socioResolutionStats: {
+    scanned: number;
+    advertiser: number;
+    organization_only: number;
+    unmapped: number;
+  } | null = null;
+
   if (props.ok && props.items.length > 0) {
     const max = Math.min(props.items.length, 30);
     let firstIdx: number | null = null;
     let keyNames: string[] = [];
+    let advCount = 0;
+    let orgOnlyCount = 0;
+    let unmappedCount = 0;
+    const statsCap = Math.min(props.items.length, 80);
+    for (let i = 0; i < statsCap; i++) {
+      const r = resolveSocioFromNetworkProperty(props.items[i]);
+      if (r.kind === "advertiser") advCount += 1;
+      else if (r.kind === "organization_only") orgOnlyCount += 1;
+      else unmappedCount += 1;
+    }
+    socioResolutionStats = {
+      scanned: statsCap,
+      advertiser: advCount,
+      organization_only: orgOnlyCount,
+      unmapped: unmappedCount,
+    };
     for (let i = 0; i < max; i++) {
       const adv = extractAdvertiserObject(props.items[i]);
       if (adv && typeof adv === "object" && !Array.isArray(adv)) {
@@ -113,6 +136,7 @@ export async function GET() {
               }
             : socioResolution,
         advertiserScan,
+        socioResolutionStats,
       }
     : { ok: false as const, error: props.error, status: props.status };
 
@@ -121,6 +145,8 @@ export async function GET() {
     auth: authSummary,
     organizations: orgMapStats,
     properties: propStats,
+    socioModelNote:
+      "Resolución canónica Socio Redalia (red): priorizar anunciante → kpnet:advertiser:{id}; organización como contexto o fallback kpnet:org:{id}. Ver lib/kiteprop-network/redalia-socio-network-model.ts y docs/kiteprop-network-aina.md § relación.",
     note:
       "Sin valores de campos sensibles. Tras desplegar con env real, volcar este JSON en docs/kiteprop-network-aina.md " +
       "sección «Auditoría real» o adjuntarlo al ticket. Paths: KITEPROP_NETWORK_ORGANIZATIONS_PATH / PROPERTIES_PATH o defaults.",

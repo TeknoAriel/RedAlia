@@ -12,9 +12,10 @@ export function isKitepropNetworkAuditEnabled(): boolean {
 
 /**
  * Origen del catálogo público (`getProperties`):
- * - `json` (default): feed JSON de difusión (`KITEPROP_PROPERTIES_URL` o default en `lib/config.ts`), no REST `/properties`.
- * - `network` / `network_fallback_json`: intenta API de red AINA; **si no hay propiedades o falla**, mismo feed JSON + socios desde el feed (organizaciones de red solo si aplica).
- * - Con fuente `json`, `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` intenta además el endpoint de organizaciones y fusiona `partnerDirectoryExtraDrafts` sin cambiar el origen del listado de propiedades.
+ * - **`json`** (default): solo feed JSON de difusión (`KITEPROP_PROPERTIES_URL` / muestra). Sin listado REST de propiedades.
+ * - **`network`** (`aina`): solo API de red para **propiedades**; **no** hay fallback al feed JSON. Listado vacío si la red falla o devuelve 0 ítems (pueden quedar `partnerDirectoryExtraDrafts` si la red devolvió organizaciones).
+ * - **`network_fallback_json`**: primero API de red; si falla o 0 propiedades, entonces feed JSON + reglas de muestra/strict de `json-feed`.
+ * - Con **`json`**, `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` llama solo al endpoint de organizaciones y fusiona directorio sin cambiar el origen de propiedades.
  */
 export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
 

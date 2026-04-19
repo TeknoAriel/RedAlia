@@ -41,7 +41,105 @@ async function loadNetworkCatalogSnapshot(trace: CatalogIngestTrace): Promise<Ne
 }
 
 /**
- * Carga única del catálogo (sin caché Next). Orquesta: red (opcional) → feed JSON → meta de corrida.
+ * `KITEPROP_PROPERTIES_SOURCE=network` / `aina`: propiedades **solo** desde la API de red.
+ * No se llama al feed JSON de difusión ni a `loadJsonFeedSnapshot`. Si la red falla o devuelve 0 ítems, el listado queda vacío salvo `partnerDirectoryExtraDrafts` (organizaciones) cuando la red respondió OK.
+ */
+async function runNetworkOnlyFlow(trace: CatalogIngestTrace, runId: string): Promise<GetPropertiesResult> {
+  const net = await loadNetworkCatalogSnapshot(trace);
+  const orgExtras =
+    net.ok && net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined;
+
+  if (net.ok && net.properties.length > 0) {
+    return attachIngestMeta(
+      {
+        ok: true,
+        properties: net.properties,
+        source: "network",
+        partnerDirectoryExtraDrafts: orgExtras,
+      },
+      trace,
+      runId,
+    );
+  }
+
+  const properties = net.ok ? net.properties : [];
+  return attachIngestMeta(
+    {
+      ok: true,
+      properties,
+      source: "empty",
+      partnerDirectoryExtraDrafts: orgExtras,
+    },
+    trace,
+    runId,
+  );
+}
+
+/**
+ * `KITEPROP_PROPERTIES_SOURCE=network_fallback_json`: primero API de red; si no hay propiedades o falla, feed JSON + mismas reglas de muestra/strict que `json-feed`.
+ */
+async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: string): Promise<GetPropertiesResult> {
+  const net = await loadNetworkCatalogSnapshot(trace);
+
+  if (net.ok && net.properties.length > 0) {
+    return attachIngestMeta(
+      {
+        ok: true,
+        properties: net.properties,
+        source: "network",
+        partnerDirectoryExtraDrafts:
+          net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
+      },
+      trace,
+      runId,
+    );
+  }
+
+  const json = await loadJsonFeedSnapshot(trace);
+
+  const orgExtras =
+    net.ok && net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined;
+  if (json.properties.length > 0) {
+    return attachIngestMeta({ ...json, partnerDirectoryExtraDrafts: orgExtras }, trace, runId);
+  }
+
+  if (net.ok && net.organizationDrafts.length > 0) {
+    if (!isStrictEmptyCatalog()) {
+      const fb = bundledSampleWithFallbackFlag();
+      if (fb.properties.length > 0) {
+        return attachIngestMeta(
+          {
+            ...fb,
+            partnerDirectoryExtraDrafts: net.organizationDrafts,
+          },
+          trace,
+          runId,
+        );
+      }
+    }
+    return attachIngestMeta(
+      {
+        ok: true,
+        properties: [],
+        source: "empty",
+        partnerDirectoryExtraDrafts: net.organizationDrafts,
+      },
+      trace,
+      runId,
+    );
+  }
+
+  if (!isStrictEmptyCatalog()) {
+    const fb = bundledSampleWithFallbackFlag();
+    if (fb.properties.length > 0) {
+      return attachIngestMeta({ ...fb }, trace, runId);
+    }
+  }
+  return attachIngestMeta(json, trace, runId);
+}
+
+/**
+ * Carga única del catálogo (sin caché Next). Orquesta por `KITEPROP_PROPERTIES_SOURCE` (ver `docs/catalog-operaciones.md`).
  * Caché y `revalidateTag` viven en `lib/get-properties.ts` y `app/api/cron/catalog/route.ts`.
  */
 export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult> {
@@ -49,64 +147,12 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
   const runId = newCatalogIngestRunId();
   const mode = getKitepropPropertiesSourceMode();
 
-  if (mode === "network" || mode === "network_fallback_json") {
-    const net = await loadNetworkCatalogSnapshot(trace);
+  if (mode === "network") {
+    return runNetworkOnlyFlow(trace, runId);
+  }
 
-    if (net.ok && net.properties.length > 0) {
-      return attachIngestMeta(
-        {
-          ok: true,
-          properties: net.properties,
-          source: "network",
-          partnerDirectoryExtraDrafts:
-            net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined,
-        },
-        trace,
-        runId,
-      );
-    }
-
-    const json = await loadJsonFeedSnapshot(trace);
-
-    const orgExtras =
-      net.ok && net.organizationDrafts.length > 0 ? net.organizationDrafts : undefined;
-    if (json.properties.length > 0) {
-      return attachIngestMeta({ ...json, partnerDirectoryExtraDrafts: orgExtras }, trace, runId);
-    }
-
-    if (net.ok && net.organizationDrafts.length > 0) {
-      if (!isStrictEmptyCatalog()) {
-        const fb = bundledSampleWithFallbackFlag();
-        if (fb.properties.length > 0) {
-          return attachIngestMeta(
-            {
-              ...fb,
-              partnerDirectoryExtraDrafts: net.organizationDrafts,
-            },
-            trace,
-            runId,
-          );
-        }
-      }
-      return attachIngestMeta(
-        {
-          ok: true,
-          properties: [],
-          source: "empty",
-          partnerDirectoryExtraDrafts: net.organizationDrafts,
-        },
-        trace,
-        runId,
-      );
-    }
-
-    if (!isStrictEmptyCatalog()) {
-      const fb = bundledSampleWithFallbackFlag();
-      if (fb.properties.length > 0) {
-        return attachIngestMeta({ ...fb }, trace, runId);
-      }
-    }
-    return attachIngestMeta(json, trace, runId);
+  if (mode === "network_fallback_json") {
+    return runNetworkFallbackJsonFlow(trace, runId);
   }
 
   const jsonOnly = await loadJsonFeedSnapshot(trace);

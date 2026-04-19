@@ -14,7 +14,7 @@ Integración **server-only** para alinearse con lo que hoy consume **AINA** cont
 | **`KITEPROP_NETWORK_ID`** | Id de red (segmento de URL, mismo que AINA `network_id`). |
 | **`KITEPROP_NETWORK_TOKEN`** | Token de red: en los **defaults AINA** va en el **path** (`…/networks/{id}/{token}/…`), no como Bearer. Opcionalmente cabecera si usás paths custom sin token en URL. |
 | **`KITEPROP_NETWORK_AUDIT_ENABLED`** | Debe ser `1` para habilitar `GET /api/test-kiteprop-network-audit`. |
-| **`KITEPROP_PROPERTIES_SOURCE`** | `json` (default), `network` / `aina` (catálogo + directorio desde API de red), o `network_fallback_json` (intenta red y si falla usa el feed JSON). |
+| **`KITEPROP_PROPERTIES_SOURCE`** | `json` (default, feed difusión). `network` / `aina`: **solo** API de red para propiedades (sin fallback al feed JSON). `network_fallback_json`: red primero, luego feed JSON si falla o 0 ítems. Detalle: `docs/catalog-operaciones.md`. |
 | **`KITEPROP_AUTH_LOGIN_PATH`** | Default `auth/login`. |
 | **`KITEPROP_NETWORK_ORGANIZATIONS_PATH`** | Opcional. Placeholders `{networkId}` y `{networkToken}`. Si falta: `GET /networks/{id}/{token}/organizations` (relativo a `KITEPROP_API_BASE_URL`). |
 | **`KITEPROP_NETWORK_PROPERTIES_PATH`** | Opcional. Si falta: `GET /properties/network/{id}/{token}` + query fija `status=active` (igual que AINA). |
@@ -62,7 +62,7 @@ Cuando `KITEPROP_NETWORK_AUDIT_ENABLED=1` y el servidor Next tiene las credencia
 | **`ok`** | `true` si organizaciones y propiedades respondieron sin error de cliente. |
 | **`auth`** | `{ ok, bearerConfigured, extraHeaderNames }` o `{ ok: false, error }`. **No** incluye el token. |
 | **`organizations`** | Conteos, `httpStatus`, `firstOrganizationKeyNames` (solo claves), `mappedDraftSample` (`partnerKey`, `displayName`, `scope`). |
-| **`properties`** | Conteos, `firstPropertyKeyNames`, `nestedOnFirstProperty` (claves bajo `advertiser` / `organization` / …), `organizationLinkHints`, `advertiserObjectKeyNames`, `advertiserIdHints`, `mappedAdvertiserDraftSample`, `socioResolutionSample`, `advertiserScan`. |
+| **`properties`** | Conteos, `firstPropertyKeyNames`, `nestedOnFirstProperty` (claves bajo `advertiser` / `organization` / …), `organizationLinkHints`, `advertiserObjectKeyNames`, `advertiserIdHints`, `mappedAdvertiserDraftSample`, `socioResolutionSample`, `advertiserScan`, **`socioResolutionStats`** (conteo en N primeras fichas: `advertiser` / `organization_only` / `unmapped`). |
 | **`note`** | Recordatorio de no volcar PII; pegar JSON agregado en esta doc o ticket. |
 
 ## Relación propiedad ↔ anunciante ↔ organización (modelo Redalia)
