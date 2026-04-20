@@ -63,13 +63,12 @@ function pickNonEmptyString(a: string | null | undefined, b: string | null | und
  * - `partnerKey` resultante: **red gana** → `kpnet:advertiser:{id}` (canónico de esta fase).
  * - `displayName`: valor de red si viene no vacío; si no, feed.
  * - `logoUrl`, `email`, `phone`, `mobile`, `whatsapp`, `webUrl`: campo a campo, **red primero**, feed si red vacío.
- * - `propertyCount` / `coverageLabels`: se recalculan desde `properties` con la clave final (fuente de verdad única).
+ * - `propertyCount` / `coverageLabels`: se dejan en 0 / [] aquí; el caller las recalcula con la clave final.
  * - `scope` / etiquetas de rol: se mantienen como **anunciante** público.
  */
 function mergeAdvertiserFeedWithNetwork(
   feed: PublicPartnerDirectoryRowDraft,
   network: PublicPartnerDirectoryRowDraft,
-  properties: NormalizedProperty[],
 ): PublicPartnerDirectoryRowDraft {
   const scope: PublicPartnerScope = "advertiser";
   const partnerKey = network.partnerKey;
@@ -137,7 +136,7 @@ function mergeFeedAndNetwork(
     if (advId != null) {
       const net = netAdvertisers.get(advId);
       if (net) {
-        out.push(mergeAdvertiserFeedWithNetwork(f, net, properties));
+        out.push(mergeAdvertiserFeedWithNetwork(f, net));
         consumedNetIds.add(advId);
         continue;
       }

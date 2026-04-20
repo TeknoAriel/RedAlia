@@ -8,7 +8,7 @@ Referencia corta para deploy y soporte. Detalle técnico: `docs/ingestion-feed-p
 
 | Modo (`KITEPROP_PROPERTIES_SOURCE`) | Propiedades | Directorio Socios (extras) | Variables clave |
 |--------------------------------------|---------------|-----------------------------|-------------------|
-| **omitido / `json`** | Feed JSON (`KITEPROP_PROPERTIES_URL`) + muestra si falla | Derivado del JSON (`agencies` / `NormalizedProperty`) | URL feed, `KITEPROP_PROPERTIES_STRICT_EMPTY`, `KITEPROP_PROPERTIES_TRY_DEFAULT_FEED` |
+| **omitido / `json`** | Feed JSON (`KITEPROP_PROPERTIES_URL` o URL default del repo) + muestra si el GET falla o viene vacío | Derivado del JSON (`agencies` / `NormalizedProperty`) | URL feed, `KITEPROP_PROPERTIES_STRICT_EMPTY` |
 | **`json` + merge orgs** | Igual JSON | + API organizaciones si `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` | Lo anterior + credenciales red (`KITEPROP_API_*`, `KITEPROP_NETWORK_*`) |
 | **`network`** | **Solo** API propiedades de red | Organizaciones de la misma corrida de red si hay datos | Credenciales red; **no** hay fallback al feed JSON |
 | **`network_fallback_json`** | Red primero; si error o 0 ítems → feed JSON + reglas de muestra | Organizaciones de red si la llamada de red devolvió borradores | Credenciales + URL feed |

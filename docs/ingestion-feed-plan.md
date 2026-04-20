@@ -6,7 +6,7 @@ Objetivo: una sola tubería **ordenada y estable** para poblar el sitio; las fue
 
 | Orden | Fuente | Qué aporta | Variables |
 |------|---------|------------|-----------|
-| A | **Feed JSON de difusión KiteProp** | Listado de propiedades normalizadas + derivación de socios/agencias/agentes desde el mismo JSON (`NormalizedProperty` → directorio). | `KITEPROP_PROPERTIES_URL`, `KITEPROP_PROPERTIES_STRICT_EMPTY`, `KITEPROP_PROPERTIES_TRY_DEFAULT_FEED` |
+| A | **Feed JSON de difusión KiteProp** | Listado de propiedades normalizadas + derivación de socios/agencias/agentes desde el mismo JSON (`NormalizedProperty` → directorio). | `KITEPROP_PROPERTIES_URL`, `KITEPROP_PROPERTIES_STRICT_EMPTY` |
 | B | **API de red (AINA)** — modo `network` | Propiedades **solo** desde `loadPublicCatalogFromNetwork` + organizaciones en la misma corrida. **Sin** feed JSON si la red falla o viene vacía. | `KITEPROP_PROPERTIES_SOURCE=network` (o `aina`), credenciales `docs/kiteprop-network-aina.md`, paginación opcional `KITEPROP_NETWORK_*_PAGED_FETCH` |
 | B″ | **API de red + fallback JSON** — modo `network_fallback_json` | Intenta B; si 0 propiedades o error de red, entonces feed JSON (`loadJsonFeedSnapshot`) + mismas reglas de muestra/strict. | `KITEPROP_PROPERTIES_SOURCE=network_fallback_json` + URL feed + credenciales |
 | B′ | **Solo organizaciones de red** (opcional) | Con catálogo **JSON**, suma socios institucionales del endpoint de organizaciones sin cambiar el origen de las propiedades. | `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` + mismas credenciales que B |
