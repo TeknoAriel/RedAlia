@@ -338,6 +338,28 @@ export function propertyMatchesPartnerKey(p: NormalizedProperty, rawKey: string)
     );
   }
 
+  const kpnetAdv = /^kpnet:advertiser:(.+)$/.exec(rawKey);
+  if (kpnetAdv) {
+    const idPart = kpnetAdv[1]?.trim() ?? "";
+    if (/^\d+$/.test(idPart)) {
+      const id = Number(idPart);
+      return distinctScopedPartnersOnProperty(p).some((e) => e.scope === "advertiser" && e.id === id);
+    }
+    return false;
+  }
+
+  const kpnetOrg = /^kpnet:org:(.+)$/.exec(rawKey);
+  if (kpnetOrg) {
+    const idPart = kpnetOrg[1]?.trim() ?? "";
+    if (/^\d+$/.test(idPart)) {
+      const id = Number(idPart);
+      return distinctScopedPartnersOnProperty(p).some(
+        (e) => (e.scope === "agency" || e.scope === "agent" || e.scope === "sub_agent") && e.id === id,
+      );
+    }
+    return false;
+  }
+
   return false;
 }
 

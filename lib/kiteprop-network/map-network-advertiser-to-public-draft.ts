@@ -1,5 +1,6 @@
 import "server-only";
 
+import { canonicalNetworkAdvertiserPartnerKey } from "@/lib/kiteprop-network/socio-canonical-keys";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 
@@ -22,7 +23,7 @@ function pickNumberishId(o: Record<string, unknown>, keys: string[]): string | n
 
 /**
  * Construye un borrador de fila de directorio público desde el objeto **anunciante** de la API de red.
- * Clave canónica de socio para esta fase: `kpnet:advertiser:{id}` (única por anunciante; no colisiona con feed).
+ * Clave canónica de socio Redalia en red: `canonicalNetworkAdvertiserPartnerKey(id)` (`kpnet:advertiser:{id}`).
  */
 export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPartnerDirectoryRowDraft | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -51,7 +52,7 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
   const webUrl = pickString(o, ["web_url", "webUrl", "website", "url"]);
 
   return {
-    partnerKey: `kpnet:advertiser:${id}`,
+    partnerKey: canonicalNetworkAdvertiserPartnerKey(id),
     scope,
     displayName: name,
     roleLabel: publicPartnerRoleLabelEs[scope],

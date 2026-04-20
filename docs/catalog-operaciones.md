@@ -4,6 +4,8 @@ Referencia corta para deploy y soporte. Detalle técnico: `docs/ingestion-feed-p
 
 ## Variables mínimas por modo
 
+**Directorio `/socios`:** `REDALIA_PARTNER_DIRECTORY_SOURCE` (`feed` \| `network` \| `merge`, default `feed`). Detalle y reglas de merge: **`docs/redalia-partner-directory.md`**.
+
 | Modo (`KITEPROP_PROPERTIES_SOURCE`) | Propiedades | Directorio Socios (extras) | Variables clave |
 |--------------------------------------|---------------|-----------------------------|-------------------|
 | **omitido / `json`** | Feed JSON (`KITEPROP_PROPERTIES_URL`) + muestra si falla | Derivado del JSON (`agencies` / `NormalizedProperty`) | URL feed, `KITEPROP_PROPERTIES_STRICT_EMPTY`, `KITEPROP_PROPERTIES_TRY_DEFAULT_FEED` |

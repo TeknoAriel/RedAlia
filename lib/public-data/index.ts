@@ -10,6 +10,13 @@ export {
   buildPublicDirectorySnapshot,
   buildPublicPartnerDirectoryFromFeed,
 } from "@/lib/public-data/from-properties-feed";
+export type { RedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
+export { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
+export {
+  feedAdvertiserHasNetworkTwin,
+  matchAdvertiserFeedKeyToNetworkPartnerKey,
+  resolvePublicPartnerDirectoryDrafts,
+} from "@/lib/public-data/partner-directory-resolve";
 export { mapSocioCatalogEntryToPublicDirectory } from "@/lib/public-data/map-socio-catalog-to-public";
 export { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 export { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";

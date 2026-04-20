@@ -52,6 +52,23 @@ export function getPartnerDirectoryExtraDrafts(
   return result.ok ? result.partnerDirectoryExtraDrafts : undefined;
 }
 
+export function getPartnerDirectoryNetworkAdvertiserDrafts(
+  result: GetPropertiesResult,
+): PublicPartnerDirectoryRowDraft[] | undefined {
+  return result.ok ? result.partnerDirectoryNetworkAdvertiserDrafts : undefined;
+}
+
+/** Opciones para `buildPublicDirectorySnapshot` / `buildPublicPartnerDirectoryFromFeed` sin acoplar páginas a la forma de `GetPropertiesResult`. */
+export function getPartnerDirectoryBuildOptions(result: GetPropertiesResult): {
+  extraDirectoryDrafts: PublicPartnerDirectoryRowDraft[] | null;
+  networkAdvertiserDrafts: PublicPartnerDirectoryRowDraft[] | null;
+} {
+  return {
+    extraDirectoryDrafts: result.ok ? (result.partnerDirectoryExtraDrafts ?? null) : null,
+    networkAdvertiserDrafts: result.ok ? (result.partnerDirectoryNetworkAdvertiserDrafts ?? null) : null,
+  };
+}
+
 export async function getPropertyById(id: string): Promise<NormalizedProperty | null> {
   const result = await getProperties();
   if (!result.ok) return null;

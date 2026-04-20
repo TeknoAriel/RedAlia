@@ -1,5 +1,6 @@
 import "server-only";
 
+import { canonicalNetworkOrganizationPartnerKey } from "@/lib/kiteprop-network/socio-canonical-keys";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 
@@ -41,7 +42,7 @@ export function mapUnknownNetworkOrganizationToPublicDraft(raw: unknown): Public
   const webUrl = pickString(o, ["web_url", "webUrl", "website", "url"]);
 
   return {
-    partnerKey: `kpnet:org:${id}`,
+    partnerKey: canonicalNetworkOrganizationPartnerKey(id),
     scope,
     displayName: name,
     roleLabel: publicPartnerRoleLabelEs[scope],

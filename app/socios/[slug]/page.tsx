@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PartnerProfileView } from "@/components/public-directory/PartnerProfileView";
-import { getProperties, getPartnerDirectoryExtraDrafts } from "@/lib/get-properties";
+import { getProperties, getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
 import { buildPublicPartnerDirectoryFromFeed } from "@/lib/public-data/from-properties-feed";
 import { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";
@@ -22,7 +22,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!result.ok) {
     return { title: "Socio | Redalia" };
   }
-  const entries = buildPublicPartnerDirectoryFromFeed(result.properties);
+  const opts = getPartnerDirectoryBuildOptions(result);
+  const entries = buildPublicPartnerDirectoryFromFeed(
+    result.properties,
+    opts.extraDirectoryDrafts,
+    opts.networkAdvertiserDrafts,
+  );
   const entry = findPartnerEntryByPublicSlug(entries, slug);
   if (!entry) {
     return { title: "Socio | Redalia" };
@@ -39,9 +44,11 @@ export default async function SocioProfilePage({ params }: PageProps) {
   if (!result.ok) {
     notFound();
   }
+  const opts = getPartnerDirectoryBuildOptions(result);
   const entries = buildPublicPartnerDirectoryFromFeed(
     result.properties,
-    getPartnerDirectoryExtraDrafts(result),
+    opts.extraDirectoryDrafts,
+    opts.networkAdvertiserDrafts,
   );
   const entry = findPartnerEntryByPublicSlug(entries, slug);
   if (!entry) {

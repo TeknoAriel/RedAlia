@@ -1,6 +1,7 @@
 import "server-only";
 
 import { normalizeKitePropProperty } from "@/lib/kiteprop-adapter";
+import { buildNetworkDirectoryDraftsFromPropertyPayloads } from "@/lib/kiteprop-network/build-network-advertiser-directory-drafts";
 import { coerceNetworkPropertyRecord } from "@/lib/kiteprop-network/coerce-network-property-record";
 import { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
 import { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
@@ -9,7 +10,13 @@ import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
 export type LoadPublicCatalogFromNetworkResult =
-  | { ok: true; properties: NormalizedProperty[]; organizationDrafts: PublicPartnerDirectoryRowDraft[] }
+  | {
+      ok: true;
+      properties: NormalizedProperty[];
+      organizationDrafts: PublicPartnerDirectoryRowDraft[];
+      /** Socios `kpnet:*` derivados del payload de propiedades de red (anunciante u org fallback por propiedad). */
+      advertiserDraftsFromProperties: PublicPartnerDirectoryRowDraft[];
+    }
   | { ok: false; error: string };
 
 /**
@@ -23,11 +30,17 @@ export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogF
     return { ok: false, error: propsRes.error };
   }
 
-  const properties: NormalizedProperty[] = [];
+  const pairs: { raw: unknown; norm: NormalizedProperty }[] = [];
   for (const raw of propsRes.items) {
-    const n = normalizeKitePropProperty(coerceNetworkPropertyRecord(raw));
-    if (n) properties.push(n);
+    const coerced = coerceNetworkPropertyRecord(raw);
+    const n = normalizeKitePropProperty(coerced);
+    if (n) pairs.push({ raw: coerced, norm: n });
   }
+  const properties = pairs.map((p) => p.norm);
+  const advertiserDraftsFromProperties = buildNetworkDirectoryDraftsFromPropertyPayloads(
+    pairs.map((p) => p.raw),
+    properties,
+  );
 
   const organizationDrafts: PublicPartnerDirectoryRowDraft[] = [];
   if (orgsRes.ok) {
@@ -37,5 +50,5 @@ export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogF
     }
   }
 
-  return { ok: true, properties, organizationDrafts };
+  return { ok: true, properties, organizationDrafts, advertiserDraftsFromProperties };
 }

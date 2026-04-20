@@ -13,6 +13,12 @@ export type CatalogIngestTrace = {
    */
   networkOrganizationsAttempted: boolean;
   networkOrganizationsErrorCode: string | null;
+  /**
+   * Intento de overlay de borradores `kpnet:*` desde propiedades de red cuando el catálogo de propiedades
+   * viene del feed JSON y `REDALIA_PARTNER_DIRECTORY_SOURCE` ≠ `feed`.
+   */
+  partnerDirectoryOverlayAttempted: boolean;
+  partnerDirectoryOverlayErrorCode: string | null;
 };
 
 export function createEmptyIngestTrace(): CatalogIngestTrace {
@@ -22,5 +28,7 @@ export function createEmptyIngestTrace(): CatalogIngestTrace {
     networkErrorCode: null,
     networkOrganizationsAttempted: false,
     networkOrganizationsErrorCode: null,
+    partnerDirectoryOverlayAttempted: false,
+    partnerDirectoryOverlayErrorCode: null,
   };
 }
