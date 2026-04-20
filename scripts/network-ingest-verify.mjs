@@ -18,7 +18,7 @@
  *   NETWORK_VERIFY_MIN_PROPERTIES (default 1), NETWORK_VERIFY_MIN_ORGANIZATIONS (default 1)
  *   KITEPROP_API_TIMEOUT_MS (opc., ms; clamp 5000–120000, default 25000 acá para alinear con ingest largo)
  *   KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH=1 + page/limit (misma lógica que lib/kiteprop-network/get-network-properties.ts)
- *   KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT (15|30|50, default 50), KITEPROP_NETWORK_PROPERTIES_MAX_PAGES (default 100)
+ *   KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT (15|30|50, default 50), KITEPROP_NETWORK_PROPERTIES_MAX_PAGES (default 150, techo 1000)
  *   KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH=1, KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT, KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES
  *
  * Uso:
@@ -247,8 +247,8 @@ async function fetchAllNetworkProperties(base, propPath, bearer, propHeaders) {
   const rawLimit = parseInt(trimEnv("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "50", 10);
   const pageLimit = PAGE_LIMITS.has(rawLimit) ? rawLimit : 50;
   const maxPages = Math.min(
-    500,
-    Math.max(1, parseInt(trimEnv("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || "100", 10) || 100),
+    1000,
+    Math.max(1, parseInt(trimEnv("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || "150", 10) || 150),
   );
 
   const merged = [];

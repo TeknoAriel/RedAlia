@@ -150,6 +150,15 @@ export function isNetworkTokenUsedAsBearer(): boolean {
 const NETWORK_PAGE_LIMITS = new Set([15, 30, 50]);
 
 /**
+ * Tope de páginas para propiedades de red (p. ej. 50 ítems/página → 1000 páginas ≈ 50k fichas).
+ * Por encima del umbral típico de catálogos grandes (>5k publicaciones).
+ */
+const NETWORK_PROPERTIES_MAX_PAGES_CEILING = 1000;
+
+/** Default si no está `KITEPROP_NETWORK_PROPERTIES_MAX_PAGES` (150×50 = 7500 ítems). */
+const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 150;
+
+/**
  * Si es `1`, se piden varias páginas con `page`/`limit` (misma convención que `GET /properties` en
  * `lib/kiteprop/get-properties-api.ts`) hasta vaciar o agotar `last_page` / heurística de fin.
  * Por defecto **desactivado**: un solo GET como hoy AINA.
@@ -164,9 +173,12 @@ export function getNetworkPropertiesPageLimit(): number {
 }
 
 export function getNetworkPropertiesMaxPages(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || "100", 10);
-  if (!Number.isFinite(n)) return 100;
-  return Math.min(500, Math.max(1, Math.floor(n)));
+  const n = parseInt(
+    trim("KITEPROP_NETWORK_PROPERTIES_MAX_PAGES") || String(NETWORK_PROPERTIES_MAX_PAGES_DEFAULT),
+    10,
+  );
+  if (!Number.isFinite(n)) return NETWORK_PROPERTIES_MAX_PAGES_DEFAULT;
+  return Math.min(NETWORK_PROPERTIES_MAX_PAGES_CEILING, Math.max(1, Math.floor(n)));
 }
 
 export function isNetworkOrganizationsPagedFetchEnabled(): boolean {

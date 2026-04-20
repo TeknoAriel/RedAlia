@@ -1,5 +1,12 @@
 # Flujos de deploy y reglas de control
 
+## Límites Vercel (Hobby) y errores que **no** son del código
+
+- **Deployments por día (plan Hobby):** según la [documentación oficial de planes](https://vercel.com/docs/plans/hobby), el límite publicado para Hobby es **100 deployments por día** (incluye previews de PRs y producción). Los números pueden cambiar: **siempre verificá** en **Vercel → tu team → Usage / Billing** y el correo que recibas (algunos avisos antiguos o de otros productos hablan de **~25/día** u otra cifra).
+- **Cuota / rate limit agotado:** el build en Vercel puede **no encolarse** o fallar en el panel con mensaje de límite; las peticiones HTTP a previews a veces responden **429**. Eso **no** indica que `next build` o las rutas de la app estén rotas por el último commit.
+- **Smoke `deploy-readiness.mjs`:** si **todas** las rutas devuelven **429**, el script sale con **código 0** y un mensaje explícito `vercel_rate_limit_or_quota` en el resumen JSON (`DEPLOY_READINESS_JSON_SUMMARY=1`), para **no** confundir cuota de plataforma con fallo de CI por aplicación (igual criterio que con **401** por Deployment Protection).
+- **Qué hacer:** esperar reset diario del contador, reducir pushes/PRs que disparen preview, fusionar menos ramas ruidosas, o **subir a Pro** si el equipo necesita más throughput de deploys.
+
 ## Por qué “Production” queda atrás de muchos deploys “Preview Ready”
 
 Vercel **no promueve** automáticamente Preview → Production. **Production** sigue el último commit desplegable en **`main`** (integración Git o CLI). Los commits en ramas `feat/*`, Dependabot o `preview` generan **Preview “Ready”**, pero **no mueven `main`**: hasta que esos cambios entren por **merge a `main`**, el deploy de producción seguirá en el SHA anterior. No es un fallo del “ready”: es el modelo Git + protección de rama (PR + CI obligatorio).

@@ -19,9 +19,19 @@ Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (l
 2. **`network_fallback_json`:** (a) misma carga de red; (b) si no hay propiedades útiles, `loadJsonFeedSnapshot` (URL remota / disco / bundle); (c) ramas de vacío estricto y muestra como en `json-feed.ts`.
 3. **`json`:** solo `loadJsonFeedSnapshot` (+ opcional solo-organizaciones si merge activo).
 
+## Variables locales desde Vercel (segundo caso: API red, sin pegar secretos en el chat)
+
+1. Instalá la CLI: `npm i -g vercel` (o usá `npx vercel`).
+2. En la raíz del repo: `vercel link` y elegí el **team** y el **proyecto** donde ya están las env vars.
+3. Bajá todo a un archivo **gitignored**: `npm run env:pull:vercel` (equivale a `vercel env pull .env.local`).
+4. Cargá y probá: `set -a && source .env.local && set +a && npm run catalog:sources-probe` (sin `CATALOG_PROBE_JSON_ONLY` para incluir REST + red) o `npm run verify:network-ingest`.
+
+**Importante:** no commitees `.env.local` (ya está cubierto por `.gitignore` con `.env*.local`). No copies valores sensibles al asistente ni a issues públicos.
+
 ## Cómo probar la ingesta
 
 - **Sin Next:** `npm run verify:network-ingest` (misma auth que producción).
+- **Fuentes en paralelo (JSON + REST + red):** `set -a && source .env.local && set +a && npm run catalog:sources-probe` — imprime HTTP, conteos y muestras de títulos/nombres (sin volcar PII). Solo JSON: `CATALOG_PROBE_JSON_ONLY=1 npm run catalog:sources-probe`.
 - **Con Next:** `CATALOG_INGEST_DISABLE_CACHE=1`, recargar `/propiedades`; revisar `ingestMeta` en logs si `CATALOG_INGEST_LOG=1`.
 
 ## Cómo forzar fallback (propiedades)

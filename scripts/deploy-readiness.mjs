@@ -7,9 +7,14 @@
  *
  * Reintentos (cold start / CDN):
  *   DEPLOY_READINESS_ATTEMPTS (default 5), DEPLOY_READINESS_RETRY_MS (default 3500)
- *   Reintenta solo 502, 503, 504 y errores de red (sin body HTTP).
+ *   Reintenta solo 502, 503, 504 y errores de red (sin body HTTP). No reintenta 429.
  *
- * Sale con código 1 si alguna petición falla (HTTP no OK, timeout, red).
+ * Casos especiales (no indican bug del código del repo):
+ *   - Todas las rutas HTTP 401: típico Deployment Protection en preview → exit 0.
+ *   - Todas las rutas HTTP 429: rate limit / cuota de plataforma (p. ej. Vercel Hobby) → exit 0
+ *     con mensaje explícito (no confundir con fallo de build). Ver docs en .github/DEPLOYMENT.md.
+ *
+ * Sale con código 1 si alguna petición falla (HTTP no OK distinto de los casos anteriores, timeout, red).
  */
 
 const TIMEOUT_MS = 25_000;
@@ -115,12 +120,54 @@ async function main() {
       );
       process.exit(0);
     }
+
+    const all429 =
+      failed.length === results.length &&
+      failed.every((r) => r.status === 429);
+    if (all429) {
+      console.error(
+        `\n*** Deploy readiness: CUOTA / RATE LIMIT (HTTP 429 en todas las rutas) ***`,
+      );
+      console.error(
+        `Esto suele ser **límite del plan** (p. ej. Vercel Hobby: deployments/día u otro rate limit), no un error de rutas de la app.`,
+      );
+      console.error(
+        `Revisá en Vercel → Team/Account → **Usage** / **Billing** y la doc oficial de límites del plan. Los números cambian con el tiempo (algunos mails históricos citaban ~25/día; la doc pública de Hobby hoy indica **100 deployments/día** — confirmá en tu panel).`,
+      );
+      console.error(
+        `Este script termina **exit 0** a propósito para no bloquear CI como “fallo de código”. Cuando baje la presión o subas de plan, el smoke volverá a validar 2xx.`,
+      );
+      if (process.env.DEPLOY_READINESS_JSON_SUMMARY === "1") {
+        console.log(
+          JSON.stringify({
+            ok: true,
+            skippedReason: "vercel_rate_limit_or_quota",
+            httpStatus: 429,
+            base,
+            hint:
+              "Cuota o rate limit del hosting; verificar Usage en Vercel y límites del plan (Hobby vs Pro).",
+          }),
+        );
+      }
+      process.exit(0);
+    }
+
+    if (failed.some((r) => r.status === 429) && !all429) {
+      console.error(
+        `\nNota: al menos una ruta respondió **429** (rate limit / cuota). Revisá **Usage** en Vercel además de los otros códigos arriba.`,
+      );
+    }
+
     console.error(`\nDeploy readiness: ${failed.length}/${results.length} fallos.`);
     if (process.env.DEPLOY_READINESS_JSON_SUMMARY === "1") {
+      const any429 = failed.some((r) => r.status === 429);
       console.log(
         JSON.stringify({
           ok: false,
           base,
+          hint429: any429
+            ? "Alguna respuesta 429: posible cuota/rate limit Vercel (ver .github/DEPLOYMENT.md § límites Hobby)."
+            : undefined,
           failed: failed.map((r) => ({
             url: r.url,
             status: r.status,
