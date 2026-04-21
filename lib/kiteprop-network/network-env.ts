@@ -161,10 +161,12 @@ const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 150;
 /**
  * Si es `1`, se piden varias páginas con `page`/`limit` (misma convención que `GET /properties` en
  * `lib/kiteprop/get-properties-api.ts`) hasta vaciar o agotar `last_page` / heurística de fin.
- * Por defecto **desactivado**: un solo GET como hoy AINA.
+ * Por defecto **activado** para no truncar catálogos grandes de red; usar `0` para forzar un solo GET.
  */
 export function isNetworkPropertiesPagedFetchEnabled(): boolean {
-  return trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH") === "1";
+  const v = trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH");
+  if (v === "0") return false;
+  return true;
 }
 
 export function getNetworkPropertiesPageLimit(): number {
