@@ -19,6 +19,8 @@ Integración **server-only** para alinearse con lo que hoy consume **AINA** cont
 | **`KITEPROP_NETWORK_ORGANIZATIONS_PATH`** | Opcional. Placeholders `{networkId}` y `{networkToken}`. Si falta: `GET /networks/{id}/{token}/organizations` (relativo a `KITEPROP_API_BASE_URL`). |
 | **`KITEPROP_NETWORK_PROPERTIES_PATH`** | Opcional. Si falta: `GET /properties/network/{id}/{token}` + query fija `status=active` (igual que AINA). |
 
+**Deploy (Vercel):** lo más seguro es **omitir** `KITEPROP_NETWORK_ORGANIZATIONS_PATH` y `KITEPROP_NETWORK_PROPERTIES_PATH` y solo definir `KITEPROP_NETWORK_ID` + `KITEPROP_NETWORK_TOKEN`. Rutas como `/networks/19/organizations` o `/properties/network/19/` **sin el token en el segmento de URL** no coinciden con AINA y hacen fallar la red; con `network_fallback_json` el sitio puede volver al JSON de muestra.
+
 ### Opcionales adicionales (ya soportados en código)
 
 | Variable | Rol |
