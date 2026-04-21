@@ -1,10 +1,9 @@
-import { extractSociosGridCatalog, propertyMatchesPartnerKey } from "@/lib/agencies";
 import {
   dropDirectoryEntriesWithoutDisplayName,
   normalizePublicDisplayName,
   sortPublicDirectoryEntries,
 } from "@/lib/public-data/directory-order";
-import { mapSocioCatalogEntryToPublicDirectory } from "@/lib/public-data/map-socio-catalog-to-public";
+import { resolvePublicPartnerDirectoryDrafts } from "@/lib/public-data/partner-directory-resolve";
 import { buildPublicSlugForEntry } from "@/lib/public-data/public-slug";
 import { sanitizePublicPartnerDirectoryEntry } from "@/lib/public-data/sanitize-entry";
 import type {
@@ -15,24 +14,8 @@ import type {
 } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
-const MAX_COVERAGE_LABELS = 4;
 const MAX_GEOGRAPHIC_PRESENCE_LABELS = 12;
 const DEFAULT_FEATURED_MAX = 8;
-
-function coverageLabelsForPartner(
-  properties: NormalizedProperty[],
-  partnerKey: string,
-): string[] {
-  const set = new Set<string>();
-  for (const p of properties) {
-    if (!propertyMatchesPartnerKey(p, partnerKey)) continue;
-    for (const label of [p.region, p.city, p.zone, p.zoneSecondary]) {
-      const t = label?.trim();
-      if (t) set.add(t);
-    }
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE_LABELS);
-}
 
 function finalizeDirectoryEntries(
   raw: PublicPartnerDirectoryRowDraft[],
@@ -88,30 +71,18 @@ function buildStats(
  * Directorio público a partir del catálogo ya normalizado (feed JSON / remoto / red AINA).
  * Aplica reglas de calidad, orden institucional y saneo de contactos.
  * `extraDirectoryDrafts`: organizaciones de red (`kpnet:org:…`) que no dupliquen `partnerKey` ya derivado del catálogo.
+ * `networkAdvertiserDrafts`: socios `kpnet:*` desde payload de propiedades de red (ver `REDALIA_PARTNER_DIRECTORY_SOURCE`).
  */
 export function buildPublicPartnerDirectoryFromFeed(
   properties: NormalizedProperty[],
   extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null,
+  networkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[] | null,
 ): PublicPartnerDirectoryEntry[] {
-  const catalog = extractSociosGridCatalog(properties);
-  const raw: PublicPartnerDirectoryRowDraft[] = [];
-  for (const row of catalog) {
-    const mapped = mapSocioCatalogEntryToPublicDirectory(
-      row,
-      coverageLabelsForPartner(properties, row.key),
-    );
-    if (mapped) raw.push(mapped);
-  }
-
-  if (extraDirectoryDrafts?.length) {
-    const keys = new Set(raw.map((r) => r.partnerKey));
-    for (const d of extraDirectoryDrafts) {
-      if (keys.has(d.partnerKey)) continue;
-      keys.add(d.partnerKey);
-      raw.push(d);
-    }
-  }
-
+  const raw = resolvePublicPartnerDirectoryDrafts({
+    properties,
+    extraDirectoryDrafts,
+    networkAdvertiserDrafts,
+  });
   return finalizeDirectoryEntries(raw);
 }
 
@@ -124,10 +95,16 @@ export function buildPublicDirectorySnapshot(
     featuredMax?: number;
     /** Organizaciones de red AINA u otros borradores institucionales (sin duplicar `partnerKey`). */
     extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null;
+    /** Borradores `kpnet:*` desde propiedades de red (ingesta / overlay). */
+    networkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[] | null;
   },
 ): PublicDirectorySnapshot {
   const featuredMax = options?.featuredMax ?? DEFAULT_FEATURED_MAX;
-  const entries = buildPublicPartnerDirectoryFromFeed(properties, options?.extraDirectoryDrafts);
+  const entries = buildPublicPartnerDirectoryFromFeed(
+    properties,
+    options?.extraDirectoryDrafts,
+    options?.networkAdvertiserDrafts,
+  );
   const featured = entries.slice(0, Math.min(featuredMax, entries.length));
   const stats = buildStats(properties, entries);
   return { entries, featured, stats };

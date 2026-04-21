@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CatalogIngestRunMeta, CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import type { CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
+import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 
 /** Una corrida de ingest = un id para correlacionar logs (sin PII). */
 export function newCatalogIngestRunId(): string {
@@ -25,6 +26,10 @@ export function attachIngestMeta(
     hasListings: result.properties.length > 0,
     networkOrganizationsAttempted: trace.networkOrganizationsAttempted,
     networkOrganizationsErrorCode: trace.networkOrganizationsErrorCode,
+    partnerDirectorySourceMode: getRedaliaPartnerDirectorySourceMode(),
+    partnerDirectoryNetworkAdvertiserDraftsCount: result.partnerDirectoryNetworkAdvertiserDrafts?.length ?? 0,
+    partnerDirectoryOverlayAttempted: trace.partnerDirectoryOverlayAttempted,
+    partnerDirectoryOverlayErrorCode: trace.partnerDirectoryOverlayErrorCode,
   };
   const out: GetPropertiesResult = { ...result, ingestMeta: meta };
   logCatalogIngestIfEnabled(meta);

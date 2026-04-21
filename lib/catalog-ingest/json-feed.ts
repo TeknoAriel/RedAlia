@@ -5,18 +5,13 @@ import path from "path";
 import bundledSampleCatalog from "@/data/kiteprop-sample.json";
 import type { CatalogSnapshotSuccess } from "@/lib/catalog-ingest/catalog-result";
 import type { CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
-import { DEFAULT_KITEPROP_DIFUSION_FEED_URL, getKitepropPropertiesUrl } from "@/lib/config";
+import { getKitepropPropertiesUrl } from "@/lib/config";
 import { normalizePropertyList } from "@/lib/kiteprop-adapter";
 
 /** Carga desde feed JSON de difusión + muestras locales (sin API de red). */
 export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<CatalogSnapshotSuccess> {
   trace.jsonFeedAttempted = true;
   const url = getKitepropPropertiesUrl().trim();
-  const isDefaultFeedUrl = url === DEFAULT_KITEPROP_DIFUSION_FEED_URL.trim();
-
-  if (isDefaultFeedUrl && !mustTryDefaultFeedUrl()) {
-    return bundledSampleWithFallbackFlag();
-  }
 
   if (url) {
     try {
@@ -95,10 +90,6 @@ function parseJsonPayload(raw: string): unknown {
 
 export function isStrictEmptyCatalog(): boolean {
   return process.env.KITEPROP_PROPERTIES_STRICT_EMPTY?.trim() === "1";
-}
-
-function mustTryDefaultFeedUrl(): boolean {
-  return process.env.KITEPROP_PROPERTIES_TRY_DEFAULT_FEED?.trim() === "1";
 }
 
 export function bundledSampleWithFallbackFlag(): CatalogSnapshotSuccess {

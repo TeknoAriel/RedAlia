@@ -17,6 +17,7 @@ import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
  *   `mapUnknownNetworkOrganizationToPublicDraft` (`kpnet:org:{id}`).
  *
  * La UI pública sigue consumiendo solo `PublicPartnerDirectoryRowDraft` / tipos de `lib/public-data/*`.
+ * Origen del armado del listado (feed / red / merge): `REDALIA_PARTNER_DIRECTORY_SOURCE` — ver `docs/redalia-partner-directory.md`.
  */
 export type SocioNetworkResolution =
   | { kind: "advertiser"; draft: PublicPartnerDirectoryRowDraft; organizationContext: PublicPartnerDirectoryRowDraft | null }

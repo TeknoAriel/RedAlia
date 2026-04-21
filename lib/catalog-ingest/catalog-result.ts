@@ -1,3 +1,4 @@
+import type { RedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
@@ -34,6 +35,12 @@ export type CatalogIngestRunMeta = {
   networkOrganizationsAttempted: boolean;
   /** Error interno si el intento de organizaciones falló; `null` si no hubo intento o OK. */
   networkOrganizationsErrorCode: string | null;
+  /** Modo de origen del directorio (`REDALIA_PARTNER_DIRECTORY_SOURCE`). */
+  partnerDirectorySourceMode: RedaliaPartnerDirectorySourceMode;
+  /** Cantidad de borradores `kpnet:*` desde payload de propiedades de red (misma corrida que propiedades de red o overlay). */
+  partnerDirectoryNetworkAdvertiserDraftsCount: number;
+  partnerDirectoryOverlayAttempted: boolean;
+  partnerDirectoryOverlayErrorCode: string | null;
 };
 
 export type CatalogSnapshotSuccess = {
@@ -42,6 +49,11 @@ export type CatalogSnapshotSuccess = {
   source: PropertiesSource;
   usedSampleFallback?: boolean;
   partnerDirectoryExtraDrafts?: PublicPartnerDirectoryRowDraft[];
+  /**
+   * Borradores de socio desde **payload de propiedades de red** (`kpnet:advertiser:*` u org fallback por propiedad).
+   * Vacío / omitido si no hubo corrida de red o no se pudo armar overlay.
+   */
+  partnerDirectoryNetworkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[];
   ingestMeta?: CatalogIngestRunMeta;
 };
 

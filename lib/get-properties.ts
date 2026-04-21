@@ -23,7 +23,7 @@ function catalogRevalidateSeconds(): number {
 }
 
 /** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron (deploys con cambio de shape). */
-const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v1";
+const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v2";
 
 const loadCatalogCached = unstable_cache(
   async () => loadCatalogSnapshotUncached(),
@@ -50,6 +50,23 @@ export function getPartnerDirectoryExtraDrafts(
   result: GetPropertiesResult,
 ): PublicPartnerDirectoryRowDraft[] | undefined {
   return result.ok ? result.partnerDirectoryExtraDrafts : undefined;
+}
+
+export function getPartnerDirectoryNetworkAdvertiserDrafts(
+  result: GetPropertiesResult,
+): PublicPartnerDirectoryRowDraft[] | undefined {
+  return result.ok ? result.partnerDirectoryNetworkAdvertiserDrafts : undefined;
+}
+
+/** Opciones para `buildPublicDirectorySnapshot` / `buildPublicPartnerDirectoryFromFeed` sin acoplar páginas a la forma de `GetPropertiesResult`. */
+export function getPartnerDirectoryBuildOptions(result: GetPropertiesResult): {
+  extraDirectoryDrafts: PublicPartnerDirectoryRowDraft[] | null;
+  networkAdvertiserDrafts: PublicPartnerDirectoryRowDraft[] | null;
+} {
+  return {
+    extraDirectoryDrafts: result.ok ? (result.partnerDirectoryExtraDrafts ?? null) : null,
+    networkAdvertiserDrafts: result.ok ? (result.partnerDirectoryNetworkAdvertiserDrafts ?? null) : null,
+  };
 }
 
 export async function getPropertyById(id: string): Promise<NormalizedProperty | null> {
