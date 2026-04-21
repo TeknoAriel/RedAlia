@@ -1,0 +1,46 @@
+# Encola merge automático cuando el PR lleva la etiqueta `automerge`.
+# GitHub fusiona solo cuando pasen los checks requeridos de la rama (p. ej. CI — listo para merge).
+#
+# Uso habitual:
+#   1. Creá el PR hacia `main`.
+#   2. Agregá la etiqueta `automerge` (una vez; creala en Labels si no existe).
+#   3. No hace falta volver a tocar el PR: al ponerse verde el CI, el merge ocurre solo.
+#
+# Requisitos en GitHub:
+#   - Settings → General → Pull requests → Allow auto-merge
+#   - Reglas de `main` que permitan auto-merge (sin “Require review” bloqueando, o bypass para tu rol)
+#
+# No sustituye a Dependabot auto-merge; conviven los dos flujos.
+
+name: PR auto-merge (label automerge)
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-automerge-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  queue-auto-merge:
+    name: Encolar auto-merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'automerge')
+    steps:
+      - name: gh pr merge --auto (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${{ github.event.pull_request.number }}" --auto --squash \
+            --repo "${{ github.repository }}"
+          echo "::notice::Auto-merge encolado en PR #${{ github.event.pull_request.number }}. Se aplicará al cumplirse los checks requeridos."
