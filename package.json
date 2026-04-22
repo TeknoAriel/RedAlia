@@ -24,7 +24,7 @@
     "sync:auto": "git stash push -u -m sync-auto >/dev/null 2>&1 || true; git fetch origin --prune && git pull --rebase origin main && git push origin main; status=$?; git stash pop >/dev/null 2>&1 || true; exit $status"
   },
   "dependencies": {
-    "next": "16.2.2",
+    "next": "16.2.4",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "server-only": "^0.0.1"
