@@ -5,7 +5,7 @@
 - **Deployments por día (plan Hobby):** según la [documentación oficial de planes](https://vercel.com/docs/plans/hobby), el límite publicado para Hobby es **100 deployments por día** (incluye previews de PRs y producción). Los números pueden cambiar: **siempre verificá** en **Vercel → tu team → Usage / Billing** y el correo que recibas (algunos avisos antiguos o de otros productos hablan de **~25/día** u otra cifra).
 - **Cuota / rate limit agotado:** el build en Vercel puede **no encolarse** o fallar en el panel con mensaje de límite; las peticiones HTTP a previews a veces responden **429**. Eso **no** indica que `next build` o las rutas de la app estén rotas por el último commit.
 - **Smoke `deploy-readiness.mjs`:** si **todas** las rutas devuelven **429**, el script sale con **código 0** y un mensaje explícito `vercel_rate_limit_or_quota` en el resumen JSON (`DEPLOY_READINESS_JSON_SUMMARY=1`), para **no** confundir cuota de plataforma con fallo de CI por aplicación (igual criterio que con **401** por Deployment Protection).
-- **Qué hacer:** esperar reset diario del contador, reducir pushes/PRs que disparen preview, fusionar menos ramas ruidosas, o **subir a Pro** si el equipo necesita más throughput de deploys.
+- **Qué hacer:** esperar reset diario del contador, reducir pushes/PRs que disparen preview, fusionar menos ramas ruidosas, o **subir a Pro** si el equipo necesita más throughput de deploys. Si el equipo **solo quiere builds en `main`**, configurá **Ignored Build Step** (sección [Vercel — solo builds en main](#vercel-solo-builds-en-main-sin-preview-por-rama) más abajo).
 
 ## Por qué “Production” queda atrás de muchos deploys “Preview Ready”
 
@@ -95,11 +95,33 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 - **Build:** `npm run build` · **Install:** `npm ci` (`vercel.json`).
 - Variables típicas: **`KITEPROP_PROPERTIES_URL`** (JSON catálogo), opcional **`KITEPROP_API_SECRET`** (misma secret `kp_…` para pruebas REST y leads si aplica). Detalle: `docs/kiteprop-credentials.md`.
 
+### Vercel: solo builds en `main` (sin Preview por rama)
+
+Si querés que **solo los pushes a `main`** encolen un deploy en Vercel (y **no** haya Preview por cada `feat/*`, `fix/*`, Dependabot, etc.):
+
+1. En el proyecto: **Settings** → **Git** (o **Build & Deployment**) → **Ignored Build Step**.
+2. Comando recomendado (usa el script versionado en el repo):
+
+   ```bash
+   bash scripts/vercel-ignore-non-main.sh
+   ```
+
+   Equivalente en una sola línea:
+
+   ```bash
+   if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then exit 1; else exit 0; fi
+   ```
+
+   - **`exit 1`** → Vercel **sí** construye.
+   - **`exit 0`** → Vercel **omite** el build (no cuenta como deploy útil para cuota de la misma forma que un build completo; el panel puede mostrar el intento como omitido).
+
+**Trade-off:** no vas a tener URL de **Preview** de Vercel en PRs hasta mergear a `main`. Seguí usando ramas y PRs en GitHub; el cambio es solo **política de build** en Vercel. La **Production Branch** del proyecto debe seguir siendo **`main`**.
+
 ## Los cambios no aparecen en la web
 
 1. **¿Están en GitHub?** Si solo editaste en local, Vercel no ve nada hasta **`git push`**. Comprobá en [github.com/TeknoAriel/RedAlia](https://github.com/TeknoAriel/RedAlia) que el último commit sea el tuyo.
 2. **Vercel:** en el dashboard del proyecto, pestaña **Deployments**: debe aparecer un build para ese commit (1–3 minutos).
-3. **Preview de PR:** las URLs `*.vercel.app` de revisión se generan al abrir/actualizar el PR contra `main`, no por commits solo locales.
+3. **Preview de PR:** las URLs `*.vercel.app` de revisión se generan al abrir/actualizar el PR contra `main`, no por commits solo locales. Si activaste **Ignored Build Step** solo para `main`, **no** habrá previews de Vercel en esas ramas.
 
 ## Checklist rápido
 
