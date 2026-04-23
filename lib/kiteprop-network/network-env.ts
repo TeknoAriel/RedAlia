@@ -82,8 +82,10 @@ export function pathEmbedsNetworkToken(path: string, networkToken: string): bool
  * Organizaciones de red — mismo contrato que AINA (`KitePropApi::networkOrganizations`):
  * `GET /api/v1/networks/{networkId}/{networkToken}/organizations` con Bearer = JWT de login.
  *
- * - Custom: `KITEPROP_NETWORK_ORGANIZATIONS_PATH` con `{networkId}` y/o `{networkToken}`.
- * - Default: requiere `KITEPROP_NETWORK_ID` y `KITEPROP_NETWORK_TOKEN`.
+ * - **Origen del path:** solo esta función (y la de propiedades). No hay otro “path oculto”.
+ *   Si `KITEPROP_NETWORK_ORGANIZATIONS_PATH` no está definida o está vacía, se arma con
+ *   `KITEPROP_NETWORK_ID` + `KITEPROP_NETWORK_TOKEN` (token en el segmento de URL).
+ * - Custom opcional: `KITEPROP_NETWORK_ORGANIZATIONS_PATH` con placeholders `{networkId}` y `{networkToken}`.
  */
 export function getKitepropNetworkOrganizationsPathResolved(): string | null {
   const id = getKitepropNetworkIdOrNull();
@@ -100,8 +102,8 @@ export function getKitepropNetworkOrganizationsPathResolved(): string | null {
  * Propiedades de red — mismo contrato que AINA (`KitePropApi::networkProperties`):
  * `GET /api/v1/properties/network/{networkId}/{networkToken}` + query `status=active` (ver getter).
  *
- * - Custom: `KITEPROP_NETWORK_PROPERTIES_PATH` con placeholders.
- * - Default: requiere id y token de red.
+ * - **Origen del path:** solo esta función. Sin `KITEPROP_NETWORK_PROPERTIES_PATH`, se arma con id+token.
+ * - Custom opcional: `KITEPROP_NETWORK_PROPERTIES_PATH` con `{networkId}` y `{networkToken}`.
  */
 export function getKitepropNetworkPropertiesPathResolved(): string | null {
   const id = getKitepropNetworkIdOrNull();

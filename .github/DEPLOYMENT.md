@@ -62,6 +62,18 @@ Diario (~12:30 UTC) + manual: tabla de cuántos commits lleva **`preview`** (o r
 
 En PRs abiertos por **dependabot[bot]** contra `main`, activa **`gh pr merge --auto --merge`** (omite **semver-major**). Requiere en el repo: **Settings → General → Pull Requests → Allow auto-merge**, y que las reglas de `main` permitan merge sin revisión humana en esos PRs (o actor de bypass). Si no se cumple, el paso falla o no hace nada útil: revisá reglas y logs del workflow.
 
+### `pr-automerge-label.yml` — merge sin re-clic manual (PRs humanos)
+
+En cualquier PR a **`main`** que tenga la etiqueta **`automerge`**, el workflow ejecuta **`gh pr merge --auto --squash`**: GitHub **encola** el merge y lo aplica **solo cuando el CI requerido esté verde** (no fusiona código roto por defecto).
+
+1. Creá el PR y agregá la etiqueta **`automerge`** (creala una vez en **Issues → Labels** si no existe).
+2. Activá **Allow auto-merge** en **Settings → General → Pull requests**.
+3. Ajustá **branch protection** de `main` para que el auto-merge sea posible (p. ej. sin “Require approvals” que bloquee, o con bypass para mantenedores).
+
+**Importante:** esto **no** evita el PR ni el CI: solo evita que tengas que volver a entrar a GitHub a pulsar “Merge” cuando ya pasó el verde. Si querés **push directo a `main`**, seguirá bloqueado mientras la rama exija PR.
+
+**Variables de Actions:** si alguna vez definiste `KITEPROP_NETWORK_ORGANIZATIONS_PATH` / `KITEPROP_NETWORK_PROPERTIES_PATH` como **variable del repositorio** (Settings → Secrets and variables → Actions → **Variables**), vaciálas o borralas: pueden inyectar paths incorrectos en el workflow **Verificar ingest API red** aunque en Vercel ya las hayas quitado.
+
 ## Alinear el repo local con `origin/main`
 
 ```bash
