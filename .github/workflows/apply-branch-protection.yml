@@ -21,6 +21,12 @@ concurrency:
   group: apply-branch-protection
   cancel-in-progress: true
 
+# Las acciones checkout/setup-node aún pueden ejecutarse con Node 20 por defecto;
+# GitHub recomienda esta variable hasta que el runner use Node 24 por defecto.
+# Ver: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   apply:
     runs-on: ubuntu-latest
