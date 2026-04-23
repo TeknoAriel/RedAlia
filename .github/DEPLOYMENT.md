@@ -62,6 +62,14 @@ Diario (~12:30 UTC) + manual: tabla de cuántos commits lleva **`preview`** (o r
 
 En PRs abiertos por **dependabot[bot]** contra `main`, activa **`gh pr merge --auto --merge`** (omite **semver-major**). Requiere en el repo: **Settings → General → Pull Requests → Allow auto-merge**, y que las reglas de `main` permitan merge sin revisión humana en esos PRs (o actor de bypass). Si no se cumple, el paso falla o no hace nada útil: revisá reglas y logs del workflow.
 
+### `pr-automerge-label.yml` — PRs con etiqueta `automerge` / `Automerge`
+
+Ejecuta **`gh pr merge --auto --squash`** cuando el PR lleva una etiqueta cuyo nombre (sin importar mayúsculas) es **`automerge`**.
+
+**Primera vez:** GitHub usa el workflow tal como está en **`main`**. El PR que **agrega** este archivo **no** se auto-mergea a sí mismo: **mergealo una vez a mano**. Los PRs siguientes sí pueden usar solo la etiqueta.
+
+Requisitos: **Allow auto-merge** en ajustes del repo y reglas de `main` que no bloqueen el auto-merge (p. ej. sin aprobación obligatoria si no hay revisor).
+
 ## Alinear el repo local con `origin/main`
 
 ```bash
