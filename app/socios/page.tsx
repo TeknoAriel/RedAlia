@@ -7,6 +7,7 @@ import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
 import { getProperties, getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data";
+import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,31 @@ const estandares = [
   },
 ];
 
+function shuffleEntries(entries: PublicPartnerDirectoryEntry[]): PublicPartnerDirectoryEntry[] {
+  const out = [...entries];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = out[i];
+    out[i] = out[j];
+    out[j] = tmp;
+  }
+  return out;
+}
+
+/**
+ * Directorio público `/socios`:
+ * - activos (con publicaciones) primero
+ * - inactivos al final
+ * - orden variable en cada request para evitar sesgo fijo de exposición
+ */
+function orderSociosEntriesForPublicDirectory(
+  entries: PublicPartnerDirectoryEntry[],
+): PublicPartnerDirectoryEntry[] {
+  const active = entries.filter((e) => e.propertyCount > 0);
+  const inactive = entries.filter((e) => e.propertyCount <= 0);
+  return [...shuffleEntries(active), ...shuffleEntries(inactive)];
+}
+
 export default async function SociosPage() {
   const result = await getProperties();
   const snapshot = result.ok
@@ -58,7 +84,7 @@ export default async function SociosPage() {
         ...getPartnerDirectoryBuildOptions(result),
       })
     : null;
-  const entries = snapshot?.entries ?? [];
+  const entries = snapshot?.entries ? orderSociosEntriesForPublicDirectory(snapshot.entries) : [];
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;
   const geoCount = stats?.geographicDistinctCount ?? 0;
@@ -169,7 +195,7 @@ export default async function SociosPage() {
             align="center"
             eyebrow="Directorio"
             title="Socios con presencia en el catálogo"
-            description="Listado derivado de publicaciones activas: orden institucional por actividad, sin duplicar marcas y con la matriz del feed tratada según las reglas acordadas. Los contactos son los publicados en cada ficha —criterio y transparencia frente al mercado."
+            description="Listado derivado de publicaciones activas: en cada recarga la grilla rota para dar visibilidad variable, manteniendo activos primero e inactivos al final, sin duplicar marcas y con la matriz del feed tratada según las reglas acordadas. Los contactos son los publicados en cada ficha —criterio y transparencia frente al mercado."
             titleVariant="display"
           />
 
