@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Vercel → Project → Settings → Git → Ignored Build Step (o Build & Deployment).
+# Referenciado por vercel.json → ignoreCommand (y opcionalmente por el panel Vercel).
 # exit 0 = omitir el deploy; exit 1 = continuar con el build.
 # Solo construye cuando la ref Git es main (producción típica en este repo).
 set -eu

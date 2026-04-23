@@ -50,13 +50,9 @@ Cuando el workflow **CI** termina **en éxito** por **push** a **`main`**, corre
 - Si **`PRODUCTION_URL`** no está definida, el job termina con *notice* (no falla): en ese caso el «ready» lo da solo **`verify-deployment.yml`** si Vercel envía `deployment_status` + URL.
 - Con **Vercel Git + `PRODUCTION_URL` definida**, tenés **dos señales** de readiness (deploy event + post-CI); podés quedarte con una sola desactivando la variable o el workflow si preferís menos ruido.
 
-### `repo-branch-alignment.yml` — ramas remotas vs `main` (sin tocar Git)
+### Builds solo en `main` (Vercel)
 
-Semanal (martes) o **Run workflow**: genera una tabla en el **Summary** del run con, por cada rama remota, cuántos commits va **atrás** de `origin/main` y cuántos **adelante**. Sirve para ver PRs desactualizados. Local: `git fetch origin && npm run repo:branch-alignment`.
-
-### `branch-drift-daily.yml` — drift `preview` (u otras) vs `main`
-
-Diario (~12:30 UTC) + manual: tabla de cuántos commits lleva **`preview`** (o ramas en variable `REPO_DRIFT_BRANCHES`, coma-separadas) **atrás** de `main`. No modifica Git; solo avisa en el Summary si hay desalineación. Incluye el mismo informe amplio que `repo-branch-alignment`.
+El repo define **`ignoreCommand`** en **`vercel.json`** (`bash scripts/vercel-ignore-non-main.sh`): ramas distintas de **`main`** no encolan build en Vercel (menos previews y menos confusión con producción). Si además configuraste el mismo comando en el panel de Vercel, dejá uno solo para no duplicar lógica.
 
 ### `dependabot-auto-merge.yml` — menos cola de PRs de deps
 
@@ -97,25 +93,12 @@ npm run sync        # sync:pull + push (solo si tenés permiso y querés subir)
 
 ### Vercel: solo builds en `main` (sin Preview por rama)
 
-Si querés que **solo los pushes a `main`** encolen un deploy en Vercel (y **no** haya Preview por cada `feat/*`, `fix/*`, Dependabot, etc.):
+Por defecto el repo ya declara esto en **`vercel.json`** → **`ignoreCommand`** apuntando a **`scripts/vercel-ignore-non-main.sh`**. Opcional: podés replicar el mismo comando en **Settings → Git → Ignored Build Step** del proyecto (no hace falta si `vercel.json` alcanza en tu cuenta/plan).
 
-1. En el proyecto: **Settings** → **Git** (o **Build & Deployment**) → **Ignored Build Step**.
-2. Comando recomendado (usa el script versionado en el repo):
+- **`exit 1`** en el script → Vercel **sí** construye (`main`).
+- **`exit 0`** → Vercel **omite** el build en otras ramas.
 
-   ```bash
-   bash scripts/vercel-ignore-non-main.sh
-   ```
-
-   Equivalente en una sola línea:
-
-   ```bash
-   if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then exit 1; else exit 0; fi
-   ```
-
-   - **`exit 1`** → Vercel **sí** construye.
-   - **`exit 0`** → Vercel **omite** el build (no cuenta como deploy útil para cuota de la misma forma que un build completo; el panel puede mostrar el intento como omitido).
-
-**Trade-off:** no vas a tener URL de **Preview** de Vercel en PRs hasta mergear a `main`. Seguí usando ramas y PRs en GitHub; el cambio es solo **política de build** en Vercel. La **Production Branch** del proyecto debe seguir siendo **`main`**.
+**Trade-off:** no hay URL de **Preview** de Vercel en PRs hasta mergear a `main`. La **Production Branch** del proyecto debe seguir siendo **`main`**.
 
 ## Los cambios no aparecen en la web
 
@@ -129,6 +112,5 @@ Si querés que **solo los pushes a `main`** encolen un deploy en Vercel (y **no*
 - [ ] Sin secretos `VERCEL_*` si ya desplegás con Git en Vercel (o al revés, desactivá el auto-deploy duplicado en Vercel).
 - [ ] `PRODUCTION_URL` (variable del repo) para **Deploy ready (post-CI main)** y/o readiness tras CLI.
 - [ ] Tras un deploy importante: **`Verificar deploy`** (evento Vercel) y/o **`Deploy ready (post-CI main)`** en verde.
-- [ ] Opcional: **Informe alineación ramas** (Actions) para ver ramas atrasadas respecto de `main`.
 - [ ] Local: `DEPLOY_READINESS_URL=https://tu-preview.vercel.app npm run verify:deploy`
 - [ ] `npm run sync:pull` antes de trabajar para alinear con `main`.

@@ -5,6 +5,7 @@ export const ADVERTISER_OBJECT_KEYS = [
   "advertiser",
   "announcer",
   "publisher",
+  "user",
   "posted_by",
   "postedBy",
   "listing_advertiser",
@@ -21,6 +22,12 @@ export function extractAdvertiserObject(raw: unknown): unknown | null {
   const o = raw as Record<string, unknown>;
   for (const k of ADVERTISER_OBJECT_KEYS) {
     const v = o[k];
+    if (v && typeof v === "object" && !Array.isArray(v)) return v;
+  }
+  const nestedListing = o.listing;
+  if (nestedListing && typeof nestedListing === "object" && !Array.isArray(nestedListing)) {
+    const listing = nestedListing as Record<string, unknown>;
+    const v = listing.user;
     if (v && typeof v === "object" && !Array.isArray(v)) return v;
   }
   return null;

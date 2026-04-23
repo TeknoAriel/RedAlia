@@ -18,7 +18,7 @@ const scopeOrder: Record<PublicPartnerScope, number> = {
 export function sortPublicDirectoryEntries(
   entries: PublicPartnerDirectoryRowDraft[],
 ): PublicPartnerDirectoryRowDraft[] {
-  return [...entries].sort((a, b) => {
+  const sorted = [...entries].sort((a, b) => {
     if (b.propertyCount !== a.propertyCount) {
       return b.propertyCount - a.propertyCount;
     }
@@ -26,6 +26,16 @@ export function sortPublicDirectoryEntries(
     if (so !== 0) return so;
     return a.displayName.localeCompare(b.displayName, "es", { sensitivity: "base" });
   });
+
+  const active = sorted.filter((e) => e.propertyCount > 0);
+  const inactive = sorted.filter((e) => e.propertyCount <= 0);
+  if (active.length <= 1) return [...active, ...inactive];
+
+  // Rotación diaria estable: todos los socios activos pasan por primeros lugares.
+  const dayIndex = Math.floor(Date.now() / 86_400_000);
+  const offset = dayIndex % active.length;
+  const rotatedActive = [...active.slice(offset), ...active.slice(0, offset)];
+  return [...rotatedActive, ...inactive];
 }
 
 /** Descarta filas sin nombre usable (no debería ocurrir si el feed es consistente). */
