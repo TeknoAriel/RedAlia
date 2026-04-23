@@ -1,0 +1,53 @@
+# Encola merge automático en PRs hacia `main` que vengan del mismo repo y de ramas de trabajo
+# habituales (feat/fix/chore/docs/hotfix/refactor). No requiere etiqueta `automerge`.
+#
+# Seguridad básica:
+# - No corre en PRs desde forks (`head.repo` debe ser este repo).
+# - Si el PR tiene la etiqueta `no-automerge`, se omite (escape manual).
+#
+# Requisitos (igual que el workflow por etiqueta):
+# - Settings → General → Pull requests → Allow auto-merge
+# - Reglas de `main` que permitan auto-merge cuando el CI requerido pasa (sin revisión bloqueante).
+#
+# Deploy: con integración Git de Vercel, cada merge a `main` dispara Production solo; no dupliques
+# deploy por CLI en Actions salvo que lo quieras explícitamente (ver DEPLOYMENT.md).
+
+name: PR auto-merge (ramas de equipo)
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-trusted-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  queue-auto-merge:
+    name: Encolar auto-merge (rama de equipo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !contains(format('|{0}|', toLower(join(github.event.pull_request.labels.*.name, '|'))), '|no-automerge|') &&
+      (startsWith(github.head_ref, 'feat/') ||
+       startsWith(github.head_ref, 'fix/') ||
+       startsWith(github.head_ref, 'chore/') ||
+       startsWith(github.head_ref, 'docs/') ||
+       startsWith(github.head_ref, 'hotfix/') ||
+       startsWith(github.head_ref, 'refactor/'))
+    steps:
+      - name: gh pr merge --auto (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${{ github.event.pull_request.number }}" --auto --squash \
+            --repo "${{ github.repository }}"
+          echo "::notice::Auto-merge encolado (rama de equipo) en PR #${{ github.event.pull_request.number }}."

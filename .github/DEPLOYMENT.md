@@ -62,6 +62,21 @@ Diario (~12:30 UTC) + manual: tabla de cuántos commits lleva **`preview`** (o r
 
 En PRs abiertos por **dependabot[bot]** contra `main`, activa **`gh pr merge --auto --merge`** (omite **semver-major**). Requiere en el repo: **Settings → General → Pull Requests → Allow auto-merge**, y que las reglas de `main` permitan merge sin revisión humana en esos PRs (o actor de bypass). Si no se cumple, el paso falla o no hace nada útil: revisá reglas y logs del workflow.
 
+### `pr-automerge-trusted-branches.yml` — merge sin etiqueta (ramas `feat/*`, `fix/*`, …)
+
+En PRs **del mismo repo** (no forks) hacia `main`, si la rama de origen empieza por **`feat/`**, **`fix/`**, **`chore/`**, **`docs/`**, **`hotfix/`** o **`refactor/`**, encola **`gh pr merge --auto --squash`** al abrir o actualizar el PR. **No hace falta** poner la etiqueta `automerge`.
+
+- **Bloqueo manual:** agregá la etiqueta **`no-automerge`** al PR para que este workflow no haga nada (útil para cambios sensibles).
+- **Ramas fuera de la lista** (ej. `preview/…`, `ci/…`): seguí usando la etiqueta **`automerge`** con `pr-automerge-label.yml`, o renombrá la rama al prefijo admitido.
+
+### Cadena “cero clics” recomendada (merge + deploy)
+
+1. **Push** a una rama `feat/…` / `fix/…` y abrí PR a `main` (o dejá que la herramienta lo abra).
+2. **CI** (`CI — listo para merge`) debe ser check requerido en `main`.
+3. Con **Allow auto-merge** activo, **`pr-automerge-trusted-branches`** (y/o etiqueta `automerge`) encolan el merge al pasar el CI.
+4. **Vercel** (integración Git): al mergearse a `main`, se construye y publica **Production** solo. No hace falta tocar Vercel a mano salvo cuota o errores de build.
+5. **Variables de entorno** siguen viviendo en el panel de Vercel; no hay forma segura de “inyectarlas” desde Git sin un secreto de deploy (CLI/Terraform). Si querés automatizar env, usá **Vercel CLI** o API en un workflow con secretos de organización.
+
 ## Alinear el repo local con `origin/main`
 
 ```bash
