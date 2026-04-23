@@ -1,0 +1,18 @@
+---
+description: Límite de crons Vercel en plan Hobby (máximo una ejecución al día por cron)
+globs: vercel.json
+alwaysApply: true
+---
+
+# Crons Vercel (plan Hobby hasta nuevo aviso)
+
+## Regla de producto / deploy
+
+- El proyecto está (o puede estar) en **plan Vercel Hobby**. En Hobby, **cada cron definido en `vercel.json` solo puede ejecutarse como máximo una vez por día**; expresiones que correrían más de una vez al día **hacen fallar el deployment** (error de tipo “limited to daily cron jobs”).
+- **No agregar** segundos crons con periodicidad intradiaria ni cambiar un `schedule` existente a algo que dispare más de una vez por día (por ejemplo `0 */2 * * *`, `*/30 * * * *`, cada hora, etc.).
+- **Hasta que el plan de Vercel no se actualice** (documentarlo en el PR o en notas de release cuando ocurra), cualquier ajuste de ingesta más frecuente debe hacerse **fuera de `vercel.json`**: ping externo, GitHub Actions `schedule`, u otro scheduler, **no** crons Vercel intradiarios.
+
+## Al tocar `vercel.json`
+
+- Validar que cada entrada bajo `crons` use una expresión **como mucho diaria** (p. ej. `0 6 * * *` una vez al día UTC).
+- Si hace falta más frecuencia, **no** expandir crons en Vercel; coordinar alternativa y dejar comentario en código o doc de operaciones enlazada.
