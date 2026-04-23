@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 12
     if: github.event.deployment_status.state == 'success'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:
