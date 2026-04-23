@@ -1,0 +1,35 @@
+# Activa el merge automático de GitHub cuando el PR a main lleva la etiqueta `automerge`.
+# Tras CI verde (`CI — listo para merge`), GitHub fusiona solo (sin clic en “Merge”).
+#
+# Uso: en el PR → Labels → `automerge` (creala una vez en el repo si no existe).
+# Requisitos: Settings → General → Pull Requests → Allow auto-merge.
+# Si main exige aprobación humana, el auto-merge queda en cola hasta cumplirla.
+
+name: PR label auto-merge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event.pull_request.draft == false
+      && contains(github.event.pull_request.labels.*.name, 'automerge')
+      && github.actor != 'dependabot[bot]'
+    steps:
+      - name: Activar auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${{ github.event.pull_request.number }}" --auto --merge \
+            --repo "${{ github.repository }}"
+          echo "::notice::Auto-merge activado en PR #${{ github.event.pull_request.number }}."
