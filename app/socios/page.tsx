@@ -191,7 +191,7 @@ export default async function SociosPage() {
                 href="/contacto"
                 className="mt-6 inline-flex rounded-full bg-brand-navy px-8 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-navy-mid"
               >
-                Coordinar conversación comercial
+                Escribir a Redalia
               </Link>
             </div>
           )}
@@ -209,8 +209,8 @@ export default async function SociosPage() {
                   acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Link href="/contacto" className="btn-redalia-gold-solid min-w-[200px]">
-                    Coordinar conversación comercial
+                  <Link href="/unete" className="btn-redalia-gold-solid min-w-[200px]">
+                    Postular como socio
                   </Link>
                   <Link
                     href="/propiedades"
@@ -240,8 +240,8 @@ export default async function SociosPage() {
         <CTASection
           title="¿Querés sumar tu corredora al directorio y a la comunidad?"
           description="Coordinamos una reunión para revisar admisión, visibilidad y plan de membresía —sin compromiso y con el mismo tono profesional que en el resto de la red."
-          primaryHref="/contacto"
-          primaryLabel="Coordinar conversación comercial"
+          primaryHref="/planes"
+          primaryLabel="Ver membresía"
           secondaryHref="/unete"
           secondaryLabel="Postular como socio"
           footnote="Si ya operás con la comunidad, el equipo te indicará los pasos para visibilidad pública cuando corresponda."

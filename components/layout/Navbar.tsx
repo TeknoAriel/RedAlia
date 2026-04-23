@@ -20,27 +20,19 @@ const navTextLinks = [
   { href: "/contacto", label: "Contacto" },
 ];
 
-const uneteSubtleClass = (active: boolean) =>
-  `rounded-lg px-2.5 py-2 text-sm font-semibold transition-colors ${
-    active
-      ? "bg-brand-gold/20 text-brand-navy ring-1 ring-brand-gold/50"
-      : "text-brand-navy/85 ring-1 ring-brand-gold/25 ring-offset-0 hover:bg-brand-gold/12 hover:ring-brand-gold/40"
-  }`;
-
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const propiedadesActive =
     pathname === "/propiedades" || pathname.startsWith("/propiedades/");
-  const uneteActive = pathname === "/unete" || pathname.startsWith("/unete/");
 
   const linkActive = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:gap-4 lg:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:gap-4 lg:px-8">
         <Link
           href="/"
           className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5"
@@ -49,12 +41,12 @@ export function Navbar() {
           <Image
             src="/logo-redalia.png"
             alt={siteConfig.name}
-            width={220}
-            height={66}
-            className="h-6 w-auto shrink-0 sm:h-7"
+            width={360}
+            height={108}
+            className="h-10 w-auto shrink-0 sm:h-12"
             priority
           />
-          <span className="hidden max-w-[13rem] sm:block lg:max-w-[16rem]">
+          <span className="hidden max-w-[13rem] lg:block lg:max-w-[16rem]">
             <span className="redalia-nav-lockup block">{siteConfig.brandLockup}</span>
           </span>
         </Link>
@@ -77,9 +69,6 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <Link href="/unete" className={uneteSubtleClass(uneteActive)}>
-              Únete
-            </Link>
           </div>
 
           <div className="flex shrink-0 items-center gap-3" aria-label="Accesos destacados">
@@ -157,13 +146,6 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              <Link
-                href="/unete"
-                className={`${uneteSubtleClass(uneteActive)} px-3 py-3 text-base`}
-                onClick={() => setOpen(false)}
-              >
-                Únete
-              </Link>
             </div>
 
             <div className="space-y-2 pt-3">

@@ -54,8 +54,8 @@ export default function ColaboracionPage() {
         lead="El corazón de la comunidad es que corredoras y agentes se respalden para cerrar más y mejor: circulación de oportunidades, cooperación en visitas y un marco profesional que reemplaza la informalidad dispersa."
       >
         <div className="flex flex-wrap gap-3">
-          <Link href="/contacto" className="btn-redalia-gold-solid">
-            Coordinar conversación comercial
+          <Link href="/propiedades" className="btn-redalia-gold-solid">
+            Ver catálogo
           </Link>
           <Link href="/planes" className="btn-redalia-outline-on-navy">
             Ver membresía
@@ -148,12 +148,10 @@ export default function ColaboracionPage() {
         <CTASection
           title="¿Querés ordenar el canje de tu equipo con la comunidad?"
           description="Coordinamos una reunión para mapear oportunidades, transparencia en la colaboración y el nivel de membresía que mejor calce."
-          primaryHref="/contacto"
-          primaryLabel="Coordinar conversación comercial"
-          secondaryHref="/propiedades"
-          secondaryLabel="Ver catálogo"
-          tertiaryHref="/unete"
-          tertiaryLabel="Postular como socio"
+          primaryHref="/propiedades"
+          primaryLabel="Ver catálogo"
+          secondaryHref="/unete"
+          secondaryLabel="Postular como socio"
         />
       </section>
     </div>

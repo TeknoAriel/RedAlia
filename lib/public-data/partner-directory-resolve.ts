@@ -44,6 +44,10 @@ function appendExtrasDeduped(
   const keys = new Set(base.map((r) => r.partnerKey));
   const out = [...base];
   for (const d of extras) {
+    // Evita inflar el directorio con organizaciones de red no vinculadas al catálogo activo.
+    // Solo agrega extras que traigan señal de vínculo con publicaciones activas.
+    const hasCatalogSignal = (d.propertyCount ?? 0) > 0 || (d.coverageLabels?.length ?? 0) > 0;
+    if (!hasCatalogSignal) continue;
     if (keys.has(d.partnerKey)) continue;
     keys.add(d.partnerKey);
     out.push(d);

@@ -74,10 +74,10 @@ export default function ServiciosPage() {
         <CTASection
           title="¿Necesitás una propuesta a medida?"
           description="Evaluamos tu operación y te entregamos el alcance comercial claro, sin cifras genéricas."
-          primaryHref="/contacto"
-          primaryLabel="Coordinar conversación comercial"
-          secondaryHref="/que-es"
-          secondaryLabel="Qué es Redalia"
+          primaryHref="/planes"
+          primaryLabel="Ver membresía"
+          secondaryHref="/propiedades"
+          secondaryLabel="Ver catálogo"
         />
       </section>
     </div>

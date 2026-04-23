@@ -31,6 +31,8 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
   const id = pickNumberishId(o, ["id", "advertiser_id", "advertiserId", "user_id", "userId", "uuid", "slug"]);
   const name = pickString(o, [
     "name",
+    "full_name",
+    "fullName",
     "legal_name",
     "legalName",
     "display_name",

@@ -21,7 +21,7 @@ const plans = [
       "Visibilidad acorde al nivel entre socios de la red",
       "Acompañamiento en la incorporación y alineación de expectativas",
     ],
-    cta: "Coordinar conversación comercial",
+    cta: "Solicitar propuesta",
     profile: "Equipos en crecimiento o que recién estructuran canje con terceros.",
   },
   {
@@ -46,7 +46,7 @@ const plans = [
       "Coordinación con responsables por zona o unidad de negocio",
       "Contrato y plan comercial acotados a tu realidad",
     ],
-    cta: "Coordinar conversación comercial",
+    cta: "Solicitar propuesta",
     profile: "Organizaciones multi-sede o con cobertura nacional segmentada.",
   },
 ];
@@ -223,12 +223,10 @@ export default function PlanesPage() {
         <CTASection
           title="¿Querés la propuesta escrita para tu corredora?"
           description="En una reunión breve dejamos fijo alcance, nivel sugerido y próximos pasos —con transparencia comercial y el mismo tono institucional que en el resto de la red."
-          primaryHref="/contacto"
-          primaryLabel="Coordinar conversación comercial"
-          secondaryHref="/unete"
-          secondaryLabel="Postular como socio"
-          tertiaryHref="/colaboracion"
-          tertiaryLabel="Canje y colaboración"
+          primaryHref="/unete"
+          primaryLabel="Postular como socio"
+          secondaryHref="/colaboracion"
+          secondaryLabel="Canje y colaboración"
           footnote="Si ya tenés claro el nivel, igual conviene una conversación para validar encaje territorial y de operación."
         />
       </section>

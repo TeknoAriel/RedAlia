@@ -79,8 +79,6 @@ export default function CapacitacionPage() {
           primaryLabel="Postular como socio"
           secondaryHref="/planes"
           secondaryLabel="Ver membresía"
-          tertiaryHref="/contacto"
-          tertiaryLabel="Coordinar conversación comercial"
         />
       </section>
     </div>

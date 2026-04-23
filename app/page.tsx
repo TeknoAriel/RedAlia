@@ -66,14 +66,11 @@ export default async function HomePage() {
         contentClassName="py-20 sm:py-24 lg:py-28"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
-          <Link href="/contacto" className="btn-redalia-gold-solid px-8 py-3.5">
-            Coordinar conversación comercial
+          <Link href="/propiedades" className="btn-redalia-gold-solid px-8 py-3.5">
+            Ver catálogo
           </Link>
           <Link href="/unete" className="btn-redalia-outline-on-navy px-8 py-3.5">
             Postular como socio
-          </Link>
-          <Link href="/propiedades" className="btn-redalia-ghost-on-navy px-8 py-3.5">
-            Ver catálogo
           </Link>
         </div>
       </PageHero>
@@ -169,12 +166,10 @@ export default async function HomePage() {
         <CTASection
           title="¿Tu corredora quiere sumarse a Redalia?"
           description="Coordinamos una conversación sin compromiso: criterios de colaboración, membresía con acompañamiento y claridad sobre honorarios y relación con el cliente."
-          primaryHref="/contacto"
-          primaryLabel="Coordinar conversación comercial"
+          primaryHref="/propiedades"
+          primaryLabel="Ver catálogo"
           secondaryHref="/unete"
           secondaryLabel="Postular como socio"
-          tertiaryHref="/propiedades"
-          tertiaryLabel="Ver catálogo"
           footnote="Respuesta en días hábiles, con tono profesional y sin presión indebida."
         />
       </section>
