@@ -6,6 +6,7 @@ import {
   getKitepropNetworkPropertiesPathResolved,
   getNetworkPropertiesMaxPages,
   getNetworkPropertiesPageLimit,
+  getNetworkPropertiesStatusFilter,
   isNetworkPropertiesPagedFetchEnabled,
 } from "@/lib/kiteprop-network/network-env";
 import { extractNetworkPaginationHint } from "@/lib/kiteprop-network/network-response-pagination";
@@ -46,7 +47,10 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
   }
 
   if (!isNetworkPropertiesPagedFetchEnabled()) {
-    const res = await fetchNetworkPropertiesPage(path, ctx.bearer, ctx.extraHeaders, { status: "active" });
+    const statusFilter = getNetworkPropertiesStatusFilter();
+    const res = await fetchNetworkPropertiesPage(path, ctx.bearer, ctx.extraHeaders, {
+      status: statusFilter ?? undefined,
+    });
     if (!res.ok) {
       return { ok: false, error: res.error, status: res.status };
     }
@@ -55,6 +59,7 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
   }
 
   const pageLimit = getNetworkPropertiesPageLimit();
+  const statusFilter = getNetworkPropertiesStatusFilter();
   const maxPages = getNetworkPropertiesMaxPages();
   const merged: unknown[] = [];
   const seen = new Set<string>();
@@ -63,7 +68,7 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
   for (let page = 1; page <= maxPages; page += 1) {
     const offset = String((page - 1) * pageLimit);
     const res = await fetchNetworkPropertiesPage(path, ctx.bearer, ctx.extraHeaders, {
-      status: "active",
+      status: statusFilter ?? undefined,
       page: String(page),
       limit: String(pageLimit),
       per_page: String(pageLimit),

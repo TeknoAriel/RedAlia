@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPartnerDirectoryBuildOptions, getProperties } from "@/lib/get-properties";
 import { extractAdvertiserIdHints, extractAdvertiserObject } from "@/lib/kiteprop-network/extract-advertiser";
 import { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
 import { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
@@ -9,6 +10,7 @@ import { resolveNetworkRequestContext } from "@/lib/kiteprop-network/network-req
 import { extractOrganizationLinkHints } from "@/lib/kiteprop-network/property-org-link-hint";
 import { resolveSocioFromNetworkProperty } from "@/lib/kiteprop-network/redalia-socio-network-model";
 import { summarizeChildObjectsKeys, summarizeObjectKeys } from "@/lib/kiteprop-network/shape-audit";
+import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 
 export const runtime = "nodejs";
 
@@ -37,6 +39,7 @@ export async function GET() {
     : { ok: false as const, error: authProbe.error };
 
   const [orgs, props] = await Promise.all([getNetworkOrganizations(), getNetworkProperties()]);
+  const catalog = await getProperties();
 
   const firstOrg = orgs.ok && orgs.items[0] ? orgs.items[0] : null;
   const firstProp = props.ok && props.items[0] ? props.items[0] : null;
@@ -140,11 +143,39 @@ export async function GET() {
       }
     : { ok: false as const, error: props.error, status: props.status };
 
+  const directorySnapshot = catalog.ok
+    ? buildPublicDirectorySnapshot(catalog.properties, {
+        featuredMax: 8,
+        ...getPartnerDirectoryBuildOptions(catalog),
+      })
+    : null;
+
+  const catalogStats = catalog.ok
+    ? {
+        ok: true as const,
+        source: catalog.source,
+        totalProperties: catalog.properties.length,
+        imageCoverage: {
+          withImage: catalog.properties.filter((p) => (p.images?.length ?? 0) > 0).length,
+          withoutImage: catalog.properties.filter((p) => (p.images?.length ?? 0) === 0).length,
+        },
+        directory: directorySnapshot
+          ? {
+              totalEntries: directorySnapshot.entries.length,
+              featuredEntries: directorySnapshot.featured.length,
+              withLogo: directorySnapshot.entries.filter((d) => Boolean(d.logoUrl)).length,
+              withoutLogo: directorySnapshot.entries.filter((d) => !d.logoUrl).length,
+            }
+          : null,
+      }
+    : { ok: false as const };
+
   return NextResponse.json({
     ok: orgs.ok && props.ok,
     auth: authSummary,
     organizations: orgMapStats,
     properties: propStats,
+    catalog: catalogStats,
     socioModelNote:
       "Resolución canónica Socio Redalia (red): priorizar anunciante → kpnet:advertiser:{id}; organización como contexto o fallback kpnet:org:{id}. Ver lib/kiteprop-network/redalia-socio-network-model.ts y docs/kiteprop-network-aina.md § relación.",
     note:

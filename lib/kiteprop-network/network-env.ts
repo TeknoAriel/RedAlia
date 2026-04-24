@@ -183,6 +183,19 @@ export function getNetworkPropertiesMaxPages(): number {
   return Math.min(NETWORK_PROPERTIES_MAX_PAGES_CEILING, Math.max(1, Math.floor(n)));
 }
 
+/**
+ * Filtro de estado para GET propiedades de red.
+ * - `active` (u otro valor): agrega query `status=<valor>`.
+ * - vacío/no definido: no envía query de estado.
+ */
+export function getNetworkPropertiesStatusFilter(): string | null {
+  const raw = trim("KITEPROP_NETWORK_PROPERTIES_STATUS");
+  if (!raw) return null;
+  const v = raw.toLowerCase();
+  if (v === "all" || v === "*" || v === "none" || v === "null") return null;
+  return raw;
+}
+
 export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
   const raw = trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH");
   if (!raw) return true;
