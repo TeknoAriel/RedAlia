@@ -155,8 +155,11 @@ const NETWORK_PAGE_LIMITS = new Set([15, 30, 50]);
  */
 const NETWORK_PROPERTIES_MAX_PAGES_CEILING = 1000;
 
-/** Default si no está `KITEPROP_NETWORK_PROPERTIES_MAX_PAGES` (150×50 = 7500 ítems). */
-const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 150;
+/**
+ * Default si no está `KITEPROP_NETWORK_PROPERTIES_MAX_PAGES`
+ * (220×15 = 3300, coherente con límite 15 de página frecuente y objetivo >3000).
+ */
+const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 220;
 
 /**
  * Si es `1`, se piden varias páginas con `page`/`limit` (misma convención que `GET /properties` en
@@ -207,9 +210,17 @@ export function getNetworkOrganizationsPageLimit(): number {
   return NETWORK_PAGE_LIMITS.has(n) ? n : 15;
 }
 
+const NETWORK_ORGANIZATIONS_MAX_PAGES_DEFAULT = 32;
+
+/**
+ * Sube el default: 20×15 = 300; con 32×15 = 480 alcanzamos >300 orgs reales.
+ */
 export function getNetworkOrganizationsMaxPages(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES") || "20", 10);
-  if (!Number.isFinite(n)) return 20;
+  const n = parseInt(
+    trim("KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES") || String(NETWORK_ORGANIZATIONS_MAX_PAGES_DEFAULT),
+    10,
+  );
+  if (!Number.isFinite(n)) return NETWORK_ORGANIZATIONS_MAX_PAGES_DEFAULT;
   return Math.min(200, Math.max(1, Math.floor(n)));
 }
 

@@ -10,7 +10,7 @@ import {
   getNetworkRequestRetryAttempts,
   isNetworkOrganizationsPagedFetchEnabled,
 } from "@/lib/kiteprop-network/network-env";
-import { extractNetworkPaginationHint } from "@/lib/kiteprop-network/network-response-pagination";
+import { firstBatchSizeOrKeep, shouldStopNetworkPagination } from "@/lib/kiteprop-network/network-paged-fetch-helpers";
 import { stableIdFromNetworkOrganizationRaw } from "@/lib/kiteprop-network/network-item-stable-id";
 import { resolveNetworkRequestContext } from "@/lib/kiteprop-network/network-request-context";
 
@@ -55,6 +55,8 @@ async function fetchNetworkOrganizationsPage(
   return { ok: false, error: "HTTP_ERROR", status: null };
 }
 
+const PAGE_FAILURE_OUTER_RETRIES = 3;
+
 export async function getNetworkOrganizations(): Promise<NetworkOrganizationsResult> {
   const path = getKitepropNetworkOrganizationsPathResolved();
   if (!path) {
@@ -81,15 +83,23 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
   const merged: unknown[] = [];
   const seen = new Set<string>();
   let lastOkStatus = 200;
+  let firstNonEmptyBatchSize: number | null = null;
 
   for (let page = 1; page <= maxPages; page += 1) {
     const offset = String((page - 1) * pageLimit);
-    const res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, {
+    const q = {
       page: String(page),
       limit: String(pageLimit),
       per_page: String(pageLimit),
       offset,
-    });
+    } as const;
+    let res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, q);
+    if (!res.ok && page > 1) {
+      for (let outer = 0; outer < PAGE_FAILURE_OUTER_RETRIES && !res.ok; outer += 1) {
+        await sleep(2000 * (outer + 1));
+        res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, q);
+      }
+    }
     if (!res.ok) {
       if (page === 1) {
         return { ok: false, error: res.error, status: res.status };
@@ -99,7 +109,7 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
     lastOkStatus = res.status;
 
     const pageItems = extractOrganizationArrayFromNetworkResponse(res.data);
-    const hint = extractNetworkPaginationHint(res.data);
+    firstNonEmptyBatchSize = firstBatchSizeOrKeep(pageItems.length, firstNonEmptyBatchSize);
 
     let newlyAdded = 0;
     for (const raw of pageItems) {
@@ -112,18 +122,13 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
       newlyAdded += 1;
     }
 
-    if (pageItems.length === 0) {
-      break;
-    }
-
-    if (hint?.lastPage != null && hint.currentPage >= hint.lastPage) {
-      break;
-    }
-
-    const hintedPerPage = hint?.perPage ?? null;
-    const shortPageAgainstHint =
-      hintedPerPage !== null && hintedPerPage > 0 && pageItems.length < hintedPerPage;
-    if (shortPageAgainstHint) {
+    if (
+      shouldStopNetworkPagination({
+        pageIndex1Based: page,
+        pageItemsLength: pageItems.length,
+        firstNonEmptyBatchSize,
+      })
+    ) {
       break;
     }
 
