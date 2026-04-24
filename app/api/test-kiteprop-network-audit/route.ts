@@ -155,6 +155,7 @@ export async function GET() {
         ok: true as const,
         source: catalog.source,
         totalProperties: catalog.properties.length,
+        ingestMeta: catalog.ingestMeta ?? null,
         imageCoverage: {
           withImage: catalog.properties.filter((p) => (p.images?.length ?? 0) > 0).length,
           withoutImage: catalog.properties.filter((p) => (p.images?.length ?? 0) === 0).length,
