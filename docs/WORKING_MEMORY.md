@@ -84,6 +84,7 @@ Indicar con precisión:
 ### UI explícitamente congelada en esta fase
 
 - Home, header, Navbar, carruseles, footer, buscador, copy, navegación: **no tocar** hasta cierre de datos (salvo bug de datos que dependa de un asset compartido, documentado).
+- **Excepción de operación (build):** `export const dynamic = "force-dynamic"` en `app/page.tsx` para evitar que el SSG de `/` ejecute toda la ingesta en build y falle el deploy por timeout (~60s). **No cambia copy ni componentes;** solo el modo de render.
 
 ### Invariante Premier
 
