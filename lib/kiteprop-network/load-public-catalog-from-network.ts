@@ -6,6 +6,7 @@ import { coerceNetworkPropertyRecord } from "@/lib/kiteprop-network/coerce-netwo
 import { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
 import { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
 import { mapUnknownNetworkOrganizationToPublicDraft } from "@/lib/kiteprop-network/map-network-org-to-public-draft";
+import { getNetworkRequestDelayMs } from "@/lib/kiteprop-network/network-env";
 import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
@@ -27,13 +28,21 @@ export type LoadPublicCatalogFromNetworkResult =
 export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogFromNetworkResult> {
   const directoryMode = getRedaliaPartnerDirectorySourceMode();
   const includeOrganizations = directoryMode !== "feed";
-  const [propsRes, orgsRes] = await Promise.all([
-    getNetworkProperties(),
-    includeOrganizations ? getNetworkOrganizations() : Promise.resolve({ ok: true as const, status: 200, items: [] }),
-  ]);
-
+  /** Secuencial: dos corridas paginadas en paralelo saturaban upstream y devolvían HTTP_ERROR intermitente. */
+  const propsRes = await getNetworkProperties();
   if (!propsRes.ok) {
     return { ok: false, error: propsRes.error };
+  }
+
+  let orgsRes: Awaited<ReturnType<typeof getNetworkOrganizations>> | { ok: true; status: number; items: [] } = {
+    ok: true,
+    status: 200,
+    items: [],
+  };
+  if (includeOrganizations) {
+    const ms = getNetworkRequestDelayMs();
+    if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+    orgsRes = await getNetworkOrganizations();
   }
 
   const pairs: { raw: unknown; norm: NormalizedProperty }[] = [];
