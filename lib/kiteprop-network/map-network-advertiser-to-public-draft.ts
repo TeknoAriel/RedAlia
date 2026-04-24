@@ -1,5 +1,6 @@
 import "server-only";
 
+import { absolutizeKitepropMediaUrl } from "@/lib/kiteprop-media-url";
 import { canonicalNetworkAdvertiserPartnerKey } from "@/lib/kiteprop-network/socio-canonical-keys";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
@@ -46,7 +47,33 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
   if (!id || !name) return null;
 
   const scope: PublicPartnerScope = "advertiser";
-  const logoUrl = pickString(o, ["logo_url", "logoUrl", "logo", "image_url", "imageUrl", "avatar", "avatar_url"]);
+  const logoKeys = [
+    "logo_url",
+    "logoUrl",
+    "logo",
+    "image_url",
+    "imageUrl",
+    "avatar",
+    "avatar_url",
+    "profile_photo_url",
+    "profilePhotoUrl",
+    "photo_url",
+    "photoUrl",
+    "picture",
+    "thumbnail",
+    "thumb",
+  ] as const;
+  let logoUrl = pickString(o, [...logoKeys]);
+  if (!logoUrl) {
+    for (const nestKey of ["profile", "company", "details", "metadata"] as const) {
+      const nest = o[nestKey];
+      if (nest && typeof nest === "object" && !Array.isArray(nest)) {
+        logoUrl = pickString(nest as Record<string, unknown>, [...logoKeys]);
+        if (logoUrl) break;
+      }
+    }
+  }
+  logoUrl = absolutizeKitepropMediaUrl(logoUrl);
   const email = pickString(o, ["email", "contact_email", "contactEmail", "public_email"]);
   const phone = pickString(o, ["phone", "telephone", "phone_number", "phoneNumber"]);
   const mobile = pickString(o, ["mobile", "cellphone", "celular"]);
@@ -59,7 +86,7 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
     displayName: name,
     roleLabel: publicPartnerRoleLabelEs[scope],
     listingCtaLabel: publicPartnerListingCtaLabel(scope),
-    logoUrl: logoUrl || null,
+    logoUrl,
     propertyCount: 0,
     email: email || null,
     phone: phone || null,

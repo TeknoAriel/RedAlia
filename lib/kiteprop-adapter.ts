@@ -5,6 +5,7 @@ import type {
   PropertyOperation,
   PropertyPartner,
 } from "@/types/property";
+import { absolutizeKitepropMediaUrl } from "@/lib/kiteprop-media-url";
 import { nullIfMatrizFeedLayerPartner } from "@/lib/master-agency";
 import { labelForPropertyType } from "@/lib/property-labels";
 
@@ -50,12 +51,13 @@ function normalizeImages(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
   for (const item of raw) {
-    if (typeof item === "string" && item.startsWith("http")) {
-      out.push(item);
+    if (typeof item === "string") {
+      const u = absolutizeKitepropMediaUrl(item);
+      if (u) out.push(u);
       continue;
     }
     if (isRecord(item)) {
-      const u = pickString(item, ["url", "src", "href", "link"]);
+      const u = absolutizeKitepropMediaUrl(pickString(item, ["url", "src", "href", "link"]));
       if (u) out.push(u);
     }
   }
@@ -133,18 +135,20 @@ function normalizePartnerRecord(raw: unknown): PropertyPartner | null {
   if (!isRecord(raw)) return null;
   const name = pickString(raw, ["name", "nombre", "title", "razon_social", "full_name", "fullName"]);
   const id = pickNumber(raw, ["id", "ID", "agency_id", "agent_id", "user_id"]);
-  const logoUrl = pickString(raw, [
-    "logo",
-    "logo_url",
-    "logoUrl",
-    "image",
-    "avatar",
-    "url_logo",
-    "brand_image",
-    "picture",
-    "photo",
-    "foto",
-  ]);
+  const logoUrl = absolutizeKitepropMediaUrl(
+    pickString(raw, [
+      "logo",
+      "logo_url",
+      "logoUrl",
+      "image",
+      "avatar",
+      "url_logo",
+      "brand_image",
+      "picture",
+      "photo",
+      "foto",
+    ]),
+  );
   const contacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;
   return {
@@ -246,7 +250,9 @@ function normalizeOperatingAgency(raw: UnknownRecord): PropertyPartner | null {
   return {
     id: flatAgencyId !== null ? Math.round(flatAgencyId) : null,
     name: orgName,
-    logoUrl: pickString(raw, ["agency_logo", "organization_logo", "logo_agencia"]),
+    logoUrl: absolutizeKitepropMediaUrl(
+      pickString(raw, ["agency_logo", "organization_logo", "logo_agencia"]),
+    ),
     ...pickPartnerContacts(raw),
   };
 }
@@ -312,12 +318,9 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     "anunciante",
     "nombre_publicante",
   ]);
-  const logoUrl = pickString(raw, [
-    "advertiser_logo",
-    "advertiserLogo",
-    "logo_anunciante",
-    "logo_socio",
-  ]);
+  const logoUrl = absolutizeKitepropMediaUrl(
+    pickString(raw, ["advertiser_logo", "advertiserLogo", "logo_anunciante", "logo_socio"]),
+  );
   const id = pickNumber(raw, ["advertiser_id", "advertiserId", "socio_id", "anunciante_id", "member_id", "user_id"]);
   const flatContacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;

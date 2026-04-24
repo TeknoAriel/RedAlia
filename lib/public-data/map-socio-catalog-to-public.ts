@@ -1,4 +1,5 @@
 import type { SocioCatalogEntry } from "@/lib/agencies";
+import { absolutizeKitepropMediaUrl } from "@/lib/kiteprop-media-url";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 
@@ -19,7 +20,7 @@ export function mapSocioCatalogEntryToPublicDirectory(
     displayName: entry.name,
     roleLabel: publicPartnerRoleLabelEs[scope],
     listingCtaLabel: publicPartnerListingCtaLabel(scope),
-    logoUrl: entry.logoUrl,
+    logoUrl: absolutizeKitepropMediaUrl(entry.logoUrl),
     propertyCount: entry.propertyCount,
     email: entry.email,
     phone: entry.phone,
