@@ -31,6 +31,9 @@ import { HomePartnersCarousel } from "@/components/sections/HomePartnersCarousel
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
 
+/** Evita que el build de producción ejecute toda la ingesta de red en SSG (timeout 60s). Misma UI en runtime. */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const catalog = await getProperties();
   const listingCount = catalog.ok ? catalog.properties.length : 0;
