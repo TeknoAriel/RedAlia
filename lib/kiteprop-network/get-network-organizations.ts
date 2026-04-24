@@ -61,9 +61,12 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
   let lastOkStatus = 200;
 
   for (let page = 1; page <= maxPages; page += 1) {
+    const offset = String((page - 1) * pageLimit);
     const res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, {
       page: String(page),
       limit: String(pageLimit),
+      per_page: String(pageLimit),
+      offset,
     });
     if (!res.ok) {
       if (page === 1) {

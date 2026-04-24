@@ -61,10 +61,13 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
   let lastOkStatus = 200;
 
   for (let page = 1; page <= maxPages; page += 1) {
+    const offset = String((page - 1) * pageLimit);
     const res = await fetchNetworkPropertiesPage(path, ctx.bearer, ctx.extraHeaders, {
       status: "active",
       page: String(page),
       limit: String(pageLimit),
+      per_page: String(pageLimit),
+      offset,
     });
     if (!res.ok) {
       if (page === 1) {

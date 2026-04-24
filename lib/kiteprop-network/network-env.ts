@@ -164,7 +164,9 @@ const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 150;
  * Por defecto **desactivado**: un solo GET como hoy AINA.
  */
 export function isNetworkPropertiesPagedFetchEnabled(): boolean {
-  return trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH") === "1";
+  const raw = trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH");
+  if (!raw) return true;
+  return raw === "1" || raw.toLowerCase() === "true";
 }
 
 export function getNetworkPropertiesPageLimit(): number {
@@ -182,7 +184,9 @@ export function getNetworkPropertiesMaxPages(): number {
 }
 
 export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
-  return trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH") === "1";
+  const raw = trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH");
+  if (!raw) return true;
+  return raw === "1" || raw.toLowerCase() === "true";
 }
 
 export function getNetworkOrganizationsPageLimit(): number {
