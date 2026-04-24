@@ -35,6 +35,19 @@ function pickString(obj: UnknownRecord, keys: string[]): string | null {
   return null;
 }
 
+function pickPreferredMediaString(obj: UnknownRecord, keys: string[]): string | null {
+  let first: string | null = null;
+  for (const k of keys) {
+    const v = obj[k];
+    if (v === undefined || v === null) continue;
+    const s = String(v).trim();
+    if (!s) continue;
+    if (!first) first = s;
+    if (/^https?:\/\//i.test(s) || s.startsWith("//") || s.startsWith("/")) return s;
+  }
+  return first;
+}
+
 function pickNumber(obj: UnknownRecord, keys: string[]): number | null {
   for (const k of keys) {
     const v = obj[k];
@@ -68,7 +81,7 @@ function normalizeImages(raw: unknown): string[] {
     }
     if (isRecord(item)) {
       const u = absolutizeKitepropMediaUrl(
-        pickString(item, [
+        pickPreferredMediaString(item, [
           "url",
           "src",
           "href",

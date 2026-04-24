@@ -7,7 +7,7 @@ export function coerceNetworkPropertyRecord(raw: unknown): unknown {
   const r = raw as Record<string, unknown>;
   const nested = r.property ?? r.listing ?? r.listing_object ?? r.detail;
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-    return { ...(nested as Record<string, unknown>), ...r };
+    return { ...r, ...(nested as Record<string, unknown>) };
   }
   return raw;
 }

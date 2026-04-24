@@ -13,6 +13,19 @@ function pickString(o: Record<string, unknown>, keys: string[]): string | null {
   return null;
 }
 
+function pickPreferredMediaString(o: Record<string, unknown>, keys: readonly string[]): string | null {
+  let first: string | null = null;
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    if (!s) continue;
+    if (!first) first = s;
+    if (/^https?:\/\//i.test(s) || s.startsWith("//") || s.startsWith("/")) return s;
+  }
+  return first;
+}
+
 function pickNumberishId(o: Record<string, unknown>, keys: string[]): string | null {
   for (const k of keys) {
     const v = o[k];
@@ -89,13 +102,13 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
     "thumbnail",
     "thumb",
   ] as const;
-  let logoUrl = pickString(o, [...logoKeys]);
+  let logoUrl = pickPreferredMediaString(o, [...logoKeys]);
   if (!logoUrl) {
     for (const nestKey of ["profile", "company", "details", "metadata"] as const) {
       const nest = o[nestKey];
       if (nest && typeof nest === "object" && !Array.isArray(nest)) {
         logoUrl =
-          pickString(nest as Record<string, unknown>, [...logoKeys]) ??
+          pickPreferredMediaString(nest as Record<string, unknown>, [...logoKeys]) ??
           pickNestedLogo(nest as Record<string, unknown>, ["avatar", "image", "logo", "photo", "picture"]);
         if (logoUrl) break;
       }
