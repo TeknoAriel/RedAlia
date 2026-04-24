@@ -31,7 +31,18 @@ export function resolveSocioFromNetworkProperty(propertyRecord: unknown): SocioN
     let organizationContext: PublicPartnerDirectoryRowDraft | null = null;
     if (propertyRecord && typeof propertyRecord === "object" && !Array.isArray(propertyRecord)) {
       const root = propertyRecord as Record<string, unknown>;
-      const orgRaw = root.organization ?? root.agency;
+      const listing =
+        root.listing && typeof root.listing === "object" && !Array.isArray(root.listing)
+          ? (root.listing as Record<string, unknown>)
+          : null;
+      const orgRaw =
+        root.organization ??
+        root.agency ??
+        root.company ??
+        root.brokerage ??
+        listing?.organization ??
+        listing?.agency ??
+        listing?.company;
       if (orgRaw && typeof orgRaw === "object" && !Array.isArray(orgRaw)) {
         organizationContext = mapUnknownNetworkOrganizationToPublicDraft(orgRaw);
       }
@@ -45,9 +56,17 @@ export function resolveSocioFromNetworkProperty(propertyRecord: unknown): SocioN
 
   if (propertyRecord && typeof propertyRecord === "object" && !Array.isArray(propertyRecord)) {
     const o = propertyRecord as Record<string, unknown>;
+    const listing =
+      o.listing && typeof o.listing === "object" && !Array.isArray(o.listing)
+        ? (o.listing as Record<string, unknown>)
+        : null;
     const orgOnly =
       mapUnknownNetworkOrganizationToPublicDraft(o.organization) ??
-      mapUnknownNetworkOrganizationToPublicDraft(o.agency);
+      mapUnknownNetworkOrganizationToPublicDraft(o.agency) ??
+      mapUnknownNetworkOrganizationToPublicDraft(o.company) ??
+      mapUnknownNetworkOrganizationToPublicDraft(o.brokerage) ??
+      mapUnknownNetworkOrganizationToPublicDraft(listing?.organization) ??
+      mapUnknownNetworkOrganizationToPublicDraft(listing?.agency);
     if (orgOnly) return { kind: "organization_only", draft: orgOnly };
   }
 

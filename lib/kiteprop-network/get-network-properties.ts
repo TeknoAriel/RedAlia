@@ -126,7 +126,10 @@ export async function getNetworkProperties(): Promise<NetworkPropertiesResult> {
       break;
     }
 
-    if (pageItems.length < pageLimit) {
+    const hintedPerPage = hint?.perPage ?? null;
+    const shortPageAgainstHint =
+      hintedPerPage !== null && hintedPerPage > 0 && pageItems.length < hintedPerPage;
+    if (shortPageAgainstHint) {
       break;
     }
 

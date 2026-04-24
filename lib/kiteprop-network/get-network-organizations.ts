@@ -120,7 +120,10 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
       break;
     }
 
-    if (pageItems.length < pageLimit) {
+    const hintedPerPage = hint?.perPage ?? null;
+    const shortPageAgainstHint =
+      hintedPerPage !== null && hintedPerPage > 0 && pageItems.length < hintedPerPage;
+    if (shortPageAgainstHint) {
       break;
     }
 

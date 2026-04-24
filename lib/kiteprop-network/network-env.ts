@@ -29,7 +29,7 @@ export function getKitepropPropertiesSourceMode(): KitepropPropertiesSourceMode 
   ) {
     return "network_fallback_json";
   }
-  return "json";
+  return "network_fallback_json";
 }
 
 /**
@@ -170,8 +170,8 @@ export function isNetworkPropertiesPagedFetchEnabled(): boolean {
 }
 
 export function getNetworkPropertiesPageLimit(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "50", 10);
-  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
+  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "15", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 15;
 }
 
 export function getNetworkPropertiesMaxPages(): number {
@@ -203,8 +203,8 @@ export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
 }
 
 export function getNetworkOrganizationsPageLimit(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "50", 10);
-  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
+  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "15", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 15;
 }
 
 export function getNetworkOrganizationsMaxPages(): number {

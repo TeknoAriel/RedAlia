@@ -18,5 +18,5 @@ export function getRedaliaPartnerDirectorySourceMode(): RedaliaPartnerDirectoryS
   const v = trimEnv("REDALIA_PARTNER_DIRECTORY_SOURCE").toLowerCase();
   if (v === "network" || v === "aina_network" || v === "kpnet") return "network";
   if (v === "merge" || v === "combined") return "merge";
-  return "feed";
+  return "network";
 }

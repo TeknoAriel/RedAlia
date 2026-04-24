@@ -22,6 +22,30 @@ function pickNumberishId(o: Record<string, unknown>, keys: string[]): string | n
   return null;
 }
 
+function pickNestedLogo(o: Record<string, unknown>, candidates: readonly string[]): string | null {
+  for (const key of candidates) {
+    const nested = o[key];
+    if (!nested || typeof nested !== "object" || Array.isArray(nested)) continue;
+    const n = nested as Record<string, unknown>;
+    const url =
+      pickString(n, [
+        "url",
+        "src",
+        "href",
+        "image",
+        "image_url",
+        "imageUrl",
+        "avatar_url",
+        "avatar_url_md",
+        "avatar_url_lg",
+        "logo_url",
+        "logoUrl",
+      ]) ?? null;
+    if (url) return url;
+  }
+  return null;
+}
+
 /**
  * Construye un borrador de fila de directorio público desde el objeto **anunciante** de la API de red.
  * Clave canónica de socio Redalia en red: `canonicalNetworkAdvertiserPartnerKey(id)` (`kpnet:advertiser:{id}`).
@@ -70,10 +94,15 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
     for (const nestKey of ["profile", "company", "details", "metadata"] as const) {
       const nest = o[nestKey];
       if (nest && typeof nest === "object" && !Array.isArray(nest)) {
-        logoUrl = pickString(nest as Record<string, unknown>, [...logoKeys]);
+        logoUrl =
+          pickString(nest as Record<string, unknown>, [...logoKeys]) ??
+          pickNestedLogo(nest as Record<string, unknown>, ["avatar", "image", "logo", "photo", "picture"]);
         if (logoUrl) break;
       }
     }
+  }
+  if (!logoUrl) {
+    logoUrl = pickNestedLogo(o, ["avatar", "image", "logo", "photo", "picture"]);
   }
   logoUrl = absolutizeKitepropMediaUrl(logoUrl);
   const email = pickString(o, ["email", "contact_email", "contactEmail", "public_email"]);

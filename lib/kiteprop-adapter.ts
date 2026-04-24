@@ -15,6 +15,16 @@ function isRecord(v: unknown): v is UnknownRecord {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+function pickNestedMediaUrl(obj: UnknownRecord, keys: string[]): string | null {
+  for (const key of keys) {
+    const node = obj[key];
+    if (!isRecord(node)) continue;
+    const nested = pickString(node, ["url", "src", "href", "original", "large", "medium", "thumb", "path"]);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function pickString(obj: UnknownRecord, keys: string[]): string | null {
   for (const k of keys) {
     const v = obj[k];
@@ -72,7 +82,10 @@ function normalizeImages(raw: unknown): string[] {
           "thumb",
           "thumbnail",
           "path",
-        ]),
+          "avatar_url_lg",
+          "avatar_url_md",
+        ]) ??
+          pickNestedMediaUrl(item, ["original", "large", "medium", "thumb", "thumbnail", "image", "file"]),
       );
       if (u) out.push(u);
     }
@@ -512,7 +525,9 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
       raw.gallery ??
       raw.photos ??
       raw.multimedia ??
-      raw.media,
+      raw.media ??
+      raw.image_list ??
+      raw.imageList,
   );
 
   const sourceUrl = pickString(raw, ["url", "link", "permalink"]);
