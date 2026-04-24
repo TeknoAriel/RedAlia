@@ -50,7 +50,7 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   const sourceMode = getKitepropPropertiesSourceMode();
   const shouldRetryNetworkNow =
     sourceMode !== "json" &&
-    cached.source === "sample" &&
+    (cached.source === "sample" || cached.source === "empty") &&
     cached.ingestMeta?.networkApiAttempted === true &&
     Boolean(cached.ingestMeta?.networkErrorCode);
 
