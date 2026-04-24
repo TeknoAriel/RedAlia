@@ -23,7 +23,8 @@ function normalizeBaseUrl(raw: string): string {
 }
 
 export function getKitePropApiBaseUrl(): string {
-  const fromEnv = process.env.KITEPROP_API_BASE_URL?.trim();
+  const fromEnv =
+    process.env.KITEPROP_API_BASE_URL?.trim() || process.env.KITEPROP_API_BASE?.trim();
   return normalizeBaseUrl(fromEnv || DEFAULT_BASE_URL);
 }
 
