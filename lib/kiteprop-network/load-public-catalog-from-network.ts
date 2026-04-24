@@ -11,6 +11,11 @@ import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export type LoadPublicCatalogFromNetworkResult =
   | {
       ok: true;
@@ -29,7 +34,11 @@ export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogF
   const directoryMode = getRedaliaPartnerDirectorySourceMode();
   const includeOrganizations = directoryMode !== "feed";
   /** Secuencial: dos corridas paginadas en paralelo saturaban upstream y devolvían HTTP_ERROR intermitente. */
-  const propsRes = await getNetworkProperties();
+  let propsRes = await getNetworkProperties();
+  if (!propsRes.ok) {
+    await sleep(3500);
+    propsRes = await getNetworkProperties();
+  }
   if (!propsRes.ok) {
     return { ok: false, error: propsRes.error };
   }
@@ -40,9 +49,12 @@ export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogF
     items: [],
   };
   if (includeOrganizations) {
-    const ms = getNetworkRequestDelayMs();
-    if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+    await sleep(getNetworkRequestDelayMs());
     orgsRes = await getNetworkOrganizations();
+    if (!orgsRes.ok) {
+      await sleep(3500);
+      orgsRes = await getNetworkOrganizations();
+    }
   }
 
   const pairs: { raw: unknown; norm: NormalizedProperty }[] = [];
