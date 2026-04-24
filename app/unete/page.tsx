@@ -37,7 +37,7 @@ export default function UnetePage() {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
           <Link href="/contacto" className="btn-redalia-outline-on-navy px-8 py-3.5">
-            Coordinar conversación antes
+            Hablar con el equipo
           </Link>
           <Link href="/planes" className="btn-redalia-ghost-on-navy px-8 py-3.5">
             Ver membresía

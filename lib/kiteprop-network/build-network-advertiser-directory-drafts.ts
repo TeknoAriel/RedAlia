@@ -62,7 +62,19 @@ export function buildNetworkDirectoryDraftsFromPropertyPayloads(
     const labels = coverageLabelsForProperty(normalizedProperties[i]!);
 
     if (res.kind === "advertiser") {
-      bump(res.draft, labels);
+      const org = res.organizationContext;
+      bump(
+        {
+          ...res.draft,
+          logoUrl: res.draft.logoUrl ?? org?.logoUrl ?? null,
+          email: res.draft.email ?? org?.email ?? null,
+          phone: res.draft.phone ?? org?.phone ?? null,
+          mobile: res.draft.mobile ?? org?.mobile ?? null,
+          whatsapp: res.draft.whatsapp ?? org?.whatsapp ?? null,
+          webUrl: res.draft.webUrl ?? org?.webUrl ?? null,
+        },
+        labels,
+      );
       continue;
     }
     if (res.kind === "organization_only") {

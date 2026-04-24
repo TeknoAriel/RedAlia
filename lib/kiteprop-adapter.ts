@@ -57,7 +57,23 @@ function normalizeImages(raw: unknown): string[] {
       continue;
     }
     if (isRecord(item)) {
-      const u = absolutizeKitepropMediaUrl(pickString(item, ["url", "src", "href", "link"]));
+      const u = absolutizeKitepropMediaUrl(
+        pickString(item, [
+          "url",
+          "src",
+          "href",
+          "link",
+          "image",
+          "image_url",
+          "imageUrl",
+          "original",
+          "large",
+          "medium",
+          "thumb",
+          "thumbnail",
+          "path",
+        ]),
+      );
       if (u) out.push(u);
     }
   }
@@ -489,7 +505,14 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
   const terrainM2 = pickNumber(raw, ["terrain_size", "terrainSize", "terreno_m2"]);
 
   const images = normalizeImages(
-    raw.images ?? raw.fotos ?? raw.gallery ?? raw.photos,
+    raw.images ??
+      raw.images_list ??
+      raw.imagesList ??
+      raw.fotos ??
+      raw.gallery ??
+      raw.photos ??
+      raw.multimedia ??
+      raw.media,
   );
 
   const sourceUrl = pickString(raw, ["url", "link", "permalink"]);

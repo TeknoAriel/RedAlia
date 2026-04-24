@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "www.kiteprop.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "kiteprop.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "images.unsplash.com",
         pathname: "/**",
       },

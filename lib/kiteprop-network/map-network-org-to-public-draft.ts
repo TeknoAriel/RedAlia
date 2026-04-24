@@ -35,7 +35,19 @@ export function mapUnknownNetworkOrganizationToPublicDraft(raw: unknown): Public
   if (!id || !name) return null;
 
   const scope: PublicPartnerScope = "agency";
-  const logoKeys = ["logo_url", "logoUrl", "logo", "image_url", "imageUrl", "avatar", "avatar_url"] as const;
+  const logoKeys = [
+    "logo_url",
+    "logoUrl",
+    "logo",
+    "image_url",
+    "imageUrl",
+    "avatar",
+    "avatar_url",
+    "avatar_url_md",
+    "avatar_url_lg",
+    "brand_logo",
+    "brandLogo",
+  ] as const;
   let logoUrl = pickString(o, [...logoKeys]);
   if (!logoUrl) {
     for (const nestKey of ["profile", "branding", "metadata"] as const) {

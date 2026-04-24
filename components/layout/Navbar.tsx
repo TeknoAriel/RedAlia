@@ -11,12 +11,8 @@ const membersPortalUrl = getMembersPortalUrl();
 
 /** Orden: institución → comunidad operativa → catálogo y accesos destacados aparte. */
 const navTextLinks = [
-  { href: "/", label: "Inicio" },
   { href: "/que-es", label: "Qué es Redalia" },
-  { href: "/colaboracion", label: "Canje y colaboración" },
   { href: "/socios", label: "Socios" },
-  { href: "/capacitacion", label: "Capacitación" },
-  { href: "/planes", label: "Membresía" },
   { href: "/contacto", label: "Contacto" },
 ];
 
@@ -32,7 +28,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:gap-4 lg:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1.5 sm:px-6 lg:gap-4 lg:px-8">
         <Link
           href="/"
           className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5"
@@ -43,10 +39,10 @@ export function Navbar() {
             alt={siteConfig.name}
             width={360}
             height={108}
-            className="h-10 w-auto shrink-0 sm:h-12"
+            className="h-12 w-auto shrink-0 sm:h-14"
             priority
           />
-          <span className="hidden max-w-[13rem] lg:block lg:max-w-[16rem]">
+          <span className="hidden max-w-[14rem] lg:block lg:max-w-[18rem]">
             <span className="redalia-nav-lockup block">{siteConfig.brandLockup}</span>
           </span>
         </Link>

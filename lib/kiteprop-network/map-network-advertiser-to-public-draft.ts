@@ -55,6 +55,8 @@ export function mapUnknownNetworkAdvertiserToPublicDraft(raw: unknown): PublicPa
     "imageUrl",
     "avatar",
     "avatar_url",
+    "avatar_url_md",
+    "avatar_url_lg",
     "profile_photo_url",
     "profilePhotoUrl",
     "photo_url",
