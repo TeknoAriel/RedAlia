@@ -5,6 +5,7 @@ import { cache } from "react";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
 import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
+import { getKitepropPropertiesSourceMode } from "@/lib/kiteprop-network/network-env";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
@@ -43,7 +44,22 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   if (process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1") {
     return loadCatalogSnapshotUncached();
   }
-  return loadCatalogCached();
+  const cached = await loadCatalogCached();
+  if (!cached.ok) return cached;
+
+  const sourceMode = getKitepropPropertiesSourceMode();
+  const shouldRetryNetworkNow =
+    sourceMode !== "json" &&
+    cached.source === "sample" &&
+    cached.ingestMeta?.networkApiAttempted === true &&
+    Boolean(cached.ingestMeta?.networkErrorCode);
+
+  if (!shouldRetryNetworkNow) {
+    return cached;
+  }
+
+  const refreshed = await loadCatalogSnapshotUncached();
+  return refreshed.ok ? refreshed : cached;
 });
 
 export function getPartnerDirectoryExtraDrafts(
