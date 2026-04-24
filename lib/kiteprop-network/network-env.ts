@@ -212,3 +212,17 @@ export function getNetworkOrganizationsMaxPages(): number {
   if (!Number.isFinite(n)) return 20;
   return Math.min(200, Math.max(1, Math.floor(n)));
 }
+
+/** Pausa entre páginas de red (evitar 429). */
+export function getNetworkRequestDelayMs(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_REQUEST_DELAY_MS") || "140", 10);
+  if (!Number.isFinite(n)) return 140;
+  return Math.min(5000, Math.max(0, Math.floor(n)));
+}
+
+/** Reintentos por página ante 429/5xx o timeout de upstream. */
+export function getNetworkRequestRetryAttempts(): number {
+  const n = parseInt(trim("KITEPROP_NETWORK_REQUEST_RETRY_ATTEMPTS") || "4", 10);
+  if (!Number.isFinite(n)) return 4;
+  return Math.min(10, Math.max(1, Math.floor(n)));
+}

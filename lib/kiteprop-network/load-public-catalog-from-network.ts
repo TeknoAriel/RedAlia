@@ -6,6 +6,7 @@ import { coerceNetworkPropertyRecord } from "@/lib/kiteprop-network/coerce-netwo
 import { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
 import { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
 import { mapUnknownNetworkOrganizationToPublicDraft } from "@/lib/kiteprop-network/map-network-org-to-public-draft";
+import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
@@ -24,7 +25,12 @@ export type LoadPublicCatalogFromNetworkResult =
  * Propiedades: `normalizeKitePropProperty` por ítem. Organizaciones: borradores para el directorio Socios.
  */
 export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogFromNetworkResult> {
-  const [propsRes, orgsRes] = await Promise.all([getNetworkProperties(), getNetworkOrganizations()]);
+  const directoryMode = getRedaliaPartnerDirectorySourceMode();
+  const includeOrganizations = directoryMode !== "feed";
+  const [propsRes, orgsRes] = await Promise.all([
+    getNetworkProperties(),
+    includeOrganizations ? getNetworkOrganizations() : Promise.resolve({ ok: true as const, status: 200, items: [] }),
+  ]);
 
   if (!propsRes.ok) {
     return { ok: false, error: propsRes.error };
