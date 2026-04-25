@@ -23,6 +23,17 @@ const operations: { value: "" | PropertyOperation; label: string }[] = [
 
 type SortKey = "recent" | "price_asc" | "price_desc" | "surface_desc";
 
+/** Paginación por `?page=` sobre el listado ya filtrado y ordenado (sin tocar la lógica de filtros). */
+const CATALOG_PAGE_SIZE = 24;
+
+function catalogPageHref(queryString: string, page: number): string {
+  const n = new URLSearchParams(queryString);
+  if (page <= 1) n.delete("page");
+  else n.set("page", String(page));
+  const q = n.toString();
+  return q ? `/propiedades?${q}` : "/propiedades";
+}
+
 const sortOptions: { value: SortKey; label: string }[] = [
   { value: "recent", label: "Ordenar: más recientes" },
   { value: "price_desc", label: "Ordenar: mayor precio" },
@@ -212,6 +223,18 @@ export function PropertiesExplorer({ properties }: Props) {
   ]);
 
   const sorted = useMemo(() => sortProperties(filtered, sort), [filtered, sort]);
+
+  const pageQuery = searchParams.get("page")?.trim() ?? "";
+  const { pageSlice, totalFiltered, totalPages, safePage } = useMemo(() => {
+    const totalFiltered = sorted.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / CATALOG_PAGE_SIZE));
+    const parsed = parseInt(pageQuery || "1", 10);
+    const requested = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    const safePage = Math.min(requested, totalPages);
+    const start = (safePage - 1) * CATALOG_PAGE_SIZE;
+    const pageSlice = sorted.slice(start, start + CATALOG_PAGE_SIZE);
+    return { pageSlice, totalFiltered, totalPages, safePage };
+  }, [sorted, pageQuery]);
 
   const compareProperties = useMemo(() => {
     const map = new Map(properties.map((p) => [p.id, p]));
@@ -553,8 +576,30 @@ export function PropertiesExplorer({ properties }: Props) {
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted">
-          Mostrando <strong className="text-brand-navy">{sorted.length}</strong> de {properties.length}{" "}
-          publicaciones.
+          {totalFiltered === 0 ? (
+            <>
+              Sin resultados con estos criterios (sobre <strong className="text-brand-navy">{properties.length}</strong>{" "}
+              en catálogo).
+            </>
+          ) : totalPages > 1 ? (
+            <>
+              Página <strong className="text-brand-navy">{safePage}</strong> de{" "}
+              <strong className="text-brand-navy">{totalPages}</strong>
+              <span className="mx-1 text-brand-navy/35">·</span>
+              <strong className="text-brand-navy">{(safePage - 1) * CATALOG_PAGE_SIZE + 1}</strong>–
+              <strong className="text-brand-navy">
+                {Math.min(safePage * CATALOG_PAGE_SIZE, totalFiltered)}
+              </strong>{" "}
+              de <strong className="text-brand-navy">{totalFiltered}</strong> con filtros
+              <span className="text-brand-navy/35"> · </span>
+              <span className="text-muted">{properties.length} en catálogo</span>
+            </>
+          ) : (
+            <>
+              Mostrando <strong className="text-brand-navy">{totalFiltered}</strong> de{" "}
+              <strong className="text-brand-navy">{properties.length}</strong> publicaciones.
+            </>
+          )}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {compareIds.length > 0 && (
@@ -588,18 +633,59 @@ export function PropertiesExplorer({ properties }: Props) {
           <p className="mt-2 text-sm text-muted">Probá ampliar la búsqueda o limpiar filtros.</p>
         </div>
       ) : (
-        <ul className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((p) => (
-            <li key={p.id}>
-              <PropertyCard
-                property={p}
-                compareSelected={compareIds.includes(p.id)}
-                compareDisabled={!compareIds.includes(p.id) && compareIds.length >= 5}
-                onToggleCompare={() => toggleCompare(p.id)}
-              />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+            {pageSlice.map((p) => (
+              <li key={p.id}>
+                <PropertyCard
+                  property={p}
+                  compareSelected={compareIds.includes(p.id)}
+                  compareDisabled={!compareIds.includes(p.id) && compareIds.length >= 5}
+                  onToggleCompare={() => toggleCompare(p.id)}
+                />
+              </li>
+            ))}
+          </ul>
+          {totalPages > 1 && (
+            <nav
+              className="mt-10 flex flex-col items-center gap-4 border-t border-brand-navy/10 pt-8 sm:flex-row sm:justify-between"
+              aria-label="Paginación del catálogo"
+            >
+              <p className="text-center text-sm text-muted sm:text-left">
+                Página <span className="font-semibold text-brand-navy">{safePage}</span> de{" "}
+                <span className="font-semibold text-brand-navy">{totalPages}</span>
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {safePage > 1 ? (
+                  <Link
+                    href={catalogPageHref(searchParams.toString(), safePage - 1)}
+                    className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
+                    scroll={false}
+                  >
+                    Anterior
+                  </Link>
+                ) : (
+                  <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
+                    Anterior
+                  </span>
+                )}
+                {safePage < totalPages ? (
+                  <Link
+                    href={catalogPageHref(searchParams.toString(), safePage + 1)}
+                    className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
+                    scroll={false}
+                  >
+                    Siguiente
+                  </Link>
+                ) : (
+                  <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
+                    Siguiente
+                  </span>
+                )}
+              </div>
+            </nav>
+          )}
+        </>
       )}
 
       <PropertyCompareModal

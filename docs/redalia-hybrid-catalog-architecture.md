@@ -8,7 +8,7 @@ No reinterpretrar: la red **no** es la fuente principal del array de propiedades
 
 | Dato | Fuente de verdad | Cómo se carga (código) |
 |------|------------------|-------------------------|
-| Propiedades (título, precio, etc.) | Feed JSON de difusión | `loadJsonFeedSnapshot` cuando `getKitepropPropertiesSourceMode()` = `json` (default) |
+| Propiedades (título, precio, etc.) | Feed JSON de difusión | `loadJsonFeedSnapshot` cuando `getKitepropPropertiesSourceMode()` = `json` (default). Con URL configurada **no** hay fallback a muestra embebida. |
 | Imágenes de propiedades | Mismo JSON (`images` + normalización) | `lib/kiteprop-adapter.ts` → `NormalizedProperty.images` |
 | Listado de organizaciones (borradores `kpnet:org:*`) | API de red | `getNetworkOrganizations` vía `loadNetworkPartnerDirectoryDraftsOnly` si merge de orgs activo (default) |
 | Anunciantes / logos `kpnet:advertiser:*` | API de red (payload de propiedades de red + reglas) | `loadNetworkPartnerDirectoryAdvertiserOverlayDrafts` + `buildNetworkDirectoryDraftsFromPropertyPayloads` (logo anunciante con **fallback** a `organizationContext` en el mismo bump) |

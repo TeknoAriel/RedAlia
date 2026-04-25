@@ -8,7 +8,12 @@ import type { CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
 import { getKitepropPropertiesUrl } from "@/lib/config";
 import { normalizePropertyList } from "@/lib/kiteprop-adapter";
 
-/** Carga desde feed JSON de difusión + muestras locales (sin API de red). */
+/**
+ * Con **URL de difusión configurada** (`KITEPROP_PROPERTIES_URL` o default en `lib/config.ts`):
+ * solo se intenta ese JSON remoto. **No** hay fallback a muestra embebida ni a disco: fallo o 0 ítems → catálogo vacío (`source: "empty"`).
+ *
+ * Sin URL: solo desarrollo local — intenta `data/kiteprop-sample.json` y luego bundle (ver `KITEPROP_PROPERTIES_ALLOW_SAMPLE`).
+ */
 export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<CatalogSnapshotSuccess> {
   trace.jsonFeedAttempted = true;
   const url = getKitepropPropertiesUrl().trim();
@@ -20,29 +25,14 @@ export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<C
       if (properties.length > 0) {
         return { ok: true, properties, source: "remote" };
       }
-      if (isStrictEmptyCatalog()) {
-        return { ok: true, properties: [], source: "empty" };
-      }
-      const fb = bundledSampleWithFallbackFlag();
-      if (fb.properties.length > 0) return fb;
       return { ok: true, properties: [], source: "empty" };
     } catch {
-      try {
-        const json = await loadSampleFromDisk();
-        const properties = normalizePropertyList(json);
-        if (properties.length > 0) {
-          return {
-            ok: true,
-            properties,
-            source: "sample",
-            usedSampleFallback: true,
-          };
-        }
-      } catch {
-        /* disco no disponible en algunos deploys */
-      }
-      return bundledSampleWithFallbackFlag();
+      return { ok: true, properties: [], source: "empty" };
     }
+  }
+
+  if (!isSampleCatalogDevFallbackEnabled()) {
+    return { ok: true, properties: [], source: "empty" };
   }
 
   try {
@@ -52,9 +42,17 @@ export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<C
       return { ok: true, properties, source: "sample" };
     }
   } catch {
-    /* sin URL y sin disco */
+    /* sin disco */
   }
   return bundledSampleWithFallbackFlag();
+}
+
+/** Solo local sin URL: permitir muestra si `KITEPROP_PROPERTIES_ALLOW_SAMPLE=1` (default en dev típico sin env). */
+export function isSampleCatalogDevFallbackEnabled(): boolean {
+  const raw = process.env.KITEPROP_PROPERTIES_ALLOW_SAMPLE?.trim();
+  if (raw === "0" || raw?.toLowerCase() === "false" || raw?.toLowerCase() === "no") return false;
+  if (raw === "1" || raw?.toLowerCase() === "true") return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 async function loadSampleFromDisk(): Promise<unknown> {

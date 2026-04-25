@@ -3,11 +3,7 @@ import "server-only";
 import { attachIngestMeta, newCatalogIngestRunId } from "@/lib/catalog-ingest/ingest-meta";
 import type { CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { createEmptyIngestTrace, type CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
-import {
-  bundledSampleWithFallbackFlag,
-  isStrictEmptyCatalog,
-  loadJsonFeedSnapshot,
-} from "@/lib/catalog-ingest/json-feed";
+import { loadJsonFeedSnapshot } from "@/lib/catalog-ingest/json-feed";
 import { loadNetworkPartnerDirectoryAdvertiserOverlayDrafts } from "@/lib/kiteprop-network/load-network-partner-directory-advertiser-overlay";
 import { loadNetworkPartnerDirectoryDraftsOnly } from "@/lib/kiteprop-network/load-network-partner-directory-drafts";
 import { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public-catalog-from-network";
@@ -104,7 +100,8 @@ async function runNetworkOnlyFlow(trace: CatalogIngestTrace, runId: string): Pro
 }
 
 /**
- * `KITEPROP_PROPERTIES_SOURCE=network_fallback_json`: primero API de red; si no hay propiedades o falla, feed JSON + mismas reglas de muestra/strict que `json-feed`.
+ * `KITEPROP_PROPERTIES_SOURCE=network_fallback_json`: primero API de red; si no hay propiedades o falla, feed JSON
+ * (`loadJsonFeedSnapshot`, **sin** muestra embebida cuando hay URL configurada).
  */
 async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: string): Promise<GetPropertiesResult> {
   const net = await loadNetworkCatalogSnapshot(trace);
@@ -139,19 +136,6 @@ async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: stri
   }
 
   if (net.ok && net.organizationDrafts.length > 0) {
-    if (!isStrictEmptyCatalog()) {
-      const fb = bundledSampleWithFallbackFlag();
-      if (fb.properties.length > 0) {
-        return attachIngestMeta(
-          await withPartnerDirectoryNetworkOverlayIfNeeded(trace, {
-            ...fb,
-            partnerDirectoryExtraDrafts: net.organizationDrafts,
-          }),
-          trace,
-          runId,
-        );
-      }
-    }
     return attachIngestMeta(
       await withPartnerDirectoryNetworkOverlayIfNeeded(trace, {
         ok: true,
@@ -164,12 +148,6 @@ async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: stri
     );
   }
 
-  if (!isStrictEmptyCatalog()) {
-    const fb = bundledSampleWithFallbackFlag();
-    if (fb.properties.length > 0) {
-      return attachIngestMeta(await withPartnerDirectoryNetworkOverlayIfNeeded(trace, { ...fb }), trace, runId);
-    }
-  }
   return attachIngestMeta(await withPartnerDirectoryNetworkOverlayIfNeeded(trace, json), trace, runId);
 }
 
