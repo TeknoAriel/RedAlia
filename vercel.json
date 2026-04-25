@@ -4,6 +4,12 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "ignoreCommand": "bash scripts/vercel-ignore-non-main.sh",
+  "env": {
+    "KITEPROP_PROPERTIES_SOURCE": "json",
+    "REDALIA_PARTNER_DIRECTORY_SOURCE": "network",
+    "KITEPROP_PUBLIC_ORIGIN": "https://www.kiteprop.com",
+    "KITEPROP_PROPERTIES_URL": "https://static.kiteprop.com/kp/difusions/4b3c894a10d905c82e85b35c410d7d4099551504/externalsite-3154-76231c90a9bdef3fd5159dcea8a41b05cc4cd8f3.json"
+  },
   "crons": [
     {
       "path": "/api/cron/catalog",

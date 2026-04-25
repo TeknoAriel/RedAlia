@@ -16,8 +16,10 @@ Abrir [http://localhost:3000](http://localhost:3000).
 | Variable | Uso |
 |----------|-----|
 | `NEXT_PUBLIC_SITE_URL` | URL pública (ej. `https://redalia.vercel.app`) |
-| `KITEPROP_PROPERTIES_URL` | JSON de **difusión** KiteProp (catálogo + inmobiliarias/socios); **no** es el REST `/api/v1/properties`. Si falta en env, el código usa un feed por defecto en `lib/config.ts`; si el fetch falla, `data/kiteprop-sample.json`. |
-| `KITEPROP_PROPERTIES_SOURCE` | Opcional: `json` (default si se omite), `network` o `network_fallback_json`. Para volver al feed JSON: definí `KITEPROP_PROPERTIES_URL` y **no** pongas `network` como fuente. |
+| `KITEPROP_PROPERTIES_URL` | JSON de **difusión** KiteProp (catálogo + fotos). **`vercel.json` → `env`** fija una URL por defecto en cada deploy (sobreescribible en el panel Vercel). Si el fetch falla, `data/kiteprop-sample.json`. |
+| `KITEPROP_PROPERTIES_SOURCE` | **`vercel.json` → `env`:** `json`** (listado solo desde feed). En Vercel podés cambiar a `network` solo si lo necesitás explícitamente. |
+| `REDALIA_PARTNER_DIRECTORY_SOURCE` | **`vercel.json` → `env`:** `network`** (directorio desde API de red cuando hay credenciales `KITEPROP_NETWORK_*` + login; si no, fallback al feed). |
+| `KITEPROP_PUBLIC_ORIGIN` | **`vercel.json` → `env`:** `https://www.kiteprop.com`** para absolutizar logos/media de la API. |
 | `KITEPROP_API_SECRET` | Opcional: **una** secret `kp_…` para API REST + mismo valor que usa el MCP (fallback de key/Bearer/leads). Ver **`docs/kiteprop-credentials.md`**. |
 | `LEADS_WEBHOOK_URL` | Opcional: POST de formularios Contacto / Únete |
 

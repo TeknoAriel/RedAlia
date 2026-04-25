@@ -33,6 +33,10 @@ No reinterpretrar: la red **no** es la fuente principal del array de propiedades
 | `KITEPROP_MERGE_NETWORK_ORGANIZATIONS` | **Default: activo** (merge). `0` desactiva el `GET` de organizaciones. |
 | `KITEPROP_NETWORK_ID`, `KITEPROP_NETWORK_TOKEN`, auth API | Necesarias para directorio/overlay; sin ellas, el catálogo de **propiedades** sigue en JSON, el directorio cae a feed puro. |
 
+## Vercel sin tocar el panel (opcional)
+
+`vercel.json` define `env` con `KITEPROP_PROPERTIES_SOURCE`, `REDALIA_PARTNER_DIRECTORY_SOURCE`, `KITEPROP_PUBLIC_ORIGIN` y `KITEPROP_PROPERTIES_URL` (feed validado en repo). Las variables del **dashboard Vercel** siguen teniendo prioridad si las definís (p. ej. otra URL de difusión). **Secretos** (`KITEPROP_NETWORK_TOKEN`, `KITEPROP_API_PASSWORD`, etc.) no van en el repo: una sola carga en **Project → Settings → Environment Variables** para `/socios` completo desde red.
+
 ## Metadatos
 
 `ingestMeta.kitepropPropertiesSourceMode` y `ingestMeta.partnerDirectorySourceMode` (en `getProperties` / `attachIngestMeta`) dejan trazabilidad de la corrida.
