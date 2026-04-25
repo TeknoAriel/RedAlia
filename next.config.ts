@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    /**
+     * Evita depender de `/_next/image` (en Vercel puede responder 402 por cuota del optimizador).
+     * Cargamos imágenes remotas en origen para asegurar fotos de propiedades y logos.
+     */
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
