@@ -32,7 +32,7 @@ export default function UnetePage() {
         eyebrow="Únete"
         title="Postulá como socio en una comunidad orientada a cierres"
         lead="Si sos corredor o parte de una corredora y buscás más circulación de oportunidades, visibilidad entre pares y un marco claro de colaboración y membresía, este es el punto de partida institucional."
-        footnote="La postulación no reemplaza la conversación comercial: nos permite prepararla con contexto y seriedad."
+        footnote="La postulación no reemplaza la reunión inicial: nos permite prepararla con contexto y seriedad."
         contentClassName="py-20 sm:py-24"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">

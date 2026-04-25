@@ -28,23 +28,20 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1.5 sm:px-6 lg:gap-4 lg:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1 sm:px-6 lg:gap-4 lg:px-8">
         <Link
           href="/"
-          className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5"
+          className="flex min-w-0 shrink-0 items-center"
           onClick={() => setOpen(false)}
         >
           <Image
             src="/logo-redalia.png"
             alt={siteConfig.name}
-            width={360}
-            height={108}
-            className="h-12 w-auto shrink-0 sm:h-14"
+            width={500}
+            height={500}
+            className="h-14 w-auto shrink-0 sm:h-16 md:h-[4.5rem]"
             priority
           />
-          <span className="hidden max-w-[14rem] lg:block lg:max-w-[18rem]">
-            <span className="redalia-nav-lockup block">{siteConfig.brandLockup}</span>
-          </span>
         </Link>
 
         <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 xl:flex" aria-label="Principal">
@@ -67,10 +64,10 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex shrink-0 items-center gap-3" aria-label="Accesos destacados">
+          <div className="flex shrink-0 items-center gap-2.5" aria-label="Accesos destacados">
             <Link
               href="/propiedades"
-              className={`inline-flex items-center rounded-full px-5 py-2.5 text-[0.9375rem] font-semibold leading-none shadow-md transition ${
+              className={`inline-flex items-center rounded-full px-4 py-2.5 text-[0.92rem] font-semibold leading-none shadow-md transition ${
                 propiedadesActive
                   ? "bg-brand-navy text-white ring-2 ring-brand-gold/70 ring-offset-2 ring-offset-white"
                   : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e] hover:shadow-lg"
@@ -82,7 +79,7 @@ export function Navbar() {
               href={membersPortalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-navy/40 hover:bg-brand-navy-soft/50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy-mid"
             >
               Acceso socios
               <span className="sr-only">(abre en nueva pestaña)</span>
@@ -160,7 +157,7 @@ export function Navbar() {
                 href={membersPortalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-brand-navy/20 bg-white px-4 py-3.5 text-center text-sm font-semibold text-brand-navy"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-navy px-4 py-3.5 text-center text-sm font-semibold text-white"
                 onClick={() => setOpen(false)}
               >
                 Acceso socios

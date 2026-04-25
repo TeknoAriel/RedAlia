@@ -10,7 +10,7 @@ import { getWhatsappContact } from "@/lib/public-contact";
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Contacto comercial Redalia: correo, WhatsApp y formulario para coordinar conversación o presentación.",
+    "Contacto Redalia: correo, WhatsApp y formulario para coordinar reunión inicial o presentación.",
 };
 
 const confianza = [
@@ -28,7 +28,7 @@ export default function ContactoPage() {
         variant="navy-gradient"
         prepend={<SectionLogoMark size="sm" className="mb-5 opacity-95" />}
         eyebrow="Contacto"
-        title="Coordinemos una conversación comercial"
+        title="Coordinemos una reunión inicial"
         lead="Presentaciones, consultas sobre Redalia o evaluación junto a tu corredora. El equipo responde con criterio comercial y transparencia sobre proceso, membresía y comunidad."
         footnote="Si preferís un primer contacto breve, usá el formulario o los canales de la izquierda; tratamos cada caso con la misma seriedad."
         contentClassName="py-20 sm:py-24"

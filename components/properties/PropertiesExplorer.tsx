@@ -236,6 +236,50 @@ export function PropertiesExplorer({ properties }: Props) {
     return { pageSlice, totalFiltered, totalPages, safePage };
   }, [sorted, pageQuery]);
 
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      socioKey ||
+        q.trim() ||
+        operation ||
+        typeKey ||
+        city ||
+        currency ||
+        priceMin.trim() ||
+        priceMax.trim() ||
+        bedMin ||
+        bathMin ||
+        roomsMin ||
+        parkMin ||
+        addressNeedle.trim() ||
+        m2TotalMin.trim() ||
+        m2CoveredMin.trim() ||
+        m2TerrainMin.trim() ||
+        onlyCredit ||
+        onlyBarter ||
+        onlyNew,
+    );
+  }, [
+    socioKey,
+    q,
+    operation,
+    typeKey,
+    city,
+    currency,
+    priceMin,
+    priceMax,
+    bedMin,
+    bathMin,
+    roomsMin,
+    parkMin,
+    addressNeedle,
+    m2TotalMin,
+    m2CoveredMin,
+    m2TerrainMin,
+    onlyCredit,
+    onlyBarter,
+    onlyNew,
+  ]);
+
   const compareProperties = useMemo(() => {
     const map = new Map(properties.map((p) => [p.id, p]));
     return compareIds.map((id) => map.get(id)).filter(Boolean) as NormalizedProperty[];
@@ -581,6 +625,17 @@ export function PropertiesExplorer({ properties }: Props) {
               Sin resultados con estos criterios (sobre <strong className="text-brand-navy">{properties.length}</strong>{" "}
               en catálogo).
             </>
+          ) : hasActiveFilters ? (
+            <>
+              Página <strong className="text-brand-navy">{safePage}</strong> de{" "}
+              <strong className="text-brand-navy">{totalPages}</strong>
+              <span className="mx-1 text-brand-navy/35">·</span>
+              <strong className="text-brand-navy">{(safePage - 1) * CATALOG_PAGE_SIZE + 1}</strong>–
+              <strong className="text-brand-navy">
+                {Math.min(safePage * CATALOG_PAGE_SIZE, totalFiltered)}
+              </strong>{" "}
+              de <strong className="text-brand-navy">{totalFiltered}</strong> resultados
+            </>
           ) : totalPages > 1 ? (
             <>
               Página <strong className="text-brand-navy">{safePage}</strong> de{" "}
@@ -590,15 +645,10 @@ export function PropertiesExplorer({ properties }: Props) {
               <strong className="text-brand-navy">
                 {Math.min(safePage * CATALOG_PAGE_SIZE, totalFiltered)}
               </strong>{" "}
-              de <strong className="text-brand-navy">{totalFiltered}</strong> con filtros
-              <span className="text-brand-navy/35"> · </span>
-              <span className="text-muted">{properties.length} en catálogo</span>
+              de <strong className="text-brand-navy">{properties.length}</strong> propiedades
             </>
           ) : (
-            <>
-              Mostrando <strong className="text-brand-navy">{totalFiltered}</strong> de{" "}
-              <strong className="text-brand-navy">{properties.length}</strong> publicaciones.
-            </>
+            <>Mostrando <strong className="text-brand-navy">{properties.length}</strong> propiedades</>
           )}
         </p>
         <div className="flex flex-wrap items-center gap-2">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
+import { PartnerContactPrivacyGate } from "@/components/socios/PartnerContactPrivacyGate";
 import type { PublicPartnerDetail } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
@@ -99,7 +99,9 @@ export function PartnerProfileView({ detail, propertiesPreview, totalPropertyCou
                 filtrado o escribir a Redalia.
               </p>
               <div className="mt-4">
-                <PartnerContactLinks
+                <PartnerContactPrivacyGate
+                  partnerKey={detail.partnerKey}
+                  partnerName={detail.displayName}
                   email={detail.email}
                   phone={detail.phone}
                   mobile={detail.mobile}

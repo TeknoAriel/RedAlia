@@ -16,6 +16,8 @@ export const metadata: Metadata = {
     "Directorio institucional de la comunidad Redalia: socios con publicaciones en el catálogo, criterios de pertenencia y colaboración profesional en Chile.",
 };
 
+const SOCIOS_PAGE_SIZE = 24;
+
 const perfilCards = [
   {
     title: "Corredoras y estudios",
@@ -50,7 +52,14 @@ const estandares = [
   },
 ];
 
-export default async function SociosPage() {
+export default async function SociosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
   const result = await getProperties();
   const snapshot = result.ok
     ? buildPublicDirectorySnapshot(result.properties, {
@@ -59,9 +68,14 @@ export default async function SociosPage() {
       })
     : null;
   const entries = snapshot?.entries ?? [];
+  const totalPages = Math.max(1, Math.ceil(entries.length / SOCIOS_PAGE_SIZE));
+  const safePage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, totalPages) : 1;
+  const pageStart = (safePage - 1) * SOCIOS_PAGE_SIZE;
+  const pagedEntries = entries.slice(pageStart, pageStart + SOCIOS_PAGE_SIZE);
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;
   const geoCount = stats?.geographicDistinctCount ?? 0;
+  const pageHref = (page: number): string => (page <= 1 ? "/socios" : `/socios?page=${page}`);
 
   return (
     <div className="bg-background">
@@ -224,13 +238,52 @@ export default async function SociosPage() {
           )}
 
           {entries.length > 0 && (
+            <>
             <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {entries.map((entry) => (
+              {pagedEntries.map((entry) => (
                 <li key={entry.partnerKey}>
                   <PartnerDirectoryCard entry={entry} variant="default" />
                 </li>
               ))}
             </ul>
+            {totalPages > 1 && (
+              <nav
+                className="mt-8 flex flex-col items-center gap-4 border-t border-brand-navy/10 pt-6 sm:flex-row sm:justify-between"
+                aria-label="Paginación socios"
+              >
+                <p className="text-sm text-muted">
+                  Página <span className="font-semibold text-brand-navy">{safePage}</span> de{" "}
+                  <span className="font-semibold text-brand-navy">{totalPages}</span>
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {safePage > 1 ? (
+                    <Link
+                      href={pageHref(safePage - 1)}
+                      className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
+                    >
+                      Anterior
+                    </Link>
+                  ) : (
+                    <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
+                      Anterior
+                    </span>
+                  )}
+                  {safePage < totalPages ? (
+                    <Link
+                      href={pageHref(safePage + 1)}
+                      className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
+                    >
+                      Siguiente
+                    </Link>
+                  ) : (
+                    <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
+                      Siguiente
+                    </span>
+                  )}
+                </div>
+              </nav>
+            )}
+            </>
           )}
         </div>
       </section>

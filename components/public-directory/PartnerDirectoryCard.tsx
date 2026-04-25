@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
-import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
+import { PartnerContactPrivacyGate } from "@/components/socios/PartnerContactPrivacyGate";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -72,7 +72,9 @@ export function PartnerDirectoryCard({ entry, variant = "default" }: Props) {
           Presencia en catálogo: {entry.coverageLabels.join(" · ")}
         </p>
       )}
-      <PartnerContactLinks
+      <PartnerContactPrivacyGate
+        partnerKey={entry.partnerKey}
+        partnerName={entry.displayName}
         email={entry.email}
         phone={entry.phone}
         mobile={entry.mobile}

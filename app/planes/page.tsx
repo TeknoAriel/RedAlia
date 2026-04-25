@@ -154,7 +154,7 @@ export default function PlanesPage() {
           <SectionHeader
             eyebrow="Comparación"
             title="Qué distingue cada nivel"
-            description="Referencia cualitativa. La propuesta final puede combinar elementos según tu operación y lo que acordemos en la conversación comercial."
+            description="Referencia cualitativa. La propuesta final puede combinar elementos según tu operación y lo que acordemos en la reunión inicial."
             titleVariant="display"
           />
           <div className="mt-10 overflow-x-auto rounded-2xl border border-brand-navy/10 shadow-sm">
