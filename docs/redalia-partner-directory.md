@@ -18,11 +18,11 @@ Mapeo organización → borrador: `lib/kiteprop-network/map-network-org-to-publi
 
 | Valor | Comportamiento |
 |-------|----------------|
-| `feed` (default) | Directorio = socios derivados del **catálogo servido** (`extractSociosGridCatalog` + reglas existentes) + extras `kpnet:org:*` del endpoint de organizaciones cuando aplica (`KITEPROP_MERGE_NETWORK_ORGANIZATIONS`, etc.). |
-| `network` | Directorio = filas desde **payload de propiedades de red** (`kpnet:*`). Si no hay borradores de red, **cae al mismo armado que `feed`** para no dejar el directorio vacío por configuración. Luego se agregan extras de organización sin colisionar `partnerKey`. |
-| `merge` | Combina feed + red con reglas fijas (ver siguiente sección). |
+| `network` (**default** vacío) | Directorio desde **red** (`kpnet:*`); conteos/cobertura contra propiedades del **JSON** vía `propertyMatchesPartnerKey`. Si no hay borradores de red, **fallback** al armado estilo `feed`. |
+| `merge` | Fusiona feed + red por id de anunciante (logos red primero en match). Reglas: `lib/public-data/partner-directory-resolve.ts`. |
+| `feed` | Solo socios del catálogo de propiedades; sin overlay de anunciantes de red. |
 
-Independiente de **`KITEPROP_PROPERTIES_SOURCE`**: el catálogo de propiedades puede seguir siendo JSON mientras el directorio usa overlay de red (`merge` / `network`).
+El **listado de propiedades** sigue gobernado por **`KITEPROP_PROPERTIES_SOURCE`** (default: JSON de difusión). El directorio es independiente. Ver `docs/redalia-hybrid-catalog-architecture.md`.
 
 ### Overlay de red sobre catálogo JSON
 
@@ -69,9 +69,9 @@ Código: `lib/public-data/partner-directory-resolve.ts`.
 
 | Variable | Rol |
 |----------|-----|
-| `REDALIA_PARTNER_DIRECTORY_SOURCE` | `feed` \| `network` \| `merge` (default `feed`). |
-| `KITEPROP_PROPERTIES_SOURCE` | Origen del **listado de propiedades** (no reemplaza al flag de directorio). |
-| `KITEPROP_MERGE_NETWORK_ORGANIZATIONS` | Sigue trayendo extras `kpnet:org:*` en modo JSON. |
+| `REDALIA_PARTNER_DIRECTORY_SOURCE` | `network` (default) \| `merge` \| `feed` |
+| `KITEPROP_PROPERTIES_SOURCE` | Origen del listado de propiedades (default **`json`**: feed de difusión; ver `network-env.ts`). |
+| `KITEPROP_MERGE_NETWORK_ORGANIZATIONS` | `0` desactiva; **sin `0`**: activa extras `kpnet:org:*` con catálogo JSON. |
 | `KITEPROP_NETWORK_*` | Auth y paginación para llamadas de red. |
 
 ## Próxima fase (fuera de este PR)

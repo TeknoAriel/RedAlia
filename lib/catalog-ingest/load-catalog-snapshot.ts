@@ -174,8 +174,10 @@ async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: stri
 }
 
 /**
- * Carga única del catálogo (sin caché Next). Orquesta por `KITEPROP_PROPERTIES_SOURCE` (ver `docs/catalog-operaciones.md`).
- * Caché y `revalidateTag` viven en `lib/get-properties.ts` y `app/api/cron/catalog/route.ts`.
+ * Carga única del catálogo (sin caché Next).
+ * Estrategia híbrida (default de producto): **propiedades = feed JSON** (`getKitepropPropertiesSourceMode` → `json` si la env no fuerza otra);
+ * **directorio = red** (`getRedaliaPartnerDirectorySourceMode` default **`network`** + organizaciones/overlay según `network-env` y `docs/redalia-hybrid-catalog-architecture.md`).
+ * Caché: `lib/get-properties.ts` y `app/api/cron/catalog/route.ts`.
  */
 export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult> {
   const trace = createEmptyIngestTrace();

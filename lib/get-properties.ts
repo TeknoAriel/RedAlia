@@ -36,9 +36,9 @@ const loadCatalogCached = unstable_cache(
 );
 
 /**
- * Catálogo público (propiedades + borradores opcionales de red para directorio).
- * Caché server con TTL configurable (`CATALOG_INGEST_REVALIDATE_SECONDS`, default 7200 s).
- * En desarrollo: `CATALOG_INGEST_DISABLE_CACHE=1` omite `unstable_cache`.
+ * Catálogo público: **propiedades e imágenes** desde el feed de difusión (default `json`), directorio
+ * desde reglas en `load-catalog-snapshot` y `docs/redalia-hybrid-catalog-architecture.md`.
+ * Caché: `CATALOG_INGEST_REVALIDATE_SECONDS` (default 7200 s). Dev: `CATALOG_INGEST_DISABLE_CACHE=1`.
  */
 export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   if (process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1") {

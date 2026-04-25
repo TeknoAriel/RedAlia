@@ -11,11 +11,12 @@ export function isKitepropNetworkAuditEnabled(): boolean {
 }
 
 /**
- * Origen del catálogo público (`getProperties`):
- * - **`json`** (default): solo feed JSON de difusión (`KITEPROP_PROPERTIES_URL` / muestra). Sin listado REST de propiedades.
- * - **`network`** (`aina`): solo API de red para **propiedades**; **no** hay fallback al feed JSON. Listado vacío si la red falla o devuelve 0 ítems (pueden quedar `partnerDirectoryExtraDrafts` si la red devolvió organizaciones).
- * - **`network_fallback_json`**: primero API de red; si falla o 0 propiedades, entonces feed JSON + reglas de muestra/strict de `json-feed`.
- * - Con **`json`**, `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` llama solo al endpoint de organizaciones y fusiona directorio sin cambiar el origen de propiedades.
+ * Origen del **listado de propiedades** del sitio (`getProperties` / `loadCatalogSnapshotUncached`):
+ * - **`json` (default si la env está vacía):** feed JSON de difusión KiteProp (`KITEPROP_PROPERTIES_URL`). Es la **fuente de verdad** del catálogo público de propiedades e imágenes; no usa API de red para rellenar el listing.
+ * - **`network`:** solo `GET` propiedades de la API de red. Sin feed JSON. Úsalo solo si explícitamente se pide; **no** es el default de producto.
+ * - **`network_fallback_json`:** red primero; si falla o 0 ítems, entonces feed JSON. Legado / comparaciones; el default de producción híbrida es `json` + directorio de red.
+ *
+ * El directorio de socios (`REDALIA_PARTNER_DIRECTORY_SOURCE`) es **independiente**: ver `docs/redalia-hybrid-catalog-architecture.md`.
  */
 export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
 
@@ -29,15 +30,25 @@ export function getKitepropPropertiesSourceMode(): KitepropPropertiesSourceMode 
   ) {
     return "network_fallback_json";
   }
-  return "network_fallback_json";
+  if (v === "json" || v === "feed" || v === "difusion" || v === "static") {
+    return "json";
+  }
+  /** Vacío u otro valor: catálogo desde feed JSON (estrategia híbrida acordada). */
+  return "json";
 }
 
 /**
- * Con `KITEPROP_PROPERTIES_SOURCE=json` (o omitido), si es `1` se llama a la API de organizaciones de red
- * y se agregan borradores al directorio público (`partnerDirectoryExtraDrafts`). Si falla la red, el catálogo JSON sigue igual.
+ * Con `KITEPROP_PROPERTIES_SOURCE=json`, por **default** se llama a la API de **organizaciones** de red
+ * y se agregan borradores `kpnet:org:*` al directorio (`partnerDirectoryExtraDrafts`).
+ * Desactivar: `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=0` (o `no` / `false` si añadimos en el futuro; hoy solo `0`).
+ * Si la red falla, el listado de propiedades (JSON) sigue igual; el trace deja el código de error.
  */
 export function isNetworkOrganizationsMergedWithJsonCatalog(): boolean {
-  return trim("KITEPROP_MERGE_NETWORK_ORGANIZATIONS") === "1";
+  const t = trim("KITEPROP_MERGE_NETWORK_ORGANIZATIONS");
+  if (t === "0" || t?.toLowerCase() === "false" || t?.toLowerCase() === "no" || t?.toLowerCase() === "off") {
+    return false;
+  }
+  return true;
 }
 
 export function getKitepropApiUserOrNull(): string | null {

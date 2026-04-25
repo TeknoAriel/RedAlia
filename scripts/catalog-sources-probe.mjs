@@ -15,6 +15,8 @@
  *
  * Al final imprime un bloque RESUMEN con totales de propiedades e inmobiliarias (agencias
  * distintas en el feed JSON; organizaciones en API red).
+ * En `GET /properties` (REST), además: fichas con campo agente (mismas claves que el adaptador)
+ * y cantidad de agentes distintos (dedupe).
  */
 
 const DEFAULT_JSON_FEED =
@@ -471,6 +473,17 @@ async function probeRestPropertiesAll() {
   console.log("Páginas recorridas:", r.pagesFetched, "| ítems acumulados (dedupe por id estable):", r.items.length);
   console.log("Muestra (hasta 5):", JSON.stringify(sample, null, 2));
   if (r.lastHint) console.log("Meta paginación (última respuesta):", JSON.stringify(r.lastHint));
+  const agentStats = contarAgentesEnPropiedadesRest(r.items);
+  const agentesDistintos = agentStats.distinctKeys.size;
+  console.log(
+    "Agente por ficha (mismas claves que `normalizeAgentOffice` + `coerceProp`): con agente parseable:",
+    agentStats.conAgente,
+    "| sin agente en esas claves:",
+    agentStats.sinAgente,
+    "| agentes distintos (dedupe id o nombre):",
+    agentesDistintos,
+  );
+  console.log("Campos de agente vistos (al menos una ficha):", [...agentStats.muestraCampos].sort().join(", ") || "(ninguno)");
   runStats.restPropertiesAll = {
     ok: true,
     http: r.status,
@@ -479,6 +492,11 @@ async function probeRestPropertiesAll() {
     pagesFetched: r.pagesFetched,
     limitPerPage: REST_PAGE_LIMIT,
     paginacionUltima: r.lastHint,
+    agentes: {
+      propiedadesConAgenteEnCamposAdapter: agentStats.conAgente,
+      propiedadesSinAgenteEnCamposAdapter: agentStats.sinAgente,
+      agentesDistintosPorDedupe: agentesDistintos,
+    },
   };
   console.log("── TOTAL REST /properties (todas las páginas) →", r.items.length, "fichas");
 }
@@ -525,6 +543,56 @@ function coerceProp(raw) {
     return { ...nested, ...raw };
   }
   return raw;
+}
+
+/** Misma prioridad de claves que `normalizeAgentOffice` en `lib/kiteprop-adapter.ts` (agente por ficha). */
+const AGENT_FIELD_KEYS = ["agent", "main_agent", "mainAgent", "listing_agent", "listingAgent"];
+
+/**
+ * @returns {{ distinctKeys: Set<string>, conAgente: number, sinAgente: number, muestraCampos: Set<string> }}
+ */
+function contarAgentesEnPropiedadesRest(propertyRaws) {
+  const distinctKeys = new Set();
+  const muestraCampos = new Set();
+  let conAgente = 0;
+  let sinAgente = 0;
+  for (const raw of propertyRaws) {
+    const flat = coerceProp(raw);
+    if (!flat || typeof flat !== "object" || Array.isArray(flat)) {
+      sinAgente += 1;
+      continue;
+    }
+    let found = null;
+    for (const k of AGENT_FIELD_KEYS) {
+      const v = flat[k];
+      if (v === undefined || v === null) continue;
+      if (typeof v === "string" && v.trim()) {
+        found = { dedupe: `n:${k}:${v.trim().toLowerCase()}`, campo: k };
+        break;
+      }
+      if (typeof v === "object" && !Array.isArray(v)) {
+        if (v.id != null) {
+          found = { dedupe: `id:${k}:${String(v.id)}`, campo: k };
+          break;
+        }
+        const n = String(v.name ?? v.full_name ?? v.fullName ?? "")
+          .trim()
+          .toLowerCase();
+        if (n) {
+          found = { dedupe: `n:${k}:${n}`, campo: k };
+          break;
+        }
+      }
+    }
+    if (found) {
+      conAgente += 1;
+      distinctKeys.add(found.dedupe);
+      muestraCampos.add(found.campo);
+    } else {
+      sinAgente += 1;
+    }
+  }
+  return { distinctKeys, conAgente, sinAgente, muestraCampos };
 }
 
 function applyPathTemplate(template, networkId, networkToken) {

@@ -8,12 +8,12 @@ Documentación técnica breve (abril 2026). Fuentes: código del repo, feed JSON
 
 | Fuente | Autenticación | Uso en Redalia hoy |
 |--------|----------------|-------------------|
-| **JSON de difusión** (`KITEPROP_PROPERTIES_URL` o `data/kiteprop-sample.json`) | Público / archivo | **Catálogo de propiedades**, extracción de **agencias / anunciantes / agentes** por propiedad, **directorio Socios**, métricas de hero en `/socios`. |
+| **JSON de difusión** (`KITEPROP_PROPERTIES_URL` o `data/kiteprop-sample.json`) | Público / archivo | **Catálogo de propiedades e imágenes** (fuente de verdad del listing; ver `docs/redalia-hybrid-catalog-architecture.md`). Socios en UI se enriquecen con la **red** según env. |
 | **`GET /api/v1/profile`** | Header **`X-API-Key`** (`KITEPROP_API_KEY` o `KITEPROP_API_SECRET`) | Conectividad (`getKitePropProfile`, ruta opcional `/api/test-kiteprop`). **No** se usa aún para UI pública. |
 | **`GET /api/v1/users`** | Documentación: header **`Authorization: Bearer`** | `getKitePropUsersPage` con `KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET`. **No** probado en esta entrega; shape de respuesta no modelado. |
 | **`GET /api/v1/properties`** | **Bearer** (`KITEPROP_ACCESS_TOKEN` o `KITEPROP_API_SECRET`) | `getKitePropPropertiesApiPage`; prueba `GET /api/test-kiteprop-properties`. Informe: `docs/kiteprop-api-properties-investigation.md`. **No** sustituye al feed hasta validar paridad y PII. |
 | **Detalle de propiedad (API)** | Ejemplos con `success` + `data` | Incluye anidados `user` (id, email, phone, full_name, …) y `organization` (name). **Datos sensibles** — no aptos para copiar tal cual a web pública sin política explícita. |
-| **Red AINA (organizaciones / propiedades de red)** | Ver `docs/kiteprop-network-aina.md` | Cliente server-only en `lib/kiteprop-network/*`; **no** alimenta aún el catálogo ni el directorio. Auditoría opcional: `GET /api/test-kiteprop-network-audit` con `KITEPROP_NETWORK_AUDIT_ENABLED=1`. |
+| **Red AINA (organizaciones / propiedades de red)** | Ver `docs/kiteprop-network-aina.md` | Cliente en `lib/kiteprop-network/*`: **directorio de socios**, overlay de anunciantes/logos y orgs; el listado de propiedades del sitio sigue el **JSON** salvo `KITEPROP_PROPERTIES_SOURCE=network`. Auditoría: `GET /api/test-kiteprop-network-audit` con `KITEPROP_NETWORK_AUDIT_ENABLED=1`. |
 
 **Importante:** la documentación pública mezcla ejemplos con `Authorization: Bearer` para listados; la integración vigente de **profile** usa **`X-API-Key`**. No asumir que la misma key sirve para todos los paths hasta probarlo con KiteProp.
 

@@ -1,69 +1,67 @@
 # Catálogo Redalia — operación y fuente de verdad
 
-Referencia corta para deploy y soporte. Detalle técnico: `docs/ingestion-feed-plan.md`, red AINA: `docs/kiteprop-network-aina.md`.
+Referencia operativa. Arquitectura híbrida fijada: **`docs/redalia-hybrid-catalog-architecture.md`**. Red AINA: `docs/kiteprop-network-aina.md`.
 
-## Variables mínimas por modo
+## Fuentes (sin ambigüedad)
 
-**Directorio `/socios`:** `REDALIA_PARTNER_DIRECTORY_SOURCE` (`feed` \| `network` \| `merge`, default `feed`). Detalle y reglas de merge: **`docs/redalia-partner-directory.md`**.
+| Qué | Fuente de verdad | Variable principal |
+|-----|------------------|--------------------|
+| **Listado de propiedades e imágenes** | **JSON de difusión** | `KITEPROP_PROPERTIES_URL` (y `KITEPROP_PROPERTIES_SOURCE` vacío o `json` → solo feed) |
+| **Directorio de socios** (`/socios`, logos institucionales) | **API de red** + reglas de merge con el feed | `REDALIA_PARTNER_DIRECTORY_SOURCE` (default `merge`) + `KITEPROP_NETWORK_*` + credenciales API |
+| **Organizaciones (extras `kpnet:org:*`)** | API de red, **por defecto activo** con catálogo JSON | `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=0` para desactivar |
 
-| Modo (`KITEPROP_PROPERTIES_SOURCE`) | Propiedades | Directorio Socios (extras) | Variables clave |
-|--------------------------------------|---------------|-----------------------------|-------------------|
-| **omitido / `json`** | Feed JSON (`KITEPROP_PROPERTIES_URL` o URL default del repo) + muestra si el GET falla o viene vacío | Derivado del JSON (`agencies` / `NormalizedProperty`) | URL feed, `KITEPROP_PROPERTIES_STRICT_EMPTY` |
-| **`json` + merge orgs** | Igual JSON | + API organizaciones si `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=1` | Lo anterior + credenciales red (`KITEPROP_API_*`, `KITEPROP_NETWORK_*`) |
-| **`network`** | **Solo** API propiedades de red | Organizaciones de la misma corrida de red si hay datos | Credenciales red; **no** hay fallback al feed JSON |
-| **`network_fallback_json`** | Red primero; si error o 0 ítems → feed JSON + reglas de muestra | Organizaciones de red si la llamada de red devolvió borradores | Credenciales + URL feed |
+`network_fallback_json` y `KITEPROP_PROPERTIES_SOURCE=network` son modos **explícitos**; no son el default de producto. Ver `getKitepropPropertiesSourceMode()` en `lib/kiteprop-network/network-env.ts`.
 
-Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (local). Cron: `CRON_SECRET` + `GET /api/cron/catalog` con Bearer. Logs de corrida: `CATALOG_INGEST_LOG=1`.
+## Variables mínimas
 
-## Orden real de fuentes (sin ambigüedad)
+| Modo de propiedades (`KITEPROP_PROPERTIES_SOURCE`) | Comportamiento |
+|--------------------------------------------------|----------------|
+| **Vacío, `json`, `feed`, `difusion`, `static`** | Solo `loadJsonFeedSnapshot` (JSON de difusión, imágenes incluidas). |
+| `network` | Solo API de red para el array de propiedades. |
+| `network_fallback_json` / `network+json` / `aina_fallback_json` | Red primero; si 0 o error, feed JSON. |
 
-1. **`network`:** una sola fuente para el **array de propiedades**: `loadPublicCatalogFromNetwork` → normalización. Sin `loadJsonFeedSnapshot`.
-2. **`network_fallback_json`:** (a) misma carga de red; (b) si no hay propiedades útiles, `loadJsonFeedSnapshot` (URL remota / disco / bundle); (c) ramas de vacío estricto y muestra como en `json-feed.ts`.
-3. **`json`:** solo `loadJsonFeedSnapshot` (+ opcional solo-organizaciones si merge activo).
+| Directorio (`REDALIA_PARTNER_DIRECTORY_SOURCE`) | Comportamiento |
+|-------------------------------------------------|----------------|
+| **Vacío o `network` (default)** | Borradores `kpnet:*` desde la red primero; `propertyCount` recalculado sobre propiedades del **JSON**; si no hay red, cae al armado derivado del catálogo. |
+| `merge` | Fusiona feed + red por `advertiser.id` numérico (logos/contacto red primero en match). |
+| `feed` | Sin overlay de anunciantes de red; solo `extractSociosGridCatalog` + extras de orgs si aplica. |
 
-## Variables locales desde Vercel (segundo caso: API red, sin pegar secretos en el chat)
+Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (local). Cron: `CRON_SECRET` + `GET /api/cron/catalog` con Bearer. `ingestMeta.kitepropPropertiesSourceMode` y `partnerDirectorySourceMode` trazan cada corrida.
 
-1. Instalá la CLI: `npm i -g vercel` (o usá `npx vercel`).
-2. En la raíz del repo: `vercel link` y elegí el **team** y el **proyecto** donde ya están las env vars.
-3. Bajá todo a un archivo **gitignored**: `npm run env:pull:vercel` (equivale a `vercel env pull .env.local`).
-4. Cargá y probá: `set -a && source .env.local && set +a && npm run catalog:sources-probe` (sin `CATALOG_PROBE_JSON_ONLY` para incluir REST + red) o `npm run verify:network-ingest`.
+## Orden de ejecución (modo `json` + default)
 
-**Importante:** no commitees `.env.local` (ya está cubierto por `.gitignore` con `.env*.local`). No copies valores sensibles al asistente ni a issues públicos.
+1. Cargar propiedades desde el feed remoto (o muestra/strict según `json-feed.ts`).
+2. Si el merge de organizaciones no está desactivado, `GET` organizaciones de red → `partnerDirectoryExtraDrafts`.
+3. Si el directorio no es `feed`, intentar **overlay** de anunciantes de red (`loadNetworkPartnerDirectoryAdvertiserOverlayDrafts`).
 
-## Cómo probar la ingesta
+## Variables locales (Vercel)
 
-- **Sin Next:** `npm run verify:network-ingest` (misma auth que producción).
-- **Fuentes en paralelo (JSON + REST + red):** `set -a && source .env.local && set +a && npm run catalog:sources-probe` — imprime HTTP, conteos y muestras de títulos/nombres (sin volcar PII). Solo JSON: `CATALOG_PROBE_JSON_ONLY=1 npm run catalog:sources-probe`.
-- **Con Next:** `CATALOG_INGEST_DISABLE_CACHE=1`, recargar `/propiedades`; revisar `ingestMeta` en logs si `CATALOG_INGEST_LOG=1`.
+1. `vercel link` y `npm run env:pull:vercel` → `.env.local` (no commitear).
+2. `set -a && source .env.local && set +a && npm run catalog:sources-probe` — no volcar PII.
+3. `npm run verify:network-ingest` — contrato de red.
 
-## Cómo forzar fallback (propiedades)
+## Cómo forzar vacío o muestra (propiedades)
 
-- **Muestra embebida:** feed remoto falla o vacío y **no** `KITEPROP_PROPERTIES_STRICT_EMPTY=1` → `json-feed` puede servir `data/kiteprop-sample.json` / bundle.
-- **Vacío forzado:** `KITEPROP_PROPERTIES_STRICT_EMPTY=1` evita rellenar con muestra cuando el remoto devuelve 0 ítems.
-- **Modo red sin respaldo JSON:** usar `network`; si la API falla, listado vacío (`source: "empty"`) con `ingestMeta.networkErrorCode`.
+- **Muestra embebida:** fallo o vacío remoto y no `KITEPROP_PROPERTIES_STRICT_EMPTY=1` → `data/kiteprop-sample.json` / bundle.
+- **Red sin propiedades:** `KITEPROP_PROPERTIES_SOURCE=network` y la API no devuelve ítems → `source: empty` (u orgs sueltas).
+- **Merge de orgs desactivado:** `KITEPROP_MERGE_NETWORK_ORGANIZATIONS=0`.
 
 ## Auditoría AINA
 
-1. `KITEPROP_NETWORK_AUDIT_ENABLED=1` en el entorno del servidor.
-2. `GET /api/test-kiteprop-network-audit` (solo server; no exponer en cliente).
-3. Revisar `auth`, conteos, `socioResolutionStats` (cuántas propiedades resuelven a anunciante vs org-only vs unmapped), `socioResolutionSample`, `advertiserScan`.
-4. Script: `npm run audit:kiteprop-network` (ver `scripts/kiteprop-network-audit.mjs`).
+1. `KITEPROP_NETWORK_AUDIT_ENABLED=1`
+2. `GET /api/test-kiteprop-network-audit` (server-only)
+3. `npm run audit:kiteprop-network`
 
 ## Si el listing queda vacío
 
 | Síntoma | Revisar |
 |---------|---------|
-| `source: "empty"`, `hasListings: false` | Modo `network`: API sin ítems o error (`networkErrorCode`). Modo JSON: URL 403/404, o strict empty. |
-| Caché “vieja” | Cron con `CRON_SECRET`; TTL; o `revalidateTag` manual; `CATALOG_INGEST_DISABLE_CACHE=1` en local. |
-| Extractor devuelve 0 | `extractPropertyArrayFromNetworkResponse` / envelope `success`+`data`; correr auditoría y `verify:network-ingest`. |
-| Directorio sin socios pero hay props | `buildPublicPartnerDirectoryFromFeed`: socios derivados de partners en propiedades; extras `kpnet:*` si red aportó borradores. |
+| 403/404 al feed | `KITEPROP_PROPERTIES_URL` correcta; permisos `static.kiteprop.com` |
+| `kitepropPropertiesSourceMode: network` | Modo forzado a red; credenciales y paths |
+| Directorio sin `kpnet:*` | Red no autenticada; `ingestMeta.partnerDirectoryOverlayErrorCode` |
 
-## Fuente de verdad hoy
+## Documentos relacionados
 
-- **Listado de propiedades en la web:** la que indique `KITEPROP_PROPERTIES_SOURCE` (tabla arriba). `ingestMeta.propertyPrimarySource` refleja el origen dominante de esa corrida (`remote` \| `sample` \| `empty` \| `network`).
-- **Directorio público (sin cambiar UI en esta fase):** derivación desde propiedades normalizadas + opcional `partnerDirectoryExtraDrafts` (red).
-
-## Fuente futura de “Socio Redalia”
-
-- **Red API:** modelo documentado en `lib/kiteprop-network/redalia-socio-network-model.ts`: **anunciante canónico** (`kpnet:advertiser:{id}`), **organización** como contexto o fallback (`kpnet:org:{id}`).
-- **Feed JSON:** hoy `partnerKey` por `scopedPartnerKey` desde roles en ficha (`lib/agencies.ts` → `lib/public-data/map-socio-catalog-to-public.ts`). La convergencia hacia anunciante-red es la siguiente fase de producto (sin tocar UI pública hasta decisión explícita).
+- `docs/redalia-partner-directory.md` — merge y `partnerKey`
+- `docs/redalia-hybrid-catalog-architecture.md` — decisión de arquitectura
+- `docs/ingestion-feed-plan.md` — detalle de ingest (histórico)

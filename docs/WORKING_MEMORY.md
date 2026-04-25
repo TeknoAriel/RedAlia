@@ -14,11 +14,11 @@ No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción*
 - Los socios deben tener **logos visibles** cuando el dato exista.
 - No debe aparecer **catálogo referencial** ni **socios demo**.
 
-## Fuente de verdad
+## Fuente de verdad (híbrida; ver `docs/redalia-hybrid-catalog-architecture.md`)
 
-- **Catálogo**: API **network** como fuente prioritaria (`KITEPROP_PROPERTIES_SOURCE=network` en producción salvo decisión explícita en contrario).
-- **Socios**: **anunciante** como socio canónico (`kpnet:advertiser:{id}`).
-- **Organización**: contexto / fallback (`kpnet:org:{id}`).
+- **Propiedades + fotos de ficha:** **JSON de difusión** (`KITEPROP_PROPERTIES_URL`; `KITEPROP_PROPERTIES_SOURCE` default = `json`).
+- **Socios / directorio / logos institucionales:** **API de red** (`REDALIA_PARTNER_DIRECTORY_SOURCE` default = `network`; opcional `merge` para fusión explícita feed↔red).
+- **Anunciante** canónico en red: `kpnet:advertiser:{id}`; **organización** contexto / fallback: `kpnet:org:{id}`.
 
 ## Reglas de release
 

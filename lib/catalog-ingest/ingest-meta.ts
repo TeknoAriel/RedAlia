@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CatalogIngestRunMeta, CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import type { CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
+import { getKitepropPropertiesSourceMode } from "@/lib/kiteprop-network/network-env";
 import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 
 /** Una corrida de ingest = un id para correlacionar logs (sin PII). */
@@ -16,6 +17,7 @@ export function attachIngestMeta(
   const meta: CatalogIngestRunMeta = {
     runId,
     completedAtMs: Date.now(),
+    kitepropPropertiesSourceMode: getKitepropPropertiesSourceMode(),
     propertyPrimarySource: result.source,
     jsonFeedAttempted: trace.jsonFeedAttempted,
     networkApiAttempted: trace.networkApiAttempted,

@@ -4,12 +4,12 @@
  * Para otro feed, definí `KITEPROP_PROPERTIES_URL` en Vercel.
  */
 /**
- * URL histórica de difusión (referencia). Suele responder **403** sin ACL; igual se intenta un GET en servidor
- * y, si falla o viene vacío, el catálogo cae en muestra embebida. Para datos reales definí `KITEPROP_PROPERTIES_URL`
- * en Vercel con el JSON vigente que entrega KiteProp (difusión / externalsite).
+ * Feeds de difusión en `static.kiteprop.com` pueden 403/404 según permisos. El default del repo
+ * apunta a un `externalsite-3154-…` usado en validación de producto; **en producción** definí siempre
+ * `KITEPROP_PROPERTIES_URL` con el JSON de difusión entregado por KiteProp para vuestro sitio.
  */
 export const DEFAULT_KITEPROP_DIFUSION_FEED_URL =
-  "https://static.kiteprop.com/kp/difusions/4b3c894a10d905c82e85b35c410d7d4099551504/externalsite-274-824a1c8e7d598497d49e0ad573e2a8dc63d82c63.json";
+  "https://static.kiteprop.com/kp/difusions/4b3c894a10d905c82e85b35c410d7d4099551504/externalsite-3154-76231c90a9bdef3fd5159dcea8a41b05cc4cd8f3.json";
 
 /**
  * URL del feed JSON de KiteProp (difusión). Si no está definida, se usa la URL por defecto de Redalia;

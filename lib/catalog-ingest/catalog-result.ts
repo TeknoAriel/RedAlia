@@ -14,6 +14,11 @@ export type CatalogIngestRunMeta = {
   runId: string;
   /** Momento server al cerrar la corrida. */
   completedAtMs: number;
+  /**
+   * Modo de origen de **propiedades** resuelto desde env (`KITEPROP_PROPERTIES_SOURCE`).
+   * Invariante: default de producto = `json` (feed de difusión; ver docs).
+   */
+  kitepropPropertiesSourceMode: "json" | "network" | "network_fallback_json";
   propertyPrimarySource: PropertiesSource;
   /** Se intentó leer feed JSON (URL configurada o default con opt-in). */
   jsonFeedAttempted: boolean;

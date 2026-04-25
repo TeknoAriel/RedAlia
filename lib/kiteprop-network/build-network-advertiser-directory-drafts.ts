@@ -63,6 +63,7 @@ export function buildNetworkDirectoryDraftsFromPropertyPayloads(
 
     if (res.kind === "advertiser") {
       const org = res.organizationContext;
+      // Logo: anunciante de red; si falta, organización de la misma ficha. Sin datos → null (no inventar).
       bump(
         {
           ...res.draft,
