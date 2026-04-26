@@ -9,31 +9,56 @@ import { siteConfig } from "@/lib/site-config";
 
 const membersPortalUrl = getMembersPortalUrl();
 
-/** Orden: institución → comunidad operativa → catálogo y accesos destacados aparte. */
-const navTextLinks = [
+const catalogoItems = [
+  { href: "/propiedades", label: "Propiedades" },
+  { href: "/socios", label: "Socios / Corredoras" },
+];
+
+const serviciosItems = [
+  { href: "/colaboracion", label: "Canje y colaboración" },
+  { href: "/capacitacion", label: "Capacitación" },
+  { href: "/planes", label: "Membresía" },
+  { href: "/servicios", label: "Herramientas para corredoras" },
+];
+
+const mainLinks = [
+  { href: "/", label: "Inicio" },
   { href: "/que-es", label: "Qué es Redalia" },
-  { href: "/socios", label: "Socios" },
+  { href: "/unete", label: "Únete" },
   { href: "/contacto", label: "Contacto" },
 ];
+
+function linkActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function catalogoSectionActive(pathname: string): boolean {
+  return pathname.startsWith("/propiedades") || pathname.startsWith("/catalogo") || pathname.startsWith("/socios");
+}
+
+function serviciosSectionActive(pathname: string): boolean {
+  return (
+    pathname.startsWith("/colaboracion") ||
+    pathname.startsWith("/capacitacion") ||
+    pathname.startsWith("/planes") ||
+    pathname.startsWith("/servicios")
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mobileCatalogo, setMobileCatalogo] = useState(false);
+  const [mobileServicios, setMobileServicios] = useState(false);
 
-  const propiedadesActive =
-    pathname === "/propiedades" || pathname.startsWith("/propiedades/");
-
-  const linkActive = (href: string) =>
-    pathname === href || (href !== "/" && pathname.startsWith(href));
+  const catalogoActive = catalogoSectionActive(pathname);
+  const serviciosActive = serviciosSectionActive(pathname);
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1 sm:px-6 lg:gap-4 lg:px-8">
-        <Link
-          href="/"
-          className="flex min-w-0 shrink-0 items-center"
-          onClick={() => setOpen(false)}
-        >
+        <Link href="/" className="flex min-w-0 shrink-0 items-center" onClick={() => setOpen(false)}>
           <Image
             src="/logo-redalia.png"
             alt={siteConfig.name}
@@ -44,10 +69,100 @@ export function Navbar() {
           />
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-between gap-3 xl:flex" aria-label="Principal">
-          <div className="flex min-w-0 flex-wrap items-center gap-0.5 lg:gap-1">
-            {navTextLinks.map(({ href, label }) => {
-              const active = linkActive(href);
+        <nav className="hidden min-w-0 flex-1 items-center justify-between gap-2 xl:flex" aria-label="Principal">
+          <div className="flex min-w-0 flex-wrap items-center gap-0.5 lg:gap-0.5">
+            {mainLinks.slice(0, 2).map(({ href, label }) => {
+              const active = linkActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors lg:px-2.5 ${
+                    active
+                      ? "bg-brand-navy-soft text-brand-navy"
+                      : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+
+            <div className="relative group">
+              <button
+                type="button"
+                className={`flex items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium transition-colors lg:px-2.5 ${
+                  catalogoActive
+                    ? "bg-brand-navy-soft text-brand-navy"
+                    : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                }`}
+                aria-expanded={false}
+                aria-haspopup="true"
+              >
+                Catálogo
+                <svg className="h-3.5 w-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div
+                className="invisible absolute left-0 top-full z-50 pt-1 opacity-0 transition group-hover:visible group-hover:opacity-100"
+                role="menu"
+              >
+                <div className="min-w-[13rem] rounded-xl border border-brand-navy/10 bg-white py-2 shadow-lg">
+                  {catalogoItems.map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      className={`block px-4 py-2.5 text-sm ${
+                        linkActive(pathname, it.href)
+                          ? "bg-brand-navy-soft font-semibold text-brand-navy"
+                          : "text-brand-navy/85 hover:bg-brand-navy-soft/50"
+                      }`}
+                      role="menuitem"
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button
+                type="button"
+                className={`flex items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium transition-colors lg:px-2.5 ${
+                  serviciosActive
+                    ? "bg-brand-navy-soft text-brand-navy"
+                    : "text-brand-navy/80 hover:bg-brand-navy-soft/60 hover:text-brand-navy"
+                }`}
+                aria-haspopup="true"
+              >
+                Servicios
+                <svg className="h-3.5 w-3.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="invisible absolute left-0 top-full z-50 pt-1 opacity-0 transition group-hover:visible group-hover:opacity-100">
+                <div className="min-w-[15rem] rounded-xl border border-brand-navy/10 bg-white py-2 shadow-lg">
+                  {serviciosItems.map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      className={`block px-4 py-2.5 text-sm ${
+                        linkActive(pathname, it.href)
+                          ? "bg-brand-navy-soft font-semibold text-brand-navy"
+                          : "text-brand-navy/85 hover:bg-brand-navy-soft/50"
+                      }`}
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {mainLinks.slice(2).map(({ href, label }) => {
+              const active = linkActive(pathname, href);
               return (
                 <Link
                   key={href}
@@ -64,17 +179,7 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2.5" aria-label="Accesos destacados">
-            <Link
-              href="/propiedades"
-              className={`inline-flex items-center rounded-full px-4 py-2.5 text-[0.92rem] font-semibold leading-none shadow-md transition ${
-                propiedadesActive
-                  ? "bg-brand-navy text-white ring-2 ring-brand-gold/70 ring-offset-2 ring-offset-white"
-                  : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e] hover:shadow-lg"
-              }`}
-            >
-              Catálogo
-            </Link>
+          <div className="flex shrink-0 items-center gap-2" aria-label="Acceso socios">
             <a
               href={membersPortalUrl}
               target="_blank"
@@ -123,36 +228,91 @@ export function Navbar() {
             {siteConfig.brandLockup}
           </p>
           <nav className="flex flex-col gap-1" aria-label="Móvil">
-            <div className="flex flex-col gap-1 border-b border-brand-navy/10 pb-3">
-              {navTextLinks.map(({ href, label }) => {
-                const active = linkActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`rounded-lg px-3 py-3 text-base font-medium ${
-                      active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
-                    }`}
-                    onClick={() => setOpen(false)}
-                  >
-                    {label}
-                  </Link>
-                );
-              })}
-            </div>
+            {mainLinks.slice(0, 2).map(({ href, label }) => {
+              const active = linkActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-3 py-3 text-base font-medium ${
+                    active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  {label}
+                </Link>
+              );
+            })}
 
-            <div className="space-y-2 pt-3">
-              <Link
-                href="/propiedades"
-                className={`flex w-full items-center justify-center rounded-full px-4 py-3.5 text-center text-sm font-semibold shadow-md transition ${
-                  propiedadesActive
-                    ? "bg-brand-navy text-white ring-2 ring-brand-gold/60"
-                    : "bg-brand-gold text-brand-navy hover:bg-[#d4b82e]"
-                }`}
-                onClick={() => setOpen(false)}
+            <div className="rounded-lg border border-brand-navy/10 bg-brand-navy-soft/30">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-3 text-left text-base font-semibold text-brand-navy"
+                aria-expanded={mobileCatalogo}
+                onClick={() => setMobileCatalogo((v) => !v)}
               >
                 Catálogo
-              </Link>
+                <span className="text-xs text-muted">{mobileCatalogo ? "▲" : "▼"}</span>
+              </button>
+              {mobileCatalogo && (
+                <div className="border-t border-brand-navy/10 bg-white px-2 py-2">
+                  {catalogoItems.map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      className="block rounded-lg px-3 py-2.5 text-sm font-medium text-brand-navy hover:bg-brand-navy-soft"
+                      onClick={() => setOpen(false)}
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-brand-navy/10 bg-brand-navy-soft/30">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-3 text-left text-base font-semibold text-brand-navy"
+                aria-expanded={mobileServicios}
+                onClick={() => setMobileServicios((v) => !v)}
+              >
+                Servicios
+                <span className="text-xs text-muted">{mobileServicios ? "▲" : "▼"}</span>
+              </button>
+              {mobileServicios && (
+                <div className="border-t border-brand-navy/10 bg-white px-2 py-2">
+                  {serviciosItems.map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      className="block rounded-lg px-3 py-2.5 text-sm font-medium text-brand-navy hover:bg-brand-navy-soft"
+                      onClick={() => setOpen(false)}
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {mainLinks.slice(2).map(({ href, label }) => {
+              const active = linkActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-lg px-3 py-3 text-base font-medium ${
+                    active ? "bg-brand-navy-soft text-brand-navy" : "text-brand-navy hover:bg-brand-navy-soft"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+
+            <div className="border-t border-brand-navy/10 pt-3">
               <a
                 href={membersPortalUrl}
                 target="_blank"

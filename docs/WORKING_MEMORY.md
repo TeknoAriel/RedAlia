@@ -6,6 +6,14 @@ Documento vivo entre sesiones. No reemplaza los `docs/*.md` canónicos; alinea *
 
 No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción**.
 
+## Estado Sprint 0/1 (foundation)
+
+- Rama de trabajo: `redalia/sprint-0-1-foundation-nav`.
+- Se habilitaron health checks protegidos por `REDALIA_HEALTH_SECRET` con formato `?secret=...` y respuesta `401` cuando falta/incorrecto.
+- Decisión vigente de rutas públicas: mantener `\`/propiedades\`` como catálogo principal en producción.
+- `\`/catalogo\`` sigue fuera de navegación principal mientras en producción continúe en `404`.
+- Este sprint **no** ataca el P0 de performance de propiedades; queda planificado para Sprint 3.
+
 ## Criterios de cierre de esta etapa
 
 - `/propiedades` debe mostrar **>3000** propiedades reales.
@@ -19,6 +27,16 @@ No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción*
 - **Propiedades + fotos de ficha:** **JSON de difusión** (`KITEPROP_PROPERTIES_URL`; `KITEPROP_PROPERTIES_SOURCE` default = `json`).
 - **Socios / directorio / logos institucionales:** **API de red** (`REDALIA_PARTNER_DIRECTORY_SOURCE` default = `network`; opcional `merge` para fusión explícita feed↔red).
 - **Anunciante** canónico en red: `kpnet:advertiser:{id}`; **organización** contexto / fallback: `kpnet:org:{id}`.
+
+## Estabilidad operativa de `/socios` + catálogo (abril 2026)
+
+- Base efectiva del directorio: `REDALIA_PARTNER_DIRECTORY_SOURCE=network` (red) vía `resolveStablePublicDirectorySnapshot` (`lib/public-data/get-stable-partner-directory.ts`).
+- **Persistencia entre instancias:** snapshot JSON del directorio en **Upstash Redis** (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`); en **dev** archivo `.redalia-cache/partner-directory-snapshot.json`. Si la red falla y el listado live queda vacío, se sirve el último snapshot sin error al usuario.
+- Capa adicional en proceso: `load-catalog-snapshot.ts` conserva últimos drafts de red en memoria de la instancia (complemento, no sustituto de Redis en serverless).
+- Orden: activos primero; `propertyCount` desc; tipo; nombre. Rotación opcional entre empates: `REDALIA_SOCIOS_ROTATION_PERIOD` (`weekly` default, `daily`, `off`) + `REDALIA_SOCIOS_ROTATE_ACTIVE_TIES=1`.
+- Catálogo: filtros/paginación **server-side** (`lib/properties/catalog-query.ts`); rutas `/propiedades` y `/catalogo` (ISR `revalidate=1800`). Ver `docs/CATALOG_STABILITY.md` y `docs/PERFORMANCE_NOTES.md`.
+- Diagnóstico interno protegido por query secret: `GET /api/catalog-health?secret=...`, `GET /api/socios-health?secret=...` (`401` sin secret válido).
+- Términos Chile en socios: “corredora”, “socios de la red”, “oficina/profesional” donde aplica.
 
 ## Reglas de release
 
@@ -63,7 +81,9 @@ Indicar con precisión:
 ### Rutas de código
 
 - Catálogo: `lib/get-properties.ts` → `lib/catalog-ingest/load-catalog-snapshot.ts` → `lib/kiteprop-network/load-public-catalog-from-network.ts`.
+- Listado público paginado: `lib/properties/catalog-query.ts`, `components/catalog/CatalogListingPage.tsx`, `components/properties/PropertiesExplorer.tsx`.
 - Red: `lib/kiteprop-network/get-network-properties.ts`, `get-network-organizations.ts`, `lib/kiteprop/client.ts`.
+- Directorio estable: `lib/public-data/get-stable-partner-directory.ts`, `partner-directory-snapshot-persist.ts`, `lib/kv/upstash-string.ts`.
 - Directorio: `lib/public-data/partner-directory-resolve.ts`, `from-properties-feed.ts`.
 - Media: `lib/kiteprop-media-url.ts`, `lib/kiteprop-adapter.ts`, `next.config.ts` (`images.remotePatterns`).
 
