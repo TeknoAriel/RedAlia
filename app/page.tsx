@@ -8,9 +8,9 @@ import { ListingPulseStrip } from "@/components/sections/ListingPulseStrip";
 import { PartnerLogosStrip } from "@/components/sections/PartnerLogosStrip";
 import { TangibleValueForBrokers } from "@/components/sections/TangibleValueForBrokers";
 import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
-import { getProperties, getPartnerDirectoryExtraDrafts } from "@/lib/get-properties";
+import { getProperties } from "@/lib/get-properties";
 import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
-import { buildPublicDirectorySnapshot } from "@/lib/public-data";
+import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { siteConfig } from "@/lib/site-config";
 import { portalPublishers } from "@/lib/home-config";
@@ -37,13 +37,8 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const catalog = await getProperties();
   const listingCount = catalog.ok ? catalog.properties.length : 0;
-  const directorySnapshot =
-    catalog.ok
-      ? buildPublicDirectorySnapshot(catalog.properties, {
-          featuredMax: 8,
-          extraDirectoryDrafts: getPartnerDirectoryExtraDrafts(catalog),
-        })
-      : null;
+  const stable = catalog.ok ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 }) : null;
+  const directorySnapshot = stable?.snapshot ?? null;
   const mcpOverlay = await loadPublicMcpNetworkOverlay();
   const carouselEntries = directorySnapshot?.featured ?? [];
 

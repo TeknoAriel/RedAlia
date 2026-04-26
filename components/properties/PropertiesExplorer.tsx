@@ -1,16 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { NormalizedProperty } from "@/types/property";
 import type { PropertyOperation } from "@/types/property";
-import { propertyMatchesPartnerKey } from "@/lib/agencies";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyCompareModal } from "@/components/properties/PropertyCompareModal";
+import {
+  type CatalogFilterOptions,
+  type CatalogSortKey,
+  catalogHref,
+  parseCatalogQuery,
+} from "@/lib/properties/catalog-query";
 
 type Props = {
-  properties: NormalizedProperty[];
+  basePath: "/propiedades" | "/catalogo";
+  filterOptions: CatalogFilterOptions;
+  pageItems: NormalizedProperty[];
+  totalFiltered: number;
+  totalCatalog: number;
+  totalPages: number;
+  safePage: number;
+  pageSize: number;
+  hasActiveFilters: boolean;
 };
 
 const operations: { value: "" | PropertyOperation; label: string }[] = [
@@ -21,20 +34,7 @@ const operations: { value: "" | PropertyOperation; label: string }[] = [
   { value: "arriendo_temporal", label: "Arriendo temporal" },
 ];
 
-type SortKey = "recent" | "price_asc" | "price_desc" | "surface_desc";
-
-/** Paginación por `?page=` sobre el listado ya filtrado y ordenado (sin tocar la lógica de filtros). */
-const CATALOG_PAGE_SIZE = 24;
-
-function catalogPageHref(queryString: string, page: number): string {
-  const n = new URLSearchParams(queryString);
-  if (page <= 1) n.delete("page");
-  else n.set("page", String(page));
-  const q = n.toString();
-  return q ? `/propiedades?${q}` : "/propiedades";
-}
-
-const sortOptions: { value: SortKey; label: string }[] = [
+const sortOptions: { value: CatalogSortKey; label: string }[] = [
   { value: "recent", label: "Ordenar: más recientes" },
   { value: "price_desc", label: "Ordenar: mayor precio" },
   { value: "price_asc", label: "Ordenar: menor precio" },
@@ -50,243 +50,51 @@ const minSelectOptions = [
   { value: "5", label: "5 o más" },
 ];
 
-function parsePriceInput(s: string): number | null {
-  const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-
-function matchesMin(actual: number | null, minStr: string): boolean {
-  if (!minStr) return true;
-  const min = Number(minStr);
-  if (actual === null) return false;
-  return actual >= min;
-}
-
-function sortProperties(list: NormalizedProperty[], sort: SortKey): NormalizedProperty[] {
-  const out = [...list];
-  switch (sort) {
-    case "recent":
-      return out.sort((a, b) => {
-        const am = a.lastUpdateMs ?? 0;
-        const bm = b.lastUpdateMs ?? 0;
-        return bm - am;
-      });
-    case "price_asc":
-      return out.sort((a, b) => {
-        const ap = a.priceNumeric ?? Infinity;
-        const bp = b.priceNumeric ?? Infinity;
-        return ap - bp;
-      });
-    case "price_desc":
-      return out.sort((a, b) => {
-        const ap = a.priceNumeric ?? -Infinity;
-        const bp = b.priceNumeric ?? -Infinity;
-        return bp - ap;
-      });
-    case "surface_desc":
-      return out.sort((a, b) => {
-        const am = a.surfaceM2 ?? -Infinity;
-        const bm = b.surfaceM2 ?? -Infinity;
-        return bm - am;
-      });
-    default:
-      return out;
-  }
-}
-
-export function PropertiesExplorer({ properties }: Props) {
+export function PropertiesExplorer({
+  basePath,
+  filterOptions,
+  pageItems,
+  totalFiltered,
+  totalCatalog,
+  totalPages,
+  safePage,
+  pageSize,
+  hasActiveFilters,
+}: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const socioKey = searchParams.get("socio")?.trim() ?? "";
+  const [isPending, startTransition] = useTransition();
+  const qs = searchParams.toString();
+  const query = useMemo(() => parseCatalogQuery(new URLSearchParams(qs)), [qs]);
 
-  const [q, setQ] = useState("");
-  const [operation, setOperation] = useState<"" | PropertyOperation>("");
-  const [typeKey, setTypeKey] = useState("");
-  const [sort, setSort] = useState<SortKey>("recent");
   const [expand, setExpand] = useState<0 | 1 | 2>(0);
-
-  const [bedMin, setBedMin] = useState("");
-  const [bathMin, setBathMin] = useState("");
-  const [roomsMin, setRoomsMin] = useState("");
-  const [parkMin, setParkMin] = useState("");
-
-  const [city, setCity] = useState("");
-  const [addressNeedle, setAddressNeedle] = useState("");
-
-  const [currency, setCurrency] = useState<"" | NormalizedProperty["currency"]>("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-
-  const [m2TotalMin, setM2TotalMin] = useState("");
-  const [m2CoveredMin, setM2CoveredMin] = useState("");
-  const [m2TerrainMin, setM2TerrainMin] = useState("");
-
-  const [onlyCredit, setOnlyCredit] = useState(false);
-  const [onlyBarter, setOnlyBarter] = useState(false);
-  const [onlyNew, setOnlyNew] = useState(false);
-
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  const typeOptions = useMemo(() => {
-    const s = new Set<string>();
-    properties.forEach((p) => s.add(p.propertyTypeKey));
-    return Array.from(s).sort();
-  }, [properties]);
+  const [qDraft, setQDraft] = useState(query.q);
 
-  const cityOptions = useMemo(() => {
-    const s = new Set<string>();
-    properties.forEach((p) => {
-      if (p.city) s.add(p.city);
-    });
-    return Array.from(s).sort((a, b) => a.localeCompare(b, "es"));
-  }, [properties]);
-
-  const currencyOptions = useMemo(() => {
-    const s = new Set<NormalizedProperty["currency"]>();
-    properties.forEach((p) => s.add(p.currency));
-    const order: NormalizedProperty["currency"][] = ["uf", "clp", "usd", "otro"];
-    return order.filter((c) => s.has(c));
-  }, [properties]);
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const addr = addressNeedle.trim().toLowerCase();
-    const minN = priceMin ? parsePriceInput(priceMin) : null;
-    const maxN = priceMax ? parsePriceInput(priceMax) : null;
-    const surfMin = m2TotalMin ? parseFloat(m2TotalMin.replace(",", ".")) : null;
-    const covMin = m2CoveredMin ? parseFloat(m2CoveredMin.replace(",", ".")) : null;
-    const terMin = m2TerrainMin ? parseFloat(m2TerrainMin.replace(",", ".")) : null;
-
-    return properties.filter((p) => {
-      if (socioKey && !propertyMatchesPartnerKey(p, socioKey)) return false;
-      if (needle && !p.searchBlob.includes(needle) && !p.title.toLowerCase().includes(needle)) {
-        return false;
-      }
-      if (operation && p.operation !== operation) return false;
-      if (typeKey && p.propertyTypeKey !== typeKey) return false;
-      if (city && p.city !== city) return false;
-
-      if (!matchesMin(p.bedrooms, bedMin)) return false;
-      if (!matchesMin(p.bathrooms, bathMin)) return false;
-      if (!matchesMin(p.totalRooms, roomsMin)) return false;
-      if (!matchesMin(p.parkings, parkMin)) return false;
-
-      if (addr) {
-        const hay = `${p.address ?? ""} ${p.zone ?? ""} ${p.zoneSecondary ?? ""}`.toLowerCase();
-        if (!hay.includes(addr)) return false;
-      }
-
-      if (currency && p.currency !== currency) return false;
-      if (currency && (minN !== null || maxN !== null)) {
-        if (p.priceNumeric === null) return false;
-        if (minN !== null && p.priceNumeric < minN) return false;
-        if (maxN !== null && p.priceNumeric > maxN) return false;
-      }
-
-      if (surfMin !== null && Number.isFinite(surfMin)) {
-        if (p.surfaceM2 === null || p.surfaceM2 < surfMin) return false;
-      }
-      if (covMin !== null && Number.isFinite(covMin)) {
-        if (p.coveredM2 === null || p.coveredM2 < covMin) return false;
-      }
-      if (terMin !== null && Number.isFinite(terMin)) {
-        if (p.terrainM2 === null || p.terrainM2 < terMin) return false;
-      }
-
-      if (onlyCredit && p.fitForCredit !== true) return false;
-      if (onlyBarter && p.acceptBarter !== true) return false;
-      if (onlyNew && p.isNewConstruction !== true) return false;
-
-      return true;
-    });
-  }, [
-    properties,
-    socioKey,
-    q,
-    operation,
-    typeKey,
-    city,
-    currency,
-    priceMin,
-    priceMax,
-    bedMin,
-    bathMin,
-    roomsMin,
-    parkMin,
-    addressNeedle,
-    m2TotalMin,
-    m2CoveredMin,
-    m2TerrainMin,
-    onlyCredit,
-    onlyBarter,
-    onlyNew,
-  ]);
-
-  const sorted = useMemo(() => sortProperties(filtered, sort), [filtered, sort]);
-
-  const pageQuery = searchParams.get("page")?.trim() ?? "";
-  const { pageSlice, totalFiltered, totalPages, safePage } = useMemo(() => {
-    const totalFiltered = sorted.length;
-    const totalPages = Math.max(1, Math.ceil(totalFiltered / CATALOG_PAGE_SIZE));
-    const parsed = parseInt(pageQuery || "1", 10);
-    const requested = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-    const safePage = Math.min(requested, totalPages);
-    const start = (safePage - 1) * CATALOG_PAGE_SIZE;
-    const pageSlice = sorted.slice(start, start + CATALOG_PAGE_SIZE);
-    return { pageSlice, totalFiltered, totalPages, safePage };
-  }, [sorted, pageQuery]);
-
-  const hasActiveFilters = useMemo(() => {
-    return Boolean(
-      socioKey ||
-        q.trim() ||
-        operation ||
-        typeKey ||
-        city ||
-        currency ||
-        priceMin.trim() ||
-        priceMax.trim() ||
-        bedMin ||
-        bathMin ||
-        roomsMin ||
-        parkMin ||
-        addressNeedle.trim() ||
-        m2TotalMin.trim() ||
-        m2CoveredMin.trim() ||
-        m2TerrainMin.trim() ||
-        onlyCredit ||
-        onlyBarter ||
-        onlyNew,
-    );
-  }, [
-    socioKey,
-    q,
-    operation,
-    typeKey,
-    city,
-    currency,
-    priceMin,
-    priceMax,
-    bedMin,
-    bathMin,
-    roomsMin,
-    parkMin,
-    addressNeedle,
-    m2TotalMin,
-    m2CoveredMin,
-    m2TerrainMin,
-    onlyCredit,
-    onlyBarter,
-    onlyNew,
-  ]);
+  useEffect(() => {
+    if (qDraft === query.q) return;
+    const t = setTimeout(() => {
+      startTransition(() => {
+        router.replace(catalogHref(basePath, query, { q: qDraft, page: 1 }));
+      });
+    }, 480);
+    return () => clearTimeout(t);
+  }, [qDraft, query, basePath, router]);
 
   const compareProperties = useMemo(() => {
-    const map = new Map(properties.map((p) => [p.id, p]));
+    const map = new Map(pageItems.map((p) => [p.id, p]));
     return compareIds.map((id) => map.get(id)).filter(Boolean) as NormalizedProperty[];
-  }, [properties, compareIds]);
+  }, [pageItems, compareIds]);
 
-  /** Evita setState en useEffect (regla react-hooks/set-state-in-effect): el modal solo está “abierto” si hay 2+ ítems. */
   const compareModalOpen = compareOpen && compareIds.length >= 2;
+
+  function navigate(patch: Parameters<typeof catalogHref>[2]) {
+    startTransition(() => {
+      router.push(catalogHref(basePath, query, patch));
+    });
+  }
 
   function toggleCompare(id: string) {
     setCompareIds((prev) => {
@@ -304,7 +112,7 @@ export function PropertiesExplorer({ properties }: Props) {
 
   return (
     <div>
-      {socioKey && (
+      {query.socio && (
         <div className="mb-6 flex flex-col gap-3 rounded-xl border border-brand-gold/35 bg-brand-navy-soft/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-brand-navy">
             <span className="font-medium">Filtro activo:</span> solo publicaciones vinculadas a este socio. Ver también{" "}
@@ -314,7 +122,7 @@ export function PropertiesExplorer({ properties }: Props) {
             .
           </p>
           <Link
-            href="/propiedades"
+            href={basePath}
             className="inline-flex shrink-0 items-center justify-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-xs font-semibold text-brand-navy shadow-sm transition hover:bg-white/90"
           >
             Ver todo el catálogo
@@ -322,16 +130,21 @@ export function PropertiesExplorer({ properties }: Props) {
         </div>
       )}
 
+      {isPending && (
+        <p className="mb-3 text-xs text-muted" aria-live="polite">
+          Actualizando listado…
+        </p>
+      )}
+
       <div className="mb-8 overflow-hidden rounded-2xl border border-brand-navy/12 bg-card/95 shadow-lg backdrop-blur-sm tech-panel-glow">
         <div className="border-b border-brand-navy/10 bg-brand-navy-soft/40 px-4 py-3 sm:px-6">
           <p className="text-xs text-muted">
-            Refiná el listado por operación, zona y características. El catálogo refleja las publicaciones activas de la
-            red.
+            Refiná el listado por operación, zona y características. Los filtros se aplican en el servidor: cada
+            cambio actualiza la página con hasta {pageSize} publicaciones visibles.
           </p>
         </div>
 
         <div className="p-4 sm:p-6">
-          {/* Etapa base: búsqueda principal */}
           <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
             <div className="grid flex-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className={labelClass}>
@@ -339,16 +152,21 @@ export function PropertiesExplorer({ properties }: Props) {
                 <input
                   type="search"
                   placeholder="Título, zona, referencia, corredora…"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
+                  value={qDraft}
+                  onChange={(e) => setQDraft(e.target.value)}
                   className={inputClass}
                 />
               </label>
               <label className={labelClass}>
                 <span className="font-medium text-brand-navy">Operación</span>
                 <select
-                  value={operation}
-                  onChange={(e) => setOperation(e.target.value as typeof operation)}
+                  value={query.operation}
+                  onChange={(e) =>
+                    navigate({
+                      operation: e.target.value as "" | PropertyOperation,
+                      page: 1,
+                    })
+                  }
                   className={inputClass}
                 >
                   {operations.map((o) => (
@@ -361,14 +179,14 @@ export function PropertiesExplorer({ properties }: Props) {
               <label className={labelClass}>
                 <span className="font-medium text-brand-navy">Tipo de propiedad</span>
                 <select
-                  value={typeKey}
-                  onChange={(e) => setTypeKey(e.target.value)}
+                  value={query.typeKey}
+                  onChange={(e) => navigate({ typeKey: e.target.value, page: 1 })}
                   className={inputClass}
                 >
                   <option value="">Todos los tipos</option>
-                  {typeOptions.map((t) => (
-                    <option key={t} value={t}>
-                      {properties.find((p) => p.propertyTypeKey === t)?.propertyTypeLabel ?? t}
+                  {filterOptions.typeOptions.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
@@ -376,8 +194,8 @@ export function PropertiesExplorer({ properties }: Props) {
               <label className={labelClass}>
                 <span className="font-medium text-brand-navy">Orden</span>
                 <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  value={query.sort}
+                  onChange={(e) => navigate({ sort: e.target.value as CatalogSortKey, page: 1 })}
                   className={inputClass}
                 >
                   {sortOptions.map((o) => (
@@ -408,7 +226,6 @@ export function PropertiesExplorer({ properties }: Props) {
             </div>
           </div>
 
-          {/* Etapa 1: características + precio + localidad */}
           {expand >= 1 && (
             <div className="mt-8 space-y-8 border-t border-brand-navy/10 pt-8">
               <div>
@@ -416,7 +233,11 @@ export function PropertiesExplorer({ properties }: Props) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Dormitorios (mín.)</span>
-                    <select value={bedMin} onChange={(e) => setBedMin(e.target.value)} className={inputClass}>
+                    <select
+                      value={query.bedMin}
+                      onChange={(e) => navigate({ bedMin: e.target.value, page: 1 })}
+                      className={inputClass}
+                    >
                       {minSelectOptions.map((o) => (
                         <option key={o.value || "any"} value={o.value}>
                           {o.label}
@@ -426,7 +247,11 @@ export function PropertiesExplorer({ properties }: Props) {
                   </label>
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Baños (mín.)</span>
-                    <select value={bathMin} onChange={(e) => setBathMin(e.target.value)} className={inputClass}>
+                    <select
+                      value={query.bathMin}
+                      onChange={(e) => navigate({ bathMin: e.target.value, page: 1 })}
+                      className={inputClass}
+                    >
                       {minSelectOptions.map((o) => (
                         <option key={o.value || "any-b"} value={o.value}>
                           {o.label}
@@ -436,7 +261,11 @@ export function PropertiesExplorer({ properties }: Props) {
                   </label>
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Ambientes (mín.)</span>
-                    <select value={roomsMin} onChange={(e) => setRoomsMin(e.target.value)} className={inputClass}>
+                    <select
+                      value={query.roomsMin}
+                      onChange={(e) => navigate({ roomsMin: e.target.value, page: 1 })}
+                      className={inputClass}
+                    >
                       {minSelectOptions.map((o) => (
                         <option key={o.value || "any-r"} value={o.value}>
                           {o.label}
@@ -446,7 +275,11 @@ export function PropertiesExplorer({ properties }: Props) {
                   </label>
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Estacionamientos (mín.)</span>
-                    <select value={parkMin} onChange={(e) => setParkMin(e.target.value)} className={inputClass}>
+                    <select
+                      value={query.parkMin}
+                      onChange={(e) => navigate({ parkMin: e.target.value, page: 1 })}
+                      className={inputClass}
+                    >
                       {minSelectOptions.map((o) => (
                         <option key={o.value || "any-p"} value={o.value}>
                           {o.label}
@@ -463,20 +296,19 @@ export function PropertiesExplorer({ properties }: Props) {
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Moneda</span>
                     <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value as typeof currency)}
+                      value={query.currency}
+                      onChange={(e) =>
+                        navigate({
+                          currency: e.target.value as typeof query.currency,
+                          page: 1,
+                        })
+                      }
                       className={inputClass}
                     >
                       <option value="">Todas (sin filtrar por precio)</option>
-                      {currencyOptions.map((c) => (
+                      {filterOptions.currencyOptions.map((c) => (
                         <option key={c} value={c}>
-                          {c === "uf"
-                            ? "UF"
-                            : c === "clp"
-                              ? "CLP"
-                              : c === "usd"
-                                ? "USD"
-                                : "Otra"}
+                          {c === "uf" ? "UF" : c === "clp" ? "CLP" : c === "usd" ? "USD" : "Otra"}
                         </option>
                       ))}
                     </select>
@@ -487,8 +319,9 @@ export function PropertiesExplorer({ properties }: Props) {
                       type="text"
                       inputMode="decimal"
                       placeholder="Ej: 1000"
-                      value={priceMin}
-                      onChange={(e) => setPriceMin(e.target.value)}
+                      defaultValue={query.priceMin}
+                      key={`priceMin-${qs}`}
+                      onBlur={(e) => navigate({ priceMin: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
@@ -498,14 +331,14 @@ export function PropertiesExplorer({ properties }: Props) {
                       type="text"
                       inputMode="decimal"
                       placeholder="Ej: 500000000"
-                      value={priceMax}
-                      onChange={(e) => setPriceMax(e.target.value)}
+                      defaultValue={query.priceMax}
+                      key={`priceMax-${qs}`}
+                      onBlur={(e) => navigate({ priceMax: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
                   <p className="flex items-end text-xs leading-snug text-muted sm:col-span-1 lg:col-span-1">
-                    El rango numérico aplica con la moneda elegida. Mezclá UF y pesos solo con criterio
-                    comercial.
+                    El rango numérico aplica con la moneda elegida.
                   </p>
                 </div>
               </div>
@@ -515,9 +348,13 @@ export function PropertiesExplorer({ properties }: Props) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <label className={labelClass}>
                     <span className="font-medium text-brand-navy">Ciudad / comuna</span>
-                    <select value={city} onChange={(e) => setCity(e.target.value)} className={inputClass}>
+                    <select
+                      value={query.city}
+                      onChange={(e) => navigate({ city: e.target.value, page: 1 })}
+                      className={inputClass}
+                    >
                       <option value="">Todas</option>
-                      {cityOptions.map((c) => (
+                      {filterOptions.cityOptions.map((c) => (
                         <option key={c} value={c}>
                           {c}
                         </option>
@@ -529,8 +366,9 @@ export function PropertiesExplorer({ properties }: Props) {
                     <input
                       type="search"
                       placeholder="Calle, barrio, sector…"
-                      value={addressNeedle}
-                      onChange={(e) => setAddressNeedle(e.target.value)}
+                      defaultValue={query.addressNeedle}
+                      key={`addr-${qs}`}
+                      onBlur={(e) => navigate({ addressNeedle: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
@@ -539,7 +377,6 @@ export function PropertiesExplorer({ properties }: Props) {
             </div>
           )}
 
-          {/* Etapa 2: superficie + extras */}
           {expand >= 2 && (
             <div className="mt-8 space-y-8 border-t border-brand-navy/10 pt-8">
               <div>
@@ -551,8 +388,9 @@ export function PropertiesExplorer({ properties }: Props) {
                       type="text"
                       inputMode="decimal"
                       placeholder="Ej: 50"
-                      value={m2TotalMin}
-                      onChange={(e) => setM2TotalMin(e.target.value)}
+                      defaultValue={query.m2TotalMin}
+                      key={`m2t-${qs}`}
+                      onBlur={(e) => navigate({ m2TotalMin: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
@@ -562,8 +400,9 @@ export function PropertiesExplorer({ properties }: Props) {
                       type="text"
                       inputMode="decimal"
                       placeholder="Ej: 45"
-                      value={m2CoveredMin}
-                      onChange={(e) => setM2CoveredMin(e.target.value)}
+                      defaultValue={query.m2CoveredMin}
+                      key={`m2c-${qs}`}
+                      onBlur={(e) => navigate({ m2CoveredMin: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
@@ -573,8 +412,9 @@ export function PropertiesExplorer({ properties }: Props) {
                       type="text"
                       inputMode="decimal"
                       placeholder="Ej: 200"
-                      value={m2TerrainMin}
-                      onChange={(e) => setM2TerrainMin(e.target.value)}
+                      defaultValue={query.m2TerrainMin}
+                      key={`m2tr-${qs}`}
+                      onBlur={(e) => navigate({ m2TerrainMin: e.target.value, page: 1 })}
                       className={inputClass}
                     />
                   </label>
@@ -587,8 +427,8 @@ export function PropertiesExplorer({ properties }: Props) {
                   <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-brand-navy">
                     <input
                       type="checkbox"
-                      checked={onlyCredit}
-                      onChange={(e) => setOnlyCredit(e.target.checked)}
+                      checked={query.onlyCredit}
+                      onChange={(e) => navigate({ onlyCredit: e.target.checked, page: 1 })}
                       className="h-4 w-4 rounded border-brand-navy/30 text-brand-navy focus:ring-brand-gold"
                     />
                     Apto crédito
@@ -596,8 +436,8 @@ export function PropertiesExplorer({ properties }: Props) {
                   <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-brand-navy">
                     <input
                       type="checkbox"
-                      checked={onlyBarter}
-                      onChange={(e) => setOnlyBarter(e.target.checked)}
+                      checked={query.onlyBarter}
+                      onChange={(e) => navigate({ onlyBarter: e.target.checked, page: 1 })}
                       className="h-4 w-4 rounded border-brand-navy/30 text-brand-navy focus:ring-brand-gold"
                     />
                     Acepta permuta
@@ -605,8 +445,8 @@ export function PropertiesExplorer({ properties }: Props) {
                   <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-brand-navy">
                     <input
                       type="checkbox"
-                      checked={onlyNew}
-                      onChange={(e) => setOnlyNew(e.target.checked)}
+                      checked={query.onlyNew}
+                      onChange={(e) => navigate({ onlyNew: e.target.checked, page: 1 })}
                       className="h-4 w-4 rounded border-brand-navy/30 text-brand-navy focus:ring-brand-gold"
                     />
                     Nuevo / a estrenar
@@ -622,33 +462,31 @@ export function PropertiesExplorer({ properties }: Props) {
         <p className="text-sm text-muted">
           {totalFiltered === 0 ? (
             <>
-              Sin resultados con estos criterios (sobre <strong className="text-brand-navy">{properties.length}</strong>{" "}
-              en catálogo).
+              Sin resultados con estos criterios (sobre <strong className="text-brand-navy">{totalCatalog}</strong> en
+              catálogo).
             </>
           ) : hasActiveFilters ? (
             <>
               Página <strong className="text-brand-navy">{safePage}</strong> de{" "}
               <strong className="text-brand-navy">{totalPages}</strong>
               <span className="mx-1 text-brand-navy/35">·</span>
-              <strong className="text-brand-navy">{(safePage - 1) * CATALOG_PAGE_SIZE + 1}</strong>–
-              <strong className="text-brand-navy">
-                {Math.min(safePage * CATALOG_PAGE_SIZE, totalFiltered)}
-              </strong>{" "}
-              de <strong className="text-brand-navy">{totalFiltered}</strong> resultados
+              <strong className="text-brand-navy">{(safePage - 1) * pageSize + 1}</strong>–
+              <strong className="text-brand-navy">{Math.min(safePage * pageSize, totalFiltered)}</strong> de{" "}
+              <strong className="text-brand-navy">{totalFiltered}</strong> resultados
             </>
           ) : totalPages > 1 ? (
             <>
               Página <strong className="text-brand-navy">{safePage}</strong> de{" "}
               <strong className="text-brand-navy">{totalPages}</strong>
               <span className="mx-1 text-brand-navy/35">·</span>
-              <strong className="text-brand-navy">{(safePage - 1) * CATALOG_PAGE_SIZE + 1}</strong>–
-              <strong className="text-brand-navy">
-                {Math.min(safePage * CATALOG_PAGE_SIZE, totalFiltered)}
-              </strong>{" "}
-              de <strong className="text-brand-navy">{properties.length}</strong> propiedades
+              <strong className="text-brand-navy">{(safePage - 1) * pageSize + 1}</strong>–
+              <strong className="text-brand-navy">{Math.min(safePage * pageSize, totalFiltered)}</strong> de{" "}
+              <strong className="text-brand-navy">{totalCatalog}</strong> propiedades
             </>
           ) : (
-            <>Mostrando <strong className="text-brand-navy">{properties.length}</strong> propiedades</>
+            <>
+              Mostrando <strong className="text-brand-navy">{totalFiltered}</strong> propiedades
+            </>
           )}
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -677,7 +515,7 @@ export function PropertiesExplorer({ properties }: Props) {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {totalFiltered === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-navy/20 bg-brand-navy-soft/40 px-6 py-16 text-center">
           <p className="text-lg font-medium text-brand-navy">No hay resultados con estos criterios.</p>
           <p className="mt-2 text-sm text-muted">Probá ampliar la búsqueda o limpiar filtros.</p>
@@ -685,10 +523,11 @@ export function PropertiesExplorer({ properties }: Props) {
       ) : (
         <>
           <ul className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
-            {pageSlice.map((p) => (
+            {pageItems.map((p) => (
               <li key={p.id}>
                 <PropertyCard
                   property={p}
+                  compactListing
                   compareSelected={compareIds.includes(p.id)}
                   compareDisabled={!compareIds.includes(p.id) && compareIds.length >= 5}
                   onToggleCompare={() => toggleCompare(p.id)}
@@ -708,7 +547,7 @@ export function PropertiesExplorer({ properties }: Props) {
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {safePage > 1 ? (
                   <Link
-                    href={catalogPageHref(searchParams.toString(), safePage - 1)}
+                    href={catalogHref(basePath, query, { page: safePage - 1 })}
                     className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
                     scroll={false}
                   >
@@ -721,7 +560,7 @@ export function PropertiesExplorer({ properties }: Props) {
                 )}
                 {safePage < totalPages ? (
                   <Link
-                    href={catalogPageHref(searchParams.toString(), safePage + 1)}
+                    href={catalogHref(basePath, query, { page: safePage + 1 })}
                     className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
                     scroll={false}
                   >

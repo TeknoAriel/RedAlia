@@ -11,6 +11,8 @@ import { labelForOperation } from "@/lib/operation-labels";
 
 type PropertyCardProps = {
   property: NormalizedProperty;
+  /** Listado compacto: sin resumen largo; imagen lazy para mejor LCP en grillas paginadas. */
+  compactListing?: boolean;
   compareSelected?: boolean;
   compareDisabled?: boolean;
   onToggleCompare?: () => void;
@@ -18,6 +20,7 @@ type PropertyCardProps = {
 
 export function PropertyCard({
   property,
+  compactListing = false,
   compareSelected = false,
   compareDisabled = false,
   onToggleCompare,
@@ -37,7 +40,7 @@ export function PropertyCard({
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
-      <div className="relative aspect-[16/10] overflow-hidden bg-brand-navy-soft">
+      <div className="relative aspect-[16/10] min-h-[11rem] overflow-hidden bg-brand-navy-soft sm:min-h-[12.5rem]">
         <Link
           href={`/propiedades/${property.id}`}
           className="absolute inset-0 z-0 block"
@@ -49,6 +52,7 @@ export function PropertyCard({
                 src={img}
                 alt=""
                 fill
+                loading={compactListing ? "lazy" : undefined}
                 className="object-cover transition duration-500 group-hover:scale-[1.02]"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
@@ -98,9 +102,11 @@ export function PropertyCard({
         <p className="mt-1 text-sm text-muted">
           {[property.city, property.zone].filter(Boolean).join(" · ") || "Ubicación a confirmar"}
         </p>
-        <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
-          {property.summary}
-        </p>
+        {!compactListing && (
+          <p className="mt-3 line-clamp-2 flex-1 text-sm leading-relaxed text-brand-navy/80">
+            {property.summary}
+          </p>
+        )}
         {(showAgencyOnCard || publicaCard || consultar?.name || property.associatedAgentsLabel) && (
           <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
             {showAgencyOnCard && inmobCard && (

@@ -5,18 +5,17 @@ import { PageHero } from "@/components/layout/PageHero";
 import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import { getProperties, getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
-import { buildPublicDirectorySnapshot } from "@/lib/public-data";
+import { getProperties } from "@/lib/get-properties";
+import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 export const metadata: Metadata = {
   title: "Socios",
   description:
     "Directorio institucional de la comunidad Redalia: socios con publicaciones en el catálogo, criterios de pertenencia y colaboración profesional en Chile.",
 };
-
-const SOCIOS_PAGE_SIZE = 24;
 
 const perfilCards = [
   {
@@ -61,17 +60,16 @@ export default async function SociosPage({
   const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
   const result = await getProperties();
-  const snapshot = result.ok
-    ? buildPublicDirectorySnapshot(result.properties, {
-        featuredMax: 8,
-        ...getPartnerDirectoryBuildOptions(result),
-      })
-    : null;
+  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
+  const snapshot = stable.snapshot;
   const entries = snapshot?.entries ?? [];
+  const SOCIOS_PAGE_SIZE = getSociosPageSize();
   const totalPages = Math.max(1, Math.ceil(entries.length / SOCIOS_PAGE_SIZE));
   const safePage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, totalPages) : 1;
   const pageStart = (safePage - 1) * SOCIOS_PAGE_SIZE;
   const pagedEntries = entries.slice(pageStart, pageStart + SOCIOS_PAGE_SIZE);
+  const activeCount = entries.filter((e) => e.propertyCount > 0).length;
+  const inactiveCount = entries.length - activeCount;
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;
   const geoCount = stats?.geographicDistinctCount ?? 0;
@@ -102,8 +100,8 @@ export default async function SociosPage({
               <p className="text-2xl font-bold tracking-tight text-brand-gold">{entries.length}</p>
               <p className="mt-1 text-xs font-medium uppercase tracking-wide text-white/70">
                 {entries.length === 1
-                  ? "Inmobiliaria o anunciante listado"
-                  : "Inmobiliarias y anunciantes listados"}
+                  ? "Corredora o anunciante listado"
+                  : "Corredoras y anunciantes listados"}
               </p>
             </div>
             {geoCount > 0 && (
@@ -194,6 +192,26 @@ export default async function SociosPage({
             </p>
           )}
 
+          {stable.source === "snapshot_persisted" && entries.length > 0 && (
+            <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-muted">
+              Directorio estable: última sincronización guardada
+              {stable.persistedSnapshotMeta
+                ? ` (${new Date(stable.persistedSnapshotMeta.generatedAtMs).toLocaleString("es-CL")})`
+                : ""}
+              . La red respondió con intermitencia; no mostramos error al visitante.
+            </p>
+          )}
+
+          {result.ok && entries.length > 0 && activeCount === 0 && (
+            <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-gold/30 bg-brand-navy-soft/50 px-5 py-4 text-center text-sm text-brand-navy">
+              <p className="font-medium">No hay socios con publicaciones asociadas en el catálogo cargado.</p>
+              <p className="mt-1 text-muted">
+                Mostramos igualmente el directorio ({inactiveCount} sin publicaciones en esta corrida), ordenado con
+                criterio institucional.
+              </p>
+            </div>
+          )}
+
           {!result.ok && (
             <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-8 text-center shadow-sm">
               <p className="font-display text-lg font-semibold text-brand-navy">Vista del directorio en pausa</p>
@@ -219,7 +237,7 @@ export default async function SociosPage({
               <div className="px-8 py-12 text-center">
                 <p className="text-lg font-semibold text-brand-navy">Tu marca en un espacio de alto estándar</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Cuando haya publicaciones que asocien inmobiliarias o anunciantes según las reglas de la red, aparecerán
+                  Cuando haya publicaciones que asocien corredoras o anunciantes según las reglas de la red, aparecerán
                   acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -239,7 +257,7 @@ export default async function SociosPage({
 
           {entries.length > 0 && (
             <>
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {pagedEntries.map((entry) => (
                 <li key={entry.partnerKey}>
                   <PartnerDirectoryCard entry={entry} variant="default" />

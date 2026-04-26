@@ -17,7 +17,9 @@ export type {
 } from "@/lib/catalog-ingest/catalog-result";
 
 function catalogRevalidateSeconds(): number {
-  const raw = process.env.CATALOG_INGEST_REVALIDATE_SECONDS?.trim();
+  const raw =
+    process.env.REDALIA_CATALOG_REVALIDATE_SECONDS?.trim() ||
+    process.env.CATALOG_INGEST_REVALIDATE_SECONDS?.trim();
   const n = raw ? parseInt(raw, 10) : NaN;
   if (!Number.isFinite(n) || n < 60) return 7200;
   return Math.min(86_400, n);

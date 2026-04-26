@@ -24,6 +24,34 @@ type NetworkLoadResult =
     }
   | { ok: false; error: string };
 
+let lastSuccessfulOrganizationDrafts: PublicPartnerDirectoryRowDraft[] | null = null;
+let lastSuccessfulAdvertiserOverlayDrafts: PublicPartnerDirectoryRowDraft[] | null = null;
+
+function keepLastSuccessfulPartnerDirectoryDrafts(base: CatalogSnapshotSuccess): CatalogSnapshotSuccess {
+  const currentOrg = base.partnerDirectoryExtraDrafts;
+  const currentAdv = base.partnerDirectoryNetworkAdvertiserDrafts;
+
+  if (currentOrg?.length) {
+    lastSuccessfulOrganizationDrafts = currentOrg;
+  }
+  if (currentAdv?.length) {
+    lastSuccessfulAdvertiserOverlayDrafts = currentAdv;
+  }
+
+  const recoveredOrg = currentOrg?.length ? currentOrg : (lastSuccessfulOrganizationDrafts ?? undefined);
+  const recoveredAdv = currentAdv?.length ? currentAdv : (lastSuccessfulAdvertiserOverlayDrafts ?? undefined);
+
+  if (recoveredOrg === currentOrg && recoveredAdv === currentAdv) {
+    return base;
+  }
+
+  return {
+    ...base,
+    partnerDirectoryExtraDrafts: recoveredOrg,
+    partnerDirectoryNetworkAdvertiserDrafts: recoveredAdv,
+  };
+}
+
 async function withPartnerDirectoryNetworkOverlayIfNeeded(
   trace: CatalogIngestTrace,
   base: CatalogSnapshotSuccess,
@@ -35,11 +63,14 @@ async function withPartnerDirectoryNetworkOverlayIfNeeded(
   const ov = await loadNetworkPartnerDirectoryAdvertiserOverlayDrafts();
   if (!ov.ok) {
     trace.partnerDirectoryOverlayErrorCode = ov.error;
-    return base;
+    return keepLastSuccessfulPartnerDirectoryDrafts(base);
   }
   trace.partnerDirectoryOverlayErrorCode = null;
-  if (!ov.drafts.length) return base;
-  return { ...base, partnerDirectoryNetworkAdvertiserDrafts: ov.drafts };
+  if (!ov.drafts.length) return keepLastSuccessfulPartnerDirectoryDrafts(base);
+  return keepLastSuccessfulPartnerDirectoryDrafts({
+    ...base,
+    partnerDirectoryNetworkAdvertiserDrafts: ov.drafts,
+  });
 }
 
 async function loadNetworkCatalogSnapshot(trace: CatalogIngestTrace): Promise<NetworkLoadResult> {
@@ -189,5 +220,6 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
   const base: CatalogSnapshotSuccess = partnerDirectoryExtraDrafts
     ? { ...jsonOnly, partnerDirectoryExtraDrafts }
     : jsonOnly;
-  return attachIngestMeta(await withPartnerDirectoryNetworkOverlayIfNeeded(trace, base), trace, runId);
+  const withOverlay = await withPartnerDirectoryNetworkOverlayIfNeeded(trace, base);
+  return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(withOverlay), trace, runId);
 }

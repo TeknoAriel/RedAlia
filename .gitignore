@@ -15,6 +15,9 @@ out
 .env
 .env*.local
 
+# Snapshot local dev (directorio socios sin Redis)
+.redalia-cache
+
 # Snapshot MCP → web (copiá desde kiteprop-mcp-public-snapshot.example.json; no commitear datos reales)
 data/kiteprop-mcp-public-snapshot.json
 
