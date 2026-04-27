@@ -69,3 +69,28 @@ Esto permite desacoplar request público de fuente viva sin cambiar source of tr
 - Fase 3 (propiedades listing summary + paginación server-side real): completada.
 - Fase 4 (sync endpoint protegido): completada.
 - Fase 5 (search avanzado): documentada en decisión aparte.
+
+## Estado posterior al cambio (producción)
+
+### HTML (impacto principal)
+
+- `/propiedades`: de ~274 KB a ~176 KB (baja ~35.8%).
+- `/propiedades?page=2`: de ~290 KB a ~186 KB (baja ~35.8%).
+- `/socios`: se mantiene en torno a ~219 KB (cambio menor; el beneficio aquí es desacople de cómputo/ingest).
+
+### Paginación efectiva observada
+
+- `/socios`: 40 tarjetas por página (última página parcial: 30).
+- `/propiedades`: 30 propiedades por página (se observan 90 links a detalle por enlaces repetidos dentro de card).
+
+### Health post implementación
+
+- `catalog-health`: `sourceEffective=property_listing_summary`, `readModel=true`.
+- `socios-health`: `sourceEffective=partner_directory_summary`, `readModel=true`.
+- Ambos endpoints leen vía capa de read model; si falta snapshot persistido, reconstruyen desde caché de catálogo y no bloquean con error.
+
+### Riesgo operativo detectado
+
+- En producción hay alta variabilidad de latencia externa (se observaron corridas de ~60s en `curl` y otras sub-segundo).
+- Este comportamiento parece de borde/red/protección upstream y no del tamaño HTML.
+- Queda recomendado activar storage persistente fuerte para snapshots (Upstash Redis en producción) para evitar reconstrucciones cuando no hay snapshot.
