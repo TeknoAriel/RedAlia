@@ -14,6 +14,17 @@ No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción*
 - `\`/catalogo\`` sigue fuera de navegación principal mientras en producción continúe en `404`.
 - Este sprint **no** ataca el P0 de performance de propiedades; queda planificado para Sprint 3.
 
+## Estado Sprint P0 Performance Architecture (abril 2026)
+
+- Rama: `redalia/p0-catalog-performance-architecture`.
+- Objetivo: desacoplar request público de fuentes vivas para `/socios` y `/propiedades`.
+- Implementado:
+  - Read model persistido `property_listing_summary`.
+  - Reuso de snapshot persistido para directorio de socios (`partner_directory_summary`).
+  - Endpoint de sync protegido: `/api/internal/sync-catalog?secret=...`.
+  - Health orientado a lectura rápida de read model (`catalog-health`, `socios-health`).
+- Regla operativa: request público **lee snapshot persistido**; ingest/sync ocurre fuera de request.
+
 ## Criterios de cierre de esta etapa
 
 - `/propiedades` debe mostrar **>3000** propiedades reales.
@@ -84,6 +95,8 @@ Indicar con precisión:
 - Listado público paginado: `lib/properties/catalog-query.ts`, `components/catalog/CatalogListingPage.tsx`, `components/properties/PropertiesExplorer.tsx`.
 - Red: `lib/kiteprop-network/get-network-properties.ts`, `get-network-organizations.ts`, `lib/kiteprop/client.ts`.
 - Directorio estable: `lib/public-data/get-stable-partner-directory.ts`, `partner-directory-snapshot-persist.ts`, `lib/kv/upstash-string.ts`.
+- Listing rápido propiedades: `lib/properties/read-model.ts`, `lib/properties/property-listing-snapshot-persist.ts`, `lib/properties/get-stable-property-listing.ts`.
+- Sync snapshots: `app/api/internal/sync-catalog/route.ts`, `scripts/sync-catalog.mjs`.
 - Directorio: `lib/public-data/partner-directory-resolve.ts`, `from-properties-feed.ts`.
 - Media: `lib/kiteprop-media-url.ts`, `lib/kiteprop-adapter.ts`, `next.config.ts` (`images.remotePatterns`).
 

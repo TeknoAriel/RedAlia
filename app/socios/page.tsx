@@ -7,6 +7,7 @@ import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
 import { getProperties } from "@/lib/get-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const revalidate = 1800;
@@ -59,9 +60,16 @@ export default async function SociosPage({
   const sp = (await searchParams) ?? {};
   const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
-  const result = await getProperties();
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-  const snapshot = stable.snapshot;
+  const persisted = await readPersistedPartnerDirectorySnapshot();
+  const fallback =
+    !persisted || persisted.entries.length === 0
+      ? await (async () => {
+          const result = await getProperties();
+          const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
+          return stable.snapshot;
+        })()
+      : null;
+  const snapshot = persisted ?? fallback;
   const entries = snapshot?.entries ?? [];
   const SOCIOS_PAGE_SIZE = getSociosPageSize();
   const totalPages = Math.max(1, Math.ceil(entries.length / SOCIOS_PAGE_SIZE));
@@ -84,7 +92,7 @@ export default async function SociosPage({
         footnote="Los datos del directorio se derivan de publicaciones activas y criterios de visibilidad de la comunidad —sin exposición superficial."
         contentClassName="py-20 sm:py-24"
       >
-        {result.ok && listingCount > 0 ? (
+        {listingCount > 0 ? (
           <div className="flex flex-wrap gap-4 border-t border-white/15 pt-8">
             <div className="rounded-xl border border-white/20 bg-white/[0.07] px-5 py-4">
               <p className="text-2xl font-bold tracking-tight text-brand-gold">
@@ -190,33 +198,7 @@ export default async function SociosPage({
             </p>
           )}
 
-          {stable.source === "snapshot_persisted" && entries.length > 0 && (
-            <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-muted">
-              Directorio estable: última sincronización guardada
-              {stable.persistedSnapshotMeta
-                ? ` (${new Date(stable.persistedSnapshotMeta.generatedAtMs).toLocaleString("es-CL")})`
-                : ""}
-              . La red respondió con intermitencia; no mostramos error al visitante.
-            </p>
-          )}
-
-          {!result.ok && (
-            <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-8 text-center shadow-sm">
-              <p className="font-display text-lg font-semibold text-brand-navy">Vista del directorio en pausa</p>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                El listado público se restablece cuando el catálogo vuelve a estar disponible. Podés escribirnos y
-                coordinamos la información que necesités.
-              </p>
-              <Link
-                href="/contacto"
-                className="mt-6 inline-flex rounded-full bg-brand-navy px-8 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-brand-navy-mid"
-              >
-                Escribir a Redalia
-              </Link>
-            </div>
-          )}
-
-          {result.ok && entries.length === 0 && (
+          {entries.length === 0 && (
             <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-2xl border border-brand-gold/25 bg-white shadow-lg">
               <div className="border-b border-brand-navy/10 bg-brand-navy px-6 py-4 text-center text-white">
                 <p className="redalia-eyebrow redalia-eyebrow--onNavy !mb-0 text-center">Directorio</p>

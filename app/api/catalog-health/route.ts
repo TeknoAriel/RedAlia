@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
-import { getProperties } from "@/lib/get-properties";
+import { readPersistedPropertyListingSnapshot } from "@/lib/properties/property-listing-snapshot-persist";
 
 export const runtime = "nodejs";
 
@@ -33,31 +33,20 @@ export async function GET(request: Request) {
   }
 
   const t0 = Date.now();
-  const result = await getProperties();
+  const snapshot = await readPersistedPropertyListingSnapshot();
   const queryMs = Date.now() - t0;
-  if (!result.ok) {
-    return NextResponse.json({
-      ...base,
-      ok: false,
-      totalProperties: "not_available",
-      source: "not_available",
-      durationMs: queryMs,
-      errorsRecent: [result.error],
-      warnings: ["No se pudo leer snapshot de catálogo."],
-    });
-  }
 
   return NextResponse.json({
     ...base,
-    totalProperties: result.properties.length,
-    source: result.source,
+    totalProperties: snapshot?.totalItems ?? 0,
+    source: snapshot ? "read_model" : "none",
+    sourceEffective: snapshot ? "property_listing_summary" : "none",
+    readModel: Boolean(snapshot),
     durationMs: queryMs,
-    errorsRecent: [
-      result.ingestMeta?.networkErrorCode,
-      result.ingestMeta?.networkOrganizationsErrorCode,
-      result.ingestMeta?.partnerDirectoryOverlayErrorCode,
-    ].filter(Boolean),
+    readMs: queryMs,
+    lastSyncAtMs: snapshot?.generatedAtMs ?? null,
+    errorsRecent: [],
     warnings: [],
-    ingestMeta: result.ingestMeta ?? null,
+    ingestMeta: null,
   });
 }

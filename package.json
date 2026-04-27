@@ -17,6 +17,7 @@
     "repo:apply-branch-protection": "node scripts/apply-branch-protection.mjs",
     "verify:network-ingest": "node scripts/network-ingest-verify.mjs",
     "audit:production": "node scripts/release-audit-production.mjs",
+    "sync:catalog": "node scripts/sync-catalog.mjs",
     "catalog:sources-probe": "node scripts/catalog-sources-probe.mjs",
     "env:pull:vercel": "npx --yes vercel@latest env pull .env.local",
     "sync:pull": "git fetch origin --prune && git pull --rebase origin main",

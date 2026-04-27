@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const runtime = "nodejs";
@@ -45,14 +44,10 @@ export async function GET(request: Request) {
   }
 
   const t0 = Date.now();
-  const result = await loadCatalogSnapshotUncached();
-  const ingestMs = Date.now() - t0;
+  const snapshot = await readPersistedPartnerDirectorySnapshot();
+  const readMs = Date.now() - t0;
 
-  const t1 = Date.now();
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-  const resolveMs = Date.now() - t1;
-
-  const entries = stable.snapshot?.entries ?? [];
+  const entries = snapshot?.entries ?? [];
   const renderablePartners = entries.filter((entry) => entry.displayName.trim().length > 0).length;
   const partnersWithLogo = entries.filter((entry) => Boolean(entry.logoUrl)).length;
   const partnersWithoutLogo = entries.length - partnersWithLogo;
@@ -62,10 +57,11 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     ...base,
-    source: stable.source,
-    durationMs: ingestMs + resolveMs,
-    ingestMs,
-    directoryResolveMs: resolveMs,
+    source: snapshot ? "read_model" : "none",
+    sourceEffective: snapshot ? "partner_directory_summary" : "none",
+    readModel: Boolean(snapshot),
+    durationMs: readMs,
+    readMs,
     totalDirectoryEntries: entries.length,
     renderablePartners,
     partnersWithLogo,
@@ -76,15 +72,17 @@ export async function GET(request: Request) {
     estimatedPages: Math.max(1, Math.ceil(renderablePartners / pageSize)),
     ordering: "propertyCount_desc_zero_last_name_asc",
     rotation: "off",
-    persistedSnapshot: stable.persistedSnapshotMeta ?? null,
-    errorsRecent: result.ok
-      ? [
-          result.ingestMeta?.networkOrganizationsErrorCode,
-          result.ingestMeta?.partnerDirectoryOverlayErrorCode,
-          result.ingestMeta?.networkErrorCode,
-        ].filter(Boolean)
-      : [result.error],
+    lastSyncAtMs: snapshot?.generatedAtMs ?? null,
+    persistedSnapshot: snapshot
+      ? {
+          generatedAtMs: snapshot.generatedAtMs,
+          entryCount: snapshot.entryCount,
+          activeCount: snapshot.activeCount,
+          inactiveCount: snapshot.inactiveCount,
+        }
+      : null,
+    errorsRecent: [],
     warnings: [],
-    ingestMeta: result.ok ? result.ingestMeta ?? null : null,
+    ingestMeta: null,
   });
 }

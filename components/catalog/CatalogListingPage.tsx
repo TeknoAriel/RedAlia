@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
-import { getProperties } from "@/lib/get-properties";
 import {
   buildCatalogFilterOptions,
   catalogHasActiveFilters,
@@ -12,6 +11,7 @@ import {
   serializeCatalogQuery,
   sortPropertiesCatalog,
 } from "@/lib/properties/catalog-query";
+import { resolveStablePropertyListingSnapshot } from "@/lib/properties/get-stable-property-listing";
 
 function toURLSearchParams(sp: Record<string, string | string[] | undefined>): URLSearchParams {
   const u = new URLSearchParams();
@@ -32,12 +32,12 @@ type Props = {
 };
 
 export async function CatalogListingPage({ basePath, searchParams }: Props) {
-  const result = await getProperties();
+  const listingModel = await resolveStablePropertyListingSnapshot();
   const query = parseCatalogQuery(toURLSearchParams(searchParams));
   const navigationKey = serializeCatalogQuery(query).toString() || "catalog";
   const pageSize = catalogPageSize();
 
-  if (!result.ok) {
+  if (!listingModel.snapshot || listingModel.snapshot.items.length === 0) {
     return (
       <div>
         <section className="border-b border-brand-navy/10 bg-white">
@@ -66,8 +66,8 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
     );
   }
 
-  const filterOptions = buildCatalogFilterOptions(result.properties);
-  const filtered = filterPropertiesCatalog(result.properties, query);
+  const filterOptions = buildCatalogFilterOptions(listingModel.snapshot.items);
+  const filtered = filterPropertiesCatalog(listingModel.snapshot.items, query);
   const sorted = sortPropertiesCatalog(filtered, query.sort);
   const { slice: pageItems, total, totalPages, safePage } = paginateCatalog(sorted, query.page, pageSize);
   const hasFilters = catalogHasActiveFilters(query);
@@ -92,16 +92,7 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-        {result.ok && result.usedSampleFallback && (
-          <div className="mb-6 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-5 py-4 text-sm text-brand-navy">
-            <p className="font-medium">Listado referencial</p>
-            <p className="mt-1 text-muted">
-              Mostramos una selección de ejemplo mientras se restablece la conexión con el catálogo actualizado. Para
-              publicaciones vigentes y prioridades comerciales, contactá al equipo de Redalia.
-            </p>
-          </div>
-        )}
-        {result.ok && result.properties.length === 0 && (
+        {listingModel.snapshot.items.length === 0 && (
           <div className="mb-8 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-6 py-12 text-center text-brand-navy">
             <p className="font-medium">No hay publicaciones disponibles por ahora</p>
             <p className="mt-2 text-sm text-muted">
@@ -115,7 +106,7 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
             </Link>
           </div>
         )}
-        {result.ok && result.properties.length > 0 && (
+        {listingModel.snapshot.items.length > 0 && (
           <Suspense
             key={navigationKey}
             fallback={
@@ -131,11 +122,13 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
               filterOptions={filterOptions}
               pageItems={pageItems}
               totalFiltered={total}
-              totalCatalog={result.properties.length}
+              totalCatalog={listingModel.snapshot.items.length}
               totalPages={totalPages}
               safePage={safePage}
               pageSize={pageSize}
               hasActiveFilters={hasFilters}
+              readModelSource={listingModel.source}
+              readModelGeneratedAtMs={listingModel.syncMeta.lastSyncAtMs}
             />
           </Suspense>
         )}

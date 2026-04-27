@@ -1,5 +1,5 @@
-import { propertyMatchesPartnerKey } from "@/lib/agencies";
-import type { NormalizedProperty, PropertyOperation } from "@/types/property";
+import type { PropertyListingSummary } from "@/lib/properties/read-model";
+import type { PropertyOperation } from "@/types/property";
 
 export type CatalogSortKey = "recent" | "price_asc" | "price_desc" | "surface_desc";
 
@@ -15,7 +15,7 @@ export type CatalogQueryState = {
   parkMin: string;
   city: string;
   addressNeedle: string;
-  currency: "" | NormalizedProperty["currency"];
+  currency: "" | PropertyListingSummary["currency"];
   priceMin: string;
   priceMax: string;
   m2TotalMin: string;
@@ -30,7 +30,7 @@ export type CatalogQueryState = {
 export type CatalogFilterOptions = {
   typeOptions: { key: string; label: string }[];
   cityOptions: string[];
-  currencyOptions: NormalizedProperty["currency"][];
+  currencyOptions: PropertyListingSummary["currency"][];
 };
 
 function parsePriceInput(s: string): number | null {
@@ -80,7 +80,7 @@ export function parseCatalogQuery(sp: URLSearchParams): CatalogQueryState {
     parkMin: sp.get("parkMin")?.trim() ?? "",
     city: sp.get("city")?.trim() ?? "",
     addressNeedle: sp.get("address")?.trim() ?? "",
-    currency: (sp.get("currency")?.trim() ?? "") as "" | NormalizedProperty["currency"],
+    currency: (sp.get("currency")?.trim() ?? "") as "" | PropertyListingSummary["currency"],
     priceMin: sp.get("priceMin")?.trim() ?? "",
     priceMax: sp.get("priceMax")?.trim() ?? "",
     m2TotalMin: sp.get("m2TotalMin")?.trim() ?? "",
@@ -93,7 +93,25 @@ export function parseCatalogQuery(sp: URLSearchParams): CatalogQueryState {
   };
 }
 
-export function buildCatalogFilterOptions(properties: NormalizedProperty[]): CatalogFilterOptions {
+function summaryMatchesPartnerKey(p: PropertyListingSummary, rawKey: string): boolean {
+  if (!rawKey.trim()) return true;
+  if (p.partnerKeys.includes(rawKey)) return true;
+  const kpnetAdv = /^kpnet:advertiser:(\d+)$/.exec(rawKey);
+  if (kpnetAdv) {
+    return p.partnerKeys.includes(`advertiser:${kpnetAdv[1]}`);
+  }
+  const kpnetOrg = /^kpnet:org:(\d+)$/.exec(rawKey);
+  if (kpnetOrg) {
+    return (
+      p.partnerKeys.includes(`agency:${kpnetOrg[1]}`) ||
+      p.partnerKeys.includes(`agent:${kpnetOrg[1]}`) ||
+      p.partnerKeys.includes(`sub_agent:${kpnetOrg[1]}`)
+    );
+  }
+  return false;
+}
+
+export function buildCatalogFilterOptions(properties: PropertyListingSummary[]): CatalogFilterOptions {
   const typeMap = new Map<string, string>();
   for (const p of properties) {
     if (!typeMap.has(p.propertyTypeKey)) typeMap.set(p.propertyTypeKey, p.propertyTypeLabel);
@@ -108,15 +126,18 @@ export function buildCatalogFilterOptions(properties: NormalizedProperty[]): Cat
   }
   const cityOptions = [...cities].sort((a, b) => a.localeCompare(b, "es"));
 
-  const cur = new Set<NormalizedProperty["currency"]>();
+  const cur = new Set<PropertyListingSummary["currency"]>();
   for (const p of properties) cur.add(p.currency);
-  const order: NormalizedProperty["currency"][] = ["uf", "clp", "usd", "otro"];
+  const order: PropertyListingSummary["currency"][] = ["uf", "clp", "usd", "otro"];
   const currencyOptions = order.filter((c) => cur.has(c));
 
   return { typeOptions, cityOptions, currencyOptions };
 }
 
-export function sortPropertiesCatalog(list: NormalizedProperty[], sort: CatalogSortKey): NormalizedProperty[] {
+export function sortPropertiesCatalog(
+  list: PropertyListingSummary[],
+  sort: CatalogSortKey,
+): PropertyListingSummary[] {
   const out = [...list];
   switch (sort) {
     case "recent":
@@ -149,9 +170,9 @@ export function sortPropertiesCatalog(list: NormalizedProperty[], sort: CatalogS
 }
 
 export function filterPropertiesCatalog(
-  properties: NormalizedProperty[],
+  properties: PropertyListingSummary[],
   q: CatalogQueryState,
-): NormalizedProperty[] {
+): PropertyListingSummary[] {
   const needle = q.q.trim().toLowerCase();
   const addr = q.addressNeedle.trim().toLowerCase();
   const minN = q.priceMin ? parsePriceInput(q.priceMin) : null;
@@ -161,7 +182,7 @@ export function filterPropertiesCatalog(
   const terMin = q.m2TerrainMin ? parseFloat(q.m2TerrainMin.replace(",", ".")) : null;
 
   return properties.filter((p) => {
-    if (q.socio && !propertyMatchesPartnerKey(p, q.socio)) return false;
+    if (q.socio && !summaryMatchesPartnerKey(p, q.socio)) return false;
     if (needle && !p.searchBlob.includes(needle) && !p.title.toLowerCase().includes(needle)) {
       return false;
     }

@@ -3,27 +3,28 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import type { NormalizedProperty } from "@/types/property";
 import type { PropertyOperation } from "@/types/property";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-import { PropertyCompareModal } from "@/components/properties/PropertyCompareModal";
 import {
   type CatalogFilterOptions,
   type CatalogSortKey,
   catalogHref,
   parseCatalogQuery,
 } from "@/lib/properties/catalog-query";
+import type { PropertyListingSummary } from "@/lib/properties/read-model";
 
 type Props = {
   basePath: "/propiedades" | "/catalogo";
   filterOptions: CatalogFilterOptions;
-  pageItems: NormalizedProperty[];
+  pageItems: PropertyListingSummary[];
   totalFiltered: number;
   totalCatalog: number;
   totalPages: number;
   safePage: number;
   pageSize: number;
   hasActiveFilters: boolean;
+  readModelSource: string;
+  readModelGeneratedAtMs: number | null;
 };
 
 const operations: { value: "" | PropertyOperation; label: string }[] = [
@@ -60,6 +61,8 @@ export function PropertiesExplorer({
   safePage,
   pageSize,
   hasActiveFilters,
+  readModelSource,
+  readModelGeneratedAtMs,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,9 +71,6 @@ export function PropertiesExplorer({
   const query = useMemo(() => parseCatalogQuery(new URLSearchParams(qs)), [qs]);
 
   const [expand, setExpand] = useState<0 | 1 | 2>(0);
-  const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
-
   const [qDraft, setQDraft] = useState(query.q);
 
   useEffect(() => {
@@ -83,24 +83,9 @@ export function PropertiesExplorer({
     return () => clearTimeout(t);
   }, [qDraft, query, basePath, router]);
 
-  const compareProperties = useMemo(() => {
-    const map = new Map(pageItems.map((p) => [p.id, p]));
-    return compareIds.map((id) => map.get(id)).filter(Boolean) as NormalizedProperty[];
-  }, [pageItems, compareIds]);
-
-  const compareModalOpen = compareOpen && compareIds.length >= 2;
-
   function navigate(patch: Parameters<typeof catalogHref>[2]) {
     startTransition(() => {
       router.push(catalogHref(basePath, query, patch));
-    });
-  }
-
-  function toggleCompare(id: string) {
-    setCompareIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 5) return prev;
-      return [...prev, id];
     });
   }
 
@@ -142,6 +127,12 @@ export function PropertiesExplorer({
             Refiná el listado por operación, zona y características. Los filtros se aplican en el servidor: cada
             cambio actualiza la página con hasta {pageSize} publicaciones visibles.
           </p>
+          {readModelGeneratedAtMs && (
+            <p className="mt-1 text-[11px] text-muted">
+              Modelo de lectura: <strong>{readModelSource}</strong> · actualizado{" "}
+              {new Date(readModelGeneratedAtMs).toLocaleString("es-CL")}
+            </p>
+          )}
         </div>
 
         <div className="p-4 sm:p-6">
@@ -489,30 +480,7 @@ export function PropertiesExplorer({
             </>
           )}
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {compareIds.length > 0 && (
-            <span className="text-sm text-brand-navy">
-              Comparando: <strong>{compareIds.length}</strong>/5
-            </span>
-          )}
-          <button
-            type="button"
-            disabled={compareIds.length < 2}
-            onClick={() => setCompareOpen(true)}
-            className="inline-flex items-center rounded-full border border-brand-gold/50 bg-brand-navy px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy-mid disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Ver comparación
-          </button>
-          {compareIds.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setCompareIds([])}
-              className="text-sm font-medium text-muted underline-offset-2 hover:text-brand-navy hover:underline"
-            >
-              Limpiar selección
-            </button>
-          )}
-        </div>
+        <div />
       </div>
 
       {totalFiltered === 0 ? (
@@ -528,9 +496,6 @@ export function PropertiesExplorer({
                 <PropertyCard
                   property={p}
                   compactListing
-                  compareSelected={compareIds.includes(p.id)}
-                  compareDisabled={!compareIds.includes(p.id) && compareIds.length >= 5}
-                  onToggleCompare={() => toggleCompare(p.id)}
                 />
               </li>
             ))}
@@ -577,14 +542,6 @@ export function PropertiesExplorer({
         </>
       )}
 
-      <PropertyCompareModal
-        open={compareModalOpen}
-        onClose={() => setCompareOpen(false)}
-        properties={compareProperties}
-        onRemove={(id) => {
-          setCompareIds((prev) => prev.filter((x) => x !== id));
-        }}
-      />
     </div>
   );
 }
