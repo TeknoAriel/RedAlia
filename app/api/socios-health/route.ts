@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { getCurrentReadModelMeta, getPublicReadModelPolicy, getStorageStatus } from "@/lib/catalog-read-model/read-model-store";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
 import { getProperties } from "@/lib/get-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
-import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
+import {
+  buildPartnersOrderHash,
+  readPersistedPartnerDirectorySnapshot,
+} from "@/lib/public-data/partner-directory-snapshot-persist";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const runtime = "nodejs";
@@ -17,6 +21,7 @@ export async function GET(request: Request) {
   const startedAtMs = Date.now();
   const url = new URL(request.url);
   const includeData = url.searchParams.get("include_data") === "1";
+  const allowLiveRebuild = url.searchParams.get("allow_live_rebuild") === "1";
   const base = {
     ok: true as const,
     timestamp: new Date().toISOString(),
@@ -36,6 +41,13 @@ export async function GET(request: Request) {
       estimatedPages: "not_available",
       ordering: "not_available",
       rotation: "not_available",
+      status: "not_available",
+      storage: (await getStorageStatus()).storage,
+      publicLiveRebuildAllowed: getPublicReadModelPolicy().PUBLIC_LIVE_REBUILD_ALLOWED,
+      liveRebuildUsed: false,
+      currentSyncId: null,
+      lastSyncAt: null,
+      partnersOrderHash: "not_available",
       source: "not_available",
       durationMs: Date.now() - startedAtMs,
       warnings: [
@@ -48,7 +60,8 @@ export async function GET(request: Request) {
   const t0 = Date.now();
   let snapshot = await readPersistedPartnerDirectorySnapshot();
   let source: "read_model" | "live_rebuilt" | "none" = snapshot ? "read_model" : "none";
-  if (!snapshot) {
+  let liveRebuildUsed = false;
+  if (!snapshot && allowLiveRebuild) {
     const live = await getProperties();
     const stable = await resolveStablePublicDirectorySnapshot(live, { featuredMax: 8 });
     if (stable.snapshot) {
@@ -62,9 +75,12 @@ export async function GET(request: Request) {
         stats: stable.snapshot.stats,
       };
       source = "live_rebuilt";
+      liveRebuildUsed = true;
     }
   }
   const readMs = Date.now() - t0;
+  const meta = await getCurrentReadModelMeta();
+  const storageStatus = await getStorageStatus();
 
   const entries = snapshot?.entries ?? [];
   const renderablePartners = entries.filter((entry) => entry.displayName.trim().length > 0).length;
@@ -73,12 +89,37 @@ export async function GET(request: Request) {
   const active = entries.filter((e) => e.propertyCount > 0).length;
   const inactive = entries.length - active;
   const pageSize = getSociosPageSize();
+  const partnersOrderHash = snapshot ? buildPartnersOrderHash(entries) : null;
+  const ageMinutes = meta ? Math.max(0, Math.floor((Date.now() - meta.finishedAtMs) / 60000)) : null;
+  const stale = ageMinutes != null ? ageMinutes > 360 : null;
+  const status: "ok" | "degraded" | "error" = snapshot
+    ? liveRebuildUsed
+      ? "degraded"
+      : "ok"
+    : storageStatus.available
+      ? "degraded"
+      : "error";
+  const warnings: string[] = [];
+  if (!storageStatus.available) {
+    warnings.push("Storage persistente no configurado en producción.");
+  }
+  if (!snapshot) {
+    warnings.push("No existe snapshot persistido para directorio de socios.");
+  }
+  if (liveRebuildUsed) {
+    warnings.push("Se usó live rebuild explícito en health (allow_live_rebuild=1).");
+  }
 
   return NextResponse.json({
     ...base,
+    status,
+    storage: storageStatus.storage,
+    storageAvailable: storageStatus.available,
     source,
     sourceEffective: snapshot ? "partner_directory_summary" : "none",
     readModel: Boolean(snapshot),
+    liveRebuildUsed,
+    publicLiveRebuildAllowed: getPublicReadModelPolicy().PUBLIC_LIVE_REBUILD_ALLOWED,
     durationMs: readMs,
     readMs,
     totalDirectoryEntries: entries.length,
@@ -91,7 +132,12 @@ export async function GET(request: Request) {
     estimatedPages: Math.max(1, Math.ceil(renderablePartners / pageSize)),
     ordering: "propertyCount_desc_zero_last_name_asc",
     rotation: "off",
+    currentSyncId: meta?.syncId ?? null,
+    lastSyncAt: meta ? new Date(meta.finishedAtMs).toISOString() : null,
+    ageMinutes,
+    stale,
     lastSyncAtMs: snapshot?.generatedAtMs ?? null,
+    partnersOrderHash,
     persistedSnapshot: snapshot
       ? {
           generatedAtMs: snapshot.generatedAtMs,
@@ -101,7 +147,7 @@ export async function GET(request: Request) {
         }
       : null,
     errorsRecent: [],
-    warnings: [],
+    warnings,
     ingestMeta: null,
   });
 }

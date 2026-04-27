@@ -5,27 +5,39 @@ export function normalizePublicDisplayName(name: string): string {
   return name.replace(/\s+/g, " ").trim();
 }
 
-function isActive(e: PublicPartnerDirectoryRowDraft): boolean {
-  return e.propertyCount > 0;
+function normalizeSortToken(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-/**
- * Orden institucional: activos primero; más publicaciones; rol (corredora → anunciante → oficina → subagente); nombre.
- * Rotación opcional entre empates: `REDALIA_SOCIOS_ROTATE_ACTIVE_TIES=1` + `REDALIA_SOCIOS_ROTATION_PERIOD` (default weekly).
- */
 export function sortPublicDirectoryEntries(
   entries: PublicPartnerDirectoryRowDraft[],
 ): PublicPartnerDirectoryRowDraft[] {
   return [...entries].sort((a, b) => {
-    const activeA = isActive(a);
-    const activeB = isActive(b);
-    if (activeA !== activeB) {
-      return activeA ? -1 : 1;
+    const ac = Number(a.propertyCount || 0);
+    const bc = Number(b.propertyCount || 0);
+
+    if (ac > 0 && bc === 0) return -1;
+    if (ac === 0 && bc > 0) return 1;
+    if (bc !== ac) return bc - ac;
+
+    const an = normalizeSortToken(a.displayName);
+    const bn = normalizeSortToken(b.displayName);
+    if (an !== bn) {
+      return an.localeCompare(bn, "es");
     }
-    if (b.propertyCount !== a.propertyCount) {
-      return b.propertyCount - a.propertyCount;
+
+    const as = normalizeSortToken(a.partnerKey);
+    const bs = normalizeSortToken(b.partnerKey);
+    if (as !== bs) {
+      return as.localeCompare(bs, "es");
     }
-    return a.displayName.localeCompare(b.displayName, "es", { sensitivity: "base" });
+
+    return String(a.partnerKey).localeCompare(String(b.partnerKey), "es");
   });
 }
 

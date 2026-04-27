@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
+import { getPropertyListingSnapshot } from "@/lib/catalog-read-model/read-model-store";
 import {
   buildCatalogFilterOptions,
   catalogHasActiveFilters,
@@ -11,7 +12,6 @@ import {
   serializeCatalogQuery,
   sortPropertiesCatalog,
 } from "@/lib/properties/catalog-query";
-import { resolveStablePropertyListingSnapshot } from "@/lib/properties/get-stable-property-listing";
 
 function toURLSearchParams(sp: Record<string, string | string[] | undefined>): URLSearchParams {
   const u = new URLSearchParams();
@@ -32,7 +32,14 @@ type Props = {
 };
 
 export async function CatalogListingPage({ basePath, searchParams }: Props) {
-  const listingModel = await resolveStablePropertyListingSnapshot();
+  const snapshot = await getPropertyListingSnapshot();
+  const listingModel = {
+    snapshot,
+    source: snapshot ? "read_model" : "none",
+    syncMeta: {
+      lastSyncAtMs: snapshot?.generatedAtMs ?? null,
+    },
+  } as const;
   const query = parseCatalogQuery(toURLSearchParams(searchParams));
   const navigationKey = serializeCatalogQuery(query).toString() || "catalog";
   const pageSize = catalogPageSize();

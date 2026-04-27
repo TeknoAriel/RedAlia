@@ -94,3 +94,10 @@ Esto permite desacoplar request público de fuente viva sin cambiar source of tr
 - En producción hay alta variabilidad de latencia externa (se observaron corridas de ~60s en `curl` y otras sub-segundo).
 - Este comportamiento parece de borde/red/protección upstream y no del tamaño HTML.
 - Queda recomendado activar storage persistente fuerte para snapshots (Upstash Redis en producción) para evitar reconstrucciones cuando no hay snapshot.
+
+## Actualizacion P0.2
+
+- Se elimina dependencia de rebuild en request publico para `/socios` y `/propiedades`.
+- Se consolida capa unica de acceso a snapshots (`read-model-store`).
+- Sync se vuelve el unico punto de consulta a fuentes vivas (manual o cron).
+- Se agrega self-check server-side protegido para validar hashes/paginas sin depender del DNS del entorno agente.

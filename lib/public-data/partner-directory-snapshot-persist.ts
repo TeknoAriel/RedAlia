@@ -1,11 +1,14 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { isUpstashRedisConfigured, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
 import type { PublicDirectorySnapshot, PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 
-const REDIS_KEY = "redalia:partner-directory:snapshot:v1";
+const REDIS_CURRENT_KEY = "redalia:readmodel:current";
+const REDIS_META_KEY = "redalia:readmodel:meta";
+const REDIS_PARTNERS_PREFIX = "redalia:readmodel:partners:";
 const TTL_SECONDS = 60 * 60 * 24 * 14;
 
 export type PersistedPartnerDirectorySnapshotV1 = {
@@ -18,6 +21,23 @@ export type PersistedPartnerDirectorySnapshotV1 = {
   stats: PublicDirectorySnapshot["stats"];
 };
 
+export type ReadModelStorage = "upstash" | "local_snapshot" | "missing";
+
+export type ReadModelMeta = {
+  syncId: string;
+  startedAtMs: number;
+  finishedAtMs: number;
+  durationMs: number;
+  totalPartners: number;
+  totalProperties: number;
+  partnersHash: string;
+  propertiesHash: string;
+  source: "sync_job";
+  status: "ok" | "failed";
+  errors: string[];
+  warnings: string[];
+};
+
 function counts(entries: PublicPartnerDirectoryEntry[]) {
   const active = entries.filter((e) => e.propertyCount > 0).length;
   return {
@@ -25,6 +45,15 @@ function counts(entries: PublicPartnerDirectoryEntry[]) {
     activeCount: active,
     inactiveCount: entries.length - active,
   };
+}
+
+function hashHex(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
+
+export function buildPartnersOrderHash(entries: PublicPartnerDirectoryEntry[]): string {
+  const payload = entries.map((e) => e.publicSlug).join("|");
+  return hashHex(payload);
 }
 
 function devSnapshotPath(): string {
@@ -54,16 +83,56 @@ async function writeDevFile(payload: PersistedPartnerDirectorySnapshotV1): Promi
   }
 }
 
-export async function readPersistedPartnerDirectorySnapshot(): Promise<PersistedPartnerDirectorySnapshotV1 | null> {
+function localStorageState(): ReadModelStorage {
+  if (isUpstashRedisConfigured()) return "upstash";
+  if (process.env.NODE_ENV !== "production") return "local_snapshot";
+  return "missing";
+}
+
+export function getPartnerReadModelStorage(): ReadModelStorage {
+  return localStorageState();
+}
+
+export async function readReadModelMeta(): Promise<ReadModelMeta | null> {
   if (isUpstashRedisConfigured()) {
-    const raw = await upstashGet(REDIS_KEY);
+    const raw = await upstashGet(REDIS_META_KEY);
     if (!raw) return null;
     try {
-      const parsed = JSON.parse(raw) as PersistedPartnerDirectorySnapshotV1;
-      if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) return null;
+      const parsed = JSON.parse(raw) as ReadModelMeta;
+      if (!parsed?.syncId) return null;
       return parsed;
     } catch {
       return null;
+    }
+  }
+  return null;
+}
+
+async function readUpstashCurrentSyncId(): Promise<string | null> {
+  const raw = await upstashGet(REDIS_CURRENT_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { syncId?: string };
+    const syncId = parsed?.syncId?.trim();
+    return syncId || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function readPersistedPartnerDirectorySnapshot(): Promise<PersistedPartnerDirectorySnapshotV1 | null> {
+  if (isUpstashRedisConfigured()) {
+    const syncId = await readUpstashCurrentSyncId();
+    if (syncId) {
+      const rawVersioned = await upstashGet(`${REDIS_PARTNERS_PREFIX}${syncId}`);
+      if (rawVersioned) {
+        try {
+          const parsed = JSON.parse(rawVersioned) as PersistedPartnerDirectorySnapshotV1;
+          if (parsed?.version === 1 && Array.isArray(parsed.entries)) return parsed;
+        } catch {
+          // fallback legacy below
+        }
+      }
     }
   }
   return readDevFile();
@@ -71,6 +140,7 @@ export async function readPersistedPartnerDirectorySnapshot(): Promise<Persisted
 
 export async function writePersistedPartnerDirectorySnapshot(
   snapshot: PublicDirectorySnapshot,
+  options?: { syncId?: string; meta?: ReadModelMeta },
 ): Promise<void> {
   const { entryCount, activeCount, inactiveCount } = counts(snapshot.entries);
   const payload: PersistedPartnerDirectorySnapshotV1 = {
@@ -84,7 +154,29 @@ export async function writePersistedPartnerDirectorySnapshot(
   };
   const json = JSON.stringify(payload);
   if (isUpstashRedisConfigured()) {
-    await upstashSet(REDIS_KEY, json, TTL_SECONDS);
+    const syncId = options?.syncId?.trim() || `sync-${Date.now()}`;
+    const key = `${REDIS_PARTNERS_PREFIX}${syncId}`;
+    const okVersioned = await upstashSet(key, json, TTL_SECONDS);
+    if (okVersioned) {
+      await upstashSet(REDIS_CURRENT_KEY, JSON.stringify({ syncId }), TTL_SECONDS);
+      const meta: ReadModelMeta =
+        options?.meta ??
+        ({
+          syncId,
+          startedAtMs: payload.generatedAtMs,
+          finishedAtMs: payload.generatedAtMs,
+          durationMs: 0,
+          totalPartners: payload.entryCount,
+          totalProperties: payload.stats.totalListings,
+          partnersHash: buildPartnersOrderHash(payload.entries),
+          propertiesHash: "",
+          source: "sync_job",
+          status: "ok",
+          errors: [],
+          warnings: [],
+        } satisfies ReadModelMeta);
+      await upstashSet(REDIS_META_KEY, JSON.stringify(meta), TTL_SECONDS);
+    }
   }
   await writeDevFile(payload);
 }

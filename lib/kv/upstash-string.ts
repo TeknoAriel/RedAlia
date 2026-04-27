@@ -51,3 +51,16 @@ export async function upstashSet(key: string, value: string, ttlSeconds?: number
   });
   return r.ok;
 }
+
+export async function upstashDel(key: string): Promise<boolean> {
+  const b = baseUrl();
+  const tok = token();
+  if (!b || !tok) return false;
+  const url = `${b.replace(/\/$/, "")}/del/${encodeURIComponent(key)}`;
+  const r = await fetch(url, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${tok}` },
+    next: { revalidate: 0 },
+  });
+  return r.ok;
+}

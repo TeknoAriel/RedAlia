@@ -25,6 +25,16 @@ No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción*
   - Health orientado a lectura rápida de read model (`catalog-health`, `socios-health`).
 - Regla operativa: request público **lee snapshot persistido**; ingest/sync ocurre fuera de request.
 
+## Estado Sprint P0.2 Persistent Catalog Cache (abril 2026)
+
+- Rama: `redalia/p0-2-persistent-catalog-cache`.
+- Adapter unico de snapshots: `lib/catalog-read-model/read-model-store.ts`.
+- `PUBLIC_LIVE_REBUILD_ALLOWED=false` para rutas publicas `/socios` y `/propiedades`.
+- Cron de sync cada 2 horas en `vercel.json`.
+- Endpoints internos:
+  - sync: `/api/internal/sync-catalog?secret=...`
+  - self-check: `/api/internal/self-check-catalog?secret=...`
+
 ## Criterios de cierre de esta etapa
 
 - `/propiedades` debe mostrar **>3000** propiedades reales.

@@ -5,9 +5,7 @@ import { PageHero } from "@/components/layout/PageHero";
 import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
-import { getProperties } from "@/lib/get-properties";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
-import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
+import { getPartnerDirectorySnapshot } from "@/lib/catalog-read-model/read-model-store";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const revalidate = 1800;
@@ -60,16 +58,7 @@ export default async function SociosPage({
   const sp = (await searchParams) ?? {};
   const rawPage = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
-  const persisted = await readPersistedPartnerDirectorySnapshot();
-  const fallback =
-    !persisted || persisted.entries.length === 0
-      ? await (async () => {
-          const result = await getProperties();
-          const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-          return stable.snapshot;
-        })()
-      : null;
-  const snapshot = persisted ?? fallback;
+  const snapshot = await getPartnerDirectorySnapshot();
   const entries = snapshot?.entries ?? [];
   const SOCIOS_PAGE_SIZE = getSociosPageSize();
   const totalPages = Math.max(1, Math.ceil(entries.length / SOCIOS_PAGE_SIZE));

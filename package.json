@@ -18,6 +18,8 @@
     "verify:network-ingest": "node scripts/network-ingest-verify.mjs",
     "audit:production": "node scripts/release-audit-production.mjs",
     "sync:catalog": "node scripts/sync-catalog.mjs",
+    "qa:socios:stability": "node scripts/qa-socios-stability.mjs",
+    "qa:catalog:performance": "node scripts/qa-catalog-performance.mjs",
     "catalog:sources-probe": "node scripts/catalog-sources-probe.mjs",
     "env:pull:vercel": "npx --yes vercel@latest env pull .env.local",
     "sync:pull": "git fetch origin --prune && git pull --rebase origin main",

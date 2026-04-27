@@ -36,7 +36,9 @@ const buildListingSnapshotCached = unstable_cache(
   },
 );
 
-export async function resolveStablePropertyListingSnapshot(): Promise<StablePropertyListingResult> {
+export async function resolveStablePropertyListingSnapshot(options?: {
+  allowLiveRebuild?: boolean;
+}): Promise<StablePropertyListingResult> {
   const t0 = Date.now();
   const persisted = await readPersistedPropertyListingSnapshot();
   if (persisted && persisted.items.length > 0) {
@@ -52,6 +54,15 @@ export async function resolveStablePropertyListingSnapshot(): Promise<StableProp
         lastSyncAtMs: persisted.generatedAtMs,
         totalItems: persisted.totalItems,
       },
+    };
+  }
+
+  if (options?.allowLiveRebuild !== true) {
+    return {
+      snapshot: null,
+      source: "none",
+      readMs: Date.now() - t0,
+      syncMeta: { lastSyncAtMs: null, totalItems: 0 },
     };
   }
 

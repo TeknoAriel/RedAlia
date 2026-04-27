@@ -26,6 +26,13 @@ Primera carga del catálogo y directorio más liviana, con lectura rápida desde
 - Si no existe snapshot persistido aún, la primera reconstrucción puede ser más lenta hasta ejecutar sync.
 - La consistencia de datos depende del ciclo de sync (manual/cron) y no del request público.
 
+## Operacion vigente (P0.2)
+
+- Requests publicos de `/socios` y `/propiedades`: solo lectura de snapshot/read model.
+- `live_rebuilt` solo permitido en sync interno y health explicito.
+- Cron de sync activo cada 2 horas (`/api/cron/catalog`).
+- Si storage persistente no esta disponible: health debe quedar `degraded/error` y no se habilita rebuild en trafico publico.
+
 ## Próxima etapa (opcional)
 
 - Agregar storage SQL (Postgres/Supabase/Neon) para read models con índices y auditoría histórica.
