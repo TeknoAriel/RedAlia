@@ -19,7 +19,10 @@ Mantener `/socios` y `/propiedades` leyendo snapshots persistidos, sin rebuild e
 
 - Configurado en `vercel.json`:
   - path: `/api/cron/catalog`
-  - schedule: `0 */2 * * *` (cada 2 horas)
+  - schedule: `0 6 * * *` (diario, limite de plan Hobby)
+- Frecuencia operativa cada 6 horas via GitHub Actions:
+  - `.github/workflows/catalog-sync.yml` (`0 */6 * * *`)
+  - requiere secrets `REDALIA_SYNC_SECRET` y opcional `REDALIA_SYNC_BASE_URL`
 
 ## Flujo de sync
 

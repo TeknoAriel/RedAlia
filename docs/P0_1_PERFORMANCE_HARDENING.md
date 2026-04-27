@@ -44,4 +44,5 @@
 - `/socios` y `/propiedades` leen snapshots via adapter (sin live fetch en request publico).
 - Sync protegido con `REDALIA_SYNC_SECRET` (compatible fallback `REDALIA_HEALTH_SECRET` y `CRON_SECRET` para Vercel Cron).
 - Se agrega self-check server-side: `/api/internal/self-check-catalog?secret=...`.
-- Cron actualizado en `vercel.json` a cada 2 horas (`0 */2 * * *`).
+- Cron operativo cada 6 horas via GitHub Actions (`.github/workflows/catalog-sync.yml`).
+- Cron en `vercel.json` queda diario por limitacion de plan Hobby.
