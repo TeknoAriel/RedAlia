@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
+import { getProperties } from "@/lib/get-properties";
+import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
@@ -44,7 +46,24 @@ export async function GET(request: Request) {
   }
 
   const t0 = Date.now();
-  const snapshot = await readPersistedPartnerDirectorySnapshot();
+  let snapshot = await readPersistedPartnerDirectorySnapshot();
+  let source: "read_model" | "live_rebuilt" | "none" = snapshot ? "read_model" : "none";
+  if (!snapshot) {
+    const live = await getProperties();
+    const stable = await resolveStablePublicDirectorySnapshot(live, { featuredMax: 8 });
+    if (stable.snapshot) {
+      snapshot = {
+        version: 1,
+        generatedAtMs: Date.now(),
+        entryCount: stable.snapshot.entries.length,
+        activeCount: stable.snapshot.entries.filter((x) => x.propertyCount > 0).length,
+        inactiveCount: stable.snapshot.entries.filter((x) => x.propertyCount <= 0).length,
+        entries: stable.snapshot.entries,
+        stats: stable.snapshot.stats,
+      };
+      source = "live_rebuilt";
+    }
+  }
   const readMs = Date.now() - t0;
 
   const entries = snapshot?.entries ?? [];
@@ -57,7 +76,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     ...base,
-    source: snapshot ? "read_model" : "none",
+    source,
     sourceEffective: snapshot ? "partner_directory_summary" : "none",
     readModel: Boolean(snapshot),
     durationMs: readMs,

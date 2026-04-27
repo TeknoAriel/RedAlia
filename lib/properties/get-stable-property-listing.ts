@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
 import { getProperties } from "@/lib/get-properties";
 import {
   readPersistedPropertyListingSnapshot,
@@ -18,6 +20,21 @@ export type StablePropertyListingResult = {
     totalItems: number;
   };
 };
+
+const buildListingSnapshotCached = unstable_cache(
+  async () => {
+    const result = await getProperties();
+    if (!result.ok) return null;
+    const snapshot = buildPropertyListingSnapshot(result.properties);
+    await writePersistedPropertyListingSnapshot(snapshot);
+    return snapshot;
+  },
+  ["redalia-property-listing-summary-v1"],
+  {
+    revalidate: 1800,
+    tags: [REDALIA_CATALOG_CACHE_TAG],
+  },
+);
 
 export async function resolveStablePropertyListingSnapshot(): Promise<StablePropertyListingResult> {
   const t0 = Date.now();
@@ -40,6 +57,18 @@ export async function resolveStablePropertyListingSnapshot(): Promise<StableProp
 
   const result = await getProperties();
   if (!result.ok) {
+    const cached = await buildListingSnapshotCached();
+    if (cached) {
+      return {
+        snapshot: cached,
+        source: "live_rebuilt",
+        readMs: Date.now() - t0,
+        syncMeta: {
+          lastSyncAtMs: cached.generatedAtMs,
+          totalItems: cached.totalItems,
+        },
+      };
+    }
     return {
       snapshot: null,
       source: "none",

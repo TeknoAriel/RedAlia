@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
+import { getProperties } from "@/lib/get-properties";
+import { buildPropertyListingSnapshot } from "@/lib/properties/read-model";
 import { readPersistedPropertyListingSnapshot } from "@/lib/properties/property-listing-snapshot-persist";
 
 export const runtime = "nodejs";
@@ -33,13 +35,24 @@ export async function GET(request: Request) {
   }
 
   const t0 = Date.now();
-  const snapshot = await readPersistedPropertyListingSnapshot();
+  let snapshot = await readPersistedPropertyListingSnapshot();
+  let source: "read_model" | "live_rebuilt" | "none" = snapshot ? "read_model" : "none";
+  if (!snapshot) {
+    const live = await getProperties();
+    if (live.ok) {
+      snapshot = {
+        version: 1,
+        ...buildPropertyListingSnapshot(live.properties),
+      };
+      source = "live_rebuilt";
+    }
+  }
   const queryMs = Date.now() - t0;
 
   return NextResponse.json({
     ...base,
     totalProperties: snapshot?.totalItems ?? 0,
-    source: snapshot ? "read_model" : "none",
+    source,
     sourceEffective: snapshot ? "property_listing_summary" : "none",
     readModel: Boolean(snapshot),
     durationMs: queryMs,
