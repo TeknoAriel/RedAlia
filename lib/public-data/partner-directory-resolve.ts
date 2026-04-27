@@ -142,7 +142,11 @@ function recomputeCountsAndCoverage(
 ): PublicPartnerDirectoryRowDraft[] {
   return drafts.map((d) => ({
     ...d,
-    propertyCount: properties.filter((p) => propertyBelongsToDraft(p, d)).length,
+    propertyCount: (() => {
+      const matched = properties.filter((p) => propertyBelongsToDraft(p, d)).length;
+      const seeded = d.partnerKey.startsWith("kpnet:") ? Math.max(0, d.propertyCount || 0) : 0;
+      return Math.max(matched, seeded);
+    })(),
     coverageLabels: (() => {
       const set = new Set<string>();
       for (const p of properties) {
@@ -152,7 +156,8 @@ function recomputeCountsAndCoverage(
           if (t) set.add(t);
         }
       }
-      return [...set].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE);
+      const merged = [...set, ...(d.coverageLabels ?? [])];
+      return [...new Set(merged)].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE);
     })(),
   }));
 }
