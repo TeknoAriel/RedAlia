@@ -68,8 +68,6 @@ export default async function SociosPage({
   const safePage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, totalPages) : 1;
   const pageStart = (safePage - 1) * SOCIOS_PAGE_SIZE;
   const pagedEntries = entries.slice(pageStart, pageStart + SOCIOS_PAGE_SIZE);
-  const activeCount = entries.filter((e) => e.propertyCount > 0).length;
-  const inactiveCount = entries.length - activeCount;
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;
   const geoCount = stats?.geographicDistinctCount ?? 0;
@@ -200,16 +198,6 @@ export default async function SociosPage({
                 : ""}
               . La red respondió con intermitencia; no mostramos error al visitante.
             </p>
-          )}
-
-          {result.ok && entries.length > 0 && activeCount === 0 && (
-            <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-gold/30 bg-brand-navy-soft/50 px-5 py-4 text-center text-sm text-brand-navy">
-              <p className="font-medium">No hay socios con publicaciones asociadas en el catálogo cargado.</p>
-              <p className="mt-1 text-muted">
-                Mostramos igualmente el directorio ({inactiveCount} sin publicaciones en esta corrida), ordenado con
-                criterio institucional.
-              </p>
-            </div>
           )}
 
           {!result.ok && (

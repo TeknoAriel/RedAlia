@@ -345,7 +345,11 @@ export function propertyMatchesPartnerKey(p: NormalizedProperty, rawKey: string)
       const id = Number(idPart);
       return distinctScopedPartnersOnProperty(p).some((e) => e.scope === "advertiser" && e.id === id);
     }
-    return false;
+    const want = nameSlug(idPart);
+    if (!want) return false;
+    return distinctScopedPartnersOnProperty(p).some(
+      (e) => e.scope === "advertiser" && nameSlug(e.name) === want,
+    );
   }
 
   const kpnetOrg = /^kpnet:org:(.+)$/.exec(rawKey);
@@ -357,7 +361,13 @@ export function propertyMatchesPartnerKey(p: NormalizedProperty, rawKey: string)
         (e) => (e.scope === "agency" || e.scope === "agent" || e.scope === "sub_agent") && e.id === id,
       );
     }
-    return false;
+    const want = nameSlug(idPart);
+    if (!want) return false;
+    return distinctScopedPartnersOnProperty(p).some(
+      (e) =>
+        (e.scope === "agency" || e.scope === "agent" || e.scope === "sub_agent") &&
+        nameSlug(e.name) === want,
+    );
   }
 
   return false;

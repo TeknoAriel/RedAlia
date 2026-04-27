@@ -25,8 +25,14 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ...base,
       totalDirectoryEntries: "not_available",
+      renderablePartners: "not_available",
+      partnersWithLogo: "not_available",
+      partnersWithoutLogo: "not_available",
       activePartners: "not_available",
       emptyPartners: "not_available",
+      estimatedPages: "not_available",
+      ordering: "not_available",
+      rotation: "not_available",
       source: "not_available",
       durationMs: Date.now() - startedAtMs,
       warnings: [
@@ -45,8 +51,12 @@ export async function GET(request: Request) {
   const resolveMs = Date.now() - t1;
 
   const entries = stable.snapshot?.entries ?? [];
+  const renderablePartners = entries.filter((entry) => entry.displayName.trim().length > 0).length;
+  const partnersWithLogo = entries.filter((entry) => Boolean(entry.logoUrl)).length;
+  const partnersWithoutLogo = entries.length - partnersWithLogo;
   const active = entries.filter((e) => e.propertyCount > 0).length;
   const inactive = entries.length - active;
+  const pageSize = getSociosPageSize();
 
   return NextResponse.json({
     ...base,
@@ -55,9 +65,15 @@ export async function GET(request: Request) {
     ingestMs,
     directoryResolveMs: resolveMs,
     totalDirectoryEntries: entries.length,
+    renderablePartners,
+    partnersWithLogo,
+    partnersWithoutLogo,
     activePartners: active,
     emptyPartners: inactive,
-    pageSize: getSociosPageSize(),
+    pageSize,
+    estimatedPages: Math.max(1, Math.ceil(renderablePartners / pageSize)),
+    ordering: "propertyCount_desc_zero_last_name_asc",
+    rotation: "off",
     persistedSnapshot: stable.persistedSnapshotMeta ?? null,
     errorsRecent: result.ok
       ? [
