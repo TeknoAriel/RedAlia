@@ -5,6 +5,8 @@ import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stab
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   if (!isRedaliaHealthAuthorized(request)) {
