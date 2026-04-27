@@ -74,3 +74,28 @@ En `next start` local con `.env.production.local`:
 - pero retorna `totalDirectoryEntries: 0` (entorno local sin datos de red equivalentes a produccion)
 
 Conclusion: la validacion funcional definitiva de conteos debe cerrarse en preview/produccion.
+
+## Produccion (despues del fix)
+
+- Endpoint: `/api/socios-health?secret=***&include_data=1`
+- Resultado actual:
+  - `totalDirectoryEntries`: 513
+  - `renderablePartners`: 513
+  - `partnersWithLogo`: 261
+  - `partnersWithoutLogo`: 252
+  - `activePartners`: 144
+  - `emptyPartners`: 369
+  - `pageSize`: 40
+  - `estimatedPages`: 13
+  - `ordering`: `propertyCount_desc_zero_last_name_asc`
+  - `rotation`: `off`
+  - `source`: `live`
+
+### Verificacion de pagina
+
+- `/socios`, `/socios?page=2`, `/socios?page=10`: renderizan 40 fichas por pagina.
+- La validacion automatizada de refresh `x5` sobre HTML publico muestra respuestas intermitentes por proteccion de borde (a veces retorna HTML de autenticacion/challenge), por lo que el chequeo de estabilidad visual automatizado no es deterministico.
+- La estabilidad de datos queda validada por:
+  - orden deterministico en codigo (sin rotacion),
+  - `socios-health` dinamico en vivo,
+  - pagina y total coherentes con `estimatedPages=13` y `pageSize=40`.
