@@ -29,18 +29,22 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: pnpm
       - name: Instalar dependencias
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: ESLint (0 warnings)
-        run: npm run lint
+        run: pnpm lint
       - name: TypeScript
-        run: npm run typecheck
+        run: pnpm typecheck
       - name: Build producción
-        run: npm run build
+        run: pnpm build
 
   vercel-cli-deploy:
     name: Vercel CLI (opcional)
@@ -78,11 +82,11 @@ jobs:
         if: steps.gate.outputs.deploy == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: pnpm
 
       - name: Instalar dependencias
         if: steps.gate.outputs.deploy == 'true'
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Desplegar a Vercel (prod)
         if: steps.gate.outputs.deploy == 'true'
