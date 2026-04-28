@@ -11,7 +11,12 @@ import "server-only";
 export type RedaliaPartnerDirectorySourceMode = "feed" | "network" | "merge";
 
 function trimEnv(name: string): string {
-  return process.env[name]?.trim() ?? "";
+  return (
+    process.env[name]
+      ?.replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .trim() ?? ""
+  );
 }
 
 export function getRedaliaPartnerDirectorySourceMode(): RedaliaPartnerDirectorySourceMode {

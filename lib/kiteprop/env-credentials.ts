@@ -9,7 +9,10 @@ import "server-only";
  */
 
 function trimEnv(name: string): string | null {
-  const v = process.env[name]?.trim();
+  const v = process.env[name]
+    ?.replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .trim();
   return v || null;
 }
 

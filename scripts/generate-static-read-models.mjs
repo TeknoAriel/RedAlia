@@ -26,10 +26,67 @@ async function loadBuilders() {
   const modIngest = await import("../lib/catalog-ingest/load-catalog-snapshot.ts");
   const modFeed = await import("../lib/public-data/from-properties-feed.ts");
   const modListing = await import("../lib/properties/read-model.ts");
+  const modNetworkDrafts = await import("../lib/kiteprop-network/load-network-partner-directory-drafts.ts");
   return {
     loadCatalogSnapshotUncached: modIngest.loadCatalogSnapshotUncached,
     buildPublicDirectorySnapshot: modFeed.buildPublicDirectorySnapshot,
     buildPropertyListingSnapshot: modListing.buildPropertyListingSnapshot,
+    loadNetworkPartnerDirectoryDraftsOnly: modNetworkDrafts.loadNetworkPartnerDirectoryDraftsOnly,
+  };
+}
+
+function sanitizeEnvValue(value) {
+  return String(value ?? "")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .trim();
+}
+
+function withEnv(overrides, fn) {
+  const prev = new Map();
+  for (const [k, v] of Object.entries(overrides)) {
+    prev.set(k, process.env[k]);
+    process.env[k] = v;
+  }
+  return Promise.resolve(fn()).finally(() => {
+    for (const [k, prevValue] of prev.entries()) {
+      if (prevValue == null) {
+        delete process.env[k];
+      } else {
+        process.env[k] = prevValue;
+      }
+    }
+  });
+}
+
+function toSanitizedError(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function withTimeout(label, promise, ms = 45000) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label}:timeout`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function networkDraftToPartnerItem(draft, index) {
+  const safeKey = String(draft.partnerKey || `network:partner:${index}`);
+  return {
+    id: safeKey,
+    slug: safeKey.replace(/[^a-zA-Z0-9_-]+/g, "-").toLowerCase(),
+    name: String(draft.displayName || `Socio ${index + 1}`).trim(),
+    logoUrl: draft.logoUrl ?? null,
+    propertyCount: Math.max(0, Number(draft.propertyCount || 0)),
+    locationLabel: draft.coverageLabels?.[0] ?? null,
+    coverageLabel: draft.coverageLabels?.slice(0, 3).join(" · ") || null,
   };
 }
 
@@ -67,19 +124,97 @@ async function run() {
   await mkdir(outDir, { recursive: true });
   const previousMeta = await existsJson(metaFile);
 
-  const { loadCatalogSnapshotUncached, buildPublicDirectorySnapshot, buildPropertyListingSnapshot } =
-    await loadBuilders();
-  const loaded = await loadCatalogSnapshotUncached();
-  if (!loaded.ok) {
-    throw new Error(`No se pudo cargar snapshot base: ${loaded.error}`);
+  const {
+    loadCatalogSnapshotUncached,
+    buildPublicDirectorySnapshot,
+    buildPropertyListingSnapshot,
+    loadNetworkPartnerDirectoryDraftsOnly,
+  } = await loadBuilders();
+
+  process.env.KITEPROP_PROPERTIES_SOURCE = sanitizeEnvValue(process.env.KITEPROP_PROPERTIES_SOURCE || "");
+  process.env.REDALIA_PARTNER_DIRECTORY_SOURCE = sanitizeEnvValue(
+    process.env.REDALIA_PARTNER_DIRECTORY_SOURCE || "",
+  );
+
+  const attempts = [
+    {
+      name: "env_current",
+      propertyMode: process.env.KITEPROP_PROPERTIES_SOURCE || "",
+      partnerMode: process.env.REDALIA_PARTNER_DIRECTORY_SOURCE || "",
+      timeoutMs: 60000,
+    },
+    { name: "json_network", propertyMode: "json", partnerMode: "network", timeoutMs: 90000 },
+    { name: "json_feed", propertyMode: "json", partnerMode: "feed", timeoutMs: 60000 },
+    { name: "network_network", propertyMode: "network", partnerMode: "network", timeoutMs: 240000 },
+  ];
+
+  let loaded = null;
+  let bestProperties = null;
+  let bestPartners = [];
+  const errors = [];
+
+  for (const attempt of attempts) {
+    try {
+      const result = await withEnv(
+        {
+          KITEPROP_PROPERTIES_SOURCE: attempt.propertyMode,
+          REDALIA_PARTNER_DIRECTORY_SOURCE: attempt.partnerMode,
+          KITEPROP_NETWORK_PROPERTIES_MAX_PAGES: "120",
+          KITEPROP_NETWORK_ORGANIZATIONS_MAX_PAGES: "80",
+        },
+        async () =>
+          withTimeout(
+            `loadCatalogSnapshotUncached:${attempt.name}`,
+            loadCatalogSnapshotUncached(),
+            attempt.timeoutMs,
+          ),
+      );
+      if (!result.ok) {
+        errors.push(`${attempt.name}: ${result.error}`);
+        continue;
+      }
+      const built = buildPublicDirectorySnapshot(result.properties, {
+        featuredMax: 8,
+        extraDirectoryDrafts: result.partnerDirectoryExtraDrafts ?? null,
+        networkAdvertiserDrafts: result.partnerDirectoryNetworkAdvertiserDrafts ?? null,
+      });
+      if (!bestProperties || result.properties.length > bestProperties.properties.length) {
+        bestProperties = { ...result, attemptName: attempt.name };
+      }
+      if (built.entries.length > bestPartners.length) {
+        bestPartners = built.entries;
+      }
+      errors.push(
+        `${attempt.name}: properties=${result.properties.length}, partners=${built.entries.length}`,
+      );
+    } catch (error) {
+      errors.push(`${attempt.name}: ${toSanitizedError(error)}`);
+    }
+  }
+
+  if (bestProperties?.properties?.length >= 1000 && bestPartners.length >= 380) {
+    loaded = bestProperties;
+  }
+
+  if (!loaded || !bestProperties) {
+    throw new Error(`No se pudo cargar snapshot base válido. ${errors.join(" | ")}`);
   }
 
   const now = new Date().toISOString();
   const syncId = randomUUID();
-  const partnerSnapshot = buildPublicDirectorySnapshot(loaded.properties, { featuredMax: 8 });
+  const partnerSnapshot = {
+    entries: bestPartners,
+    featured: bestPartners.slice(0, 8),
+    stats: {
+      totalListings: bestProperties.properties.length,
+      directoryCount: bestPartners.length,
+      geographicDistinctCount: 0,
+      geographicPresenceLabels: [],
+    },
+  };
   const listingSnapshot = buildPropertyListingSnapshot(loaded.properties);
 
-  const partners = partnerSnapshot.entries
+  let partners = partnerSnapshot.entries
     .map((entry) => ({
       id: entry.partnerKey,
       slug: entry.publicSlug,
@@ -91,7 +226,23 @@ async function run() {
     }))
     .sort(partnerSort);
 
-  const partnerSlugByKey = new Map(partners.map((p) => [p.partnerKey, p.slug]));
+  if (partners.length < 380) {
+    const networkDrafts = await withEnv(
+      {
+        REDALIA_PARTNER_DIRECTORY_SOURCE: "network",
+      },
+      async () =>
+        withTimeout(
+          "loadNetworkPartnerDirectoryDraftsOnly:network_fallback",
+          loadNetworkPartnerDirectoryDraftsOnly(),
+        ),
+    );
+    if (networkDrafts.ok && networkDrafts.drafts.length > 0) {
+      partners = networkDrafts.drafts.map(networkDraftToPartnerItem).sort(partnerSort);
+    }
+  }
+
+  const partnerSlugByKey = new Map(partners.map((p) => [p.id, p.slug]));
   const properties = listingSnapshot.items.map((item) => ({
     id: item.id,
     slug: item.slug,

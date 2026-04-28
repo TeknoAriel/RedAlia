@@ -23,7 +23,10 @@ export const DEFAULT_KITEPROP_DIFUSION_FEED_URL =
  */
 export function getKitepropPropertiesUrl(): string {
   const fromEnv =
-    process.env.KITEPROP_PROPERTIES_URL?.trim() ||
-    process.env.NEXT_PUBLIC_KITEPROP_PROPERTIES_URL?.trim();
+    process.env.KITEPROP_PROPERTIES_URL?.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim() ||
+    process.env.NEXT_PUBLIC_KITEPROP_PROPERTIES_URL
+      ?.replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .trim();
   return fromEnv || DEFAULT_KITEPROP_DIFUSION_FEED_URL;
 }

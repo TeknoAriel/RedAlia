@@ -19,6 +19,7 @@
     "audit:production": "node scripts/release-audit-production.mjs",
     "sync:catalog": "node scripts/sync-catalog.mjs",
     "generate:static-read-models": "node --conditions=react-server --import tsx scripts/generate-static-read-models.mjs",
+    "probe:catalog-sources": "node --conditions=react-server --import tsx scripts/probe-catalog-sources.mjs",
     "qa:socios:stability": "node scripts/qa-socios-stability.mjs",
     "qa:catalog:performance": "node scripts/qa-catalog-performance.mjs",
     "catalog:sources-probe": "node scripts/catalog-sources-probe.mjs",
