@@ -20,27 +20,25 @@ export function PortalPublishersStrip({ portals }: Props) {
           La difusión cruzada apoya la visibilidad; el valor central sigue siendo el negocio compartido y la colaboración
           entre socios en Chile.
         </p>
-        <ul className="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {portals.map((p) => {
             const inner = (
-              <>
+              <div className="flex min-h-[5.5rem] items-center justify-center rounded-xl border border-brand-navy/10 bg-brand-navy-soft/20 px-3">
                 {p.logoSrc ? (
                   <Image
                     src={p.logoSrc}
                     alt={p.name}
                     width={160}
                     height={52}
-                    className="h-11 w-auto max-w-[9.5rem] object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0"
+                    className="h-10 w-auto max-w-[9rem] object-contain opacity-90 grayscale transition hover:opacity-100 hover:grayscale-0"
                   />
                 ) : (
-                  <span className="inline-flex min-h-[2.75rem] min-w-[7rem] items-center justify-center rounded-xl border border-brand-navy/15 bg-brand-navy-soft/60 px-4 text-center text-xs font-semibold text-brand-navy">
-                    {p.name}
-                  </span>
+                  <span className="text-center text-xs font-semibold text-brand-navy">{p.name}</span>
                 )}
-              </>
+              </div>
             );
             return (
-              <li key={p.name}>
+              <li key={p.name} className="rounded-2xl border border-brand-navy/10 bg-white p-3 text-center shadow-sm">
                 {p.href ? (
                   <Link
                     href={p.href}
@@ -53,6 +51,7 @@ export function PortalPublishersStrip({ portals }: Props) {
                 ) : (
                   inner
                 )}
+                <p className="mt-2 text-xs font-semibold text-brand-navy">{p.name}</p>
               </li>
             );
           })}

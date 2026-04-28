@@ -39,7 +39,7 @@ export const homeValuePillars = [
 export const homeTechnologyPoints = [
   {
     title: "IA aplicada al corretaje",
-    text: "Herramientas que ayudan a priorizar y acompañar, con foco en oportunidades concretas —no en ruido.",
+    text: "Herramientas que ayudan a priorizar y acompañar, con foco en oportunidades concretas y cierre real.",
   },
   {
     title: "Perfiles de búsqueda inteligentes",

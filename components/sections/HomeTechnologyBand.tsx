@@ -15,7 +15,7 @@ export function HomeTechnologyBand({ points }: Props) {
         <div className="max-w-3xl">
           <p className="redalia-eyebrow redalia-eyebrow--onNavy">Plataforma y apoyo</p>
           <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-white sm:text-[1.75rem] lg:text-[2rem]">
-            Tecnología al servicio de la comunidad —sin tono frío
+            Tecnología al servicio de la comunidad RedAlia
           </h2>
           <p className="mt-3 text-base leading-relaxed text-white/85 sm:text-lg">
             La herramienta trabaja para ordenar difusión, priorizar y acompañar decisiones; el negocio sigue siendo

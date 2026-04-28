@@ -28,6 +28,7 @@ import { HomeValuePillars } from "@/components/sections/HomeValuePillars";
 import { HomeTechnologyBand } from "@/components/sections/HomeTechnologyBand";
 import { PortalPublishersStrip } from "@/components/sections/PortalPublishersStrip";
 import { HomePartnersCarousel } from "@/components/sections/HomePartnersCarousel";
+import { KitePropTechnologySection } from "@/components/sections/KitePropTechnologySection";
 
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
@@ -84,6 +85,8 @@ export default async function HomePage() {
       <ListingPulseStrip listingCount={listingCount} feedOk={feedOk} />
 
       <PortalPublishersStrip portals={portals} />
+
+      <KitePropTechnologySection />
 
       <HomePartnersCarousel entries={carouselEntries} />
 
