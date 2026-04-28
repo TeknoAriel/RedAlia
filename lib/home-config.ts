@@ -13,6 +13,12 @@ export type PortalPublisherEntry = {
 };
 
 /**
+ * Control manual de visibilidad por nombre (normalizado).
+ * `false` oculta un portal aunque exista en snapshot.
+ */
+export const portalPublisherVisibilityControl: Record<string, boolean> = {};
+
+/**
  * Portales donde la red publica (sumar/quitar entradas aquí).
  * Vacío = no se muestra la franja en Home.
  */

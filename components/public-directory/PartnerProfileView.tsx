@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PartnerContactPrivacyGate } from "@/components/socios/PartnerContactPrivacyGate";
 import type { PublicPartnerDetail } from "@/lib/public-data/types";
-import type { NormalizedProperty } from "@/types/property";
+import type { PropertyListingSummary } from "@/lib/properties/read-model";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -13,7 +13,7 @@ function initials(name: string): string {
 
 type Props = {
   detail: PublicPartnerDetail;
-  propertiesPreview: NormalizedProperty[];
+  propertiesPreview: PropertyListingSummary[];
   totalPropertyCount: number;
 };
 

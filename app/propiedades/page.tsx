@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
 
 /** ISR de la ruta; alineado con default de `REDALIA_CATALOG_REVALIDATE_SECONDS` en docs. El data cache de `getProperties` sigue leyendo env. */
-export const revalidate = 1800;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Propiedades",

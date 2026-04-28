@@ -24,8 +24,7 @@ const serviciosItems = [
 const mainLinks = [
   { href: "/", label: "Inicio" },
   { href: "/que-es", label: "Qué es Redalia" },
-  { href: "/unete", label: "Únete" },
-  { href: "/contacto", label: "Contacto" },
+  { href: "/contacto", label: "Acceso" },
 ];
 
 function linkActive(pathname: string, href: string): boolean {
@@ -58,7 +57,12 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-brand-navy/[0.12] bg-white/[0.97] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-1 sm:px-6 lg:gap-4 lg:px-8">
-        <Link href="/" className="flex min-w-0 shrink-0 items-center" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="flex min-w-0 shrink-0 items-center"
+          onClick={() => setOpen(false)}
+          aria-label="Ir al inicio"
+        >
           <Image
             src="/logo-redalia.png"
             alt={siteConfig.name}

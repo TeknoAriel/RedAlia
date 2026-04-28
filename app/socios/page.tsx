@@ -8,7 +8,7 @@ import { CTASection } from "@/components/sections/CTASection";
 import { getPartnerDirectorySnapshot } from "@/lib/catalog-read-model/read-model-store";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
-export const revalidate = 1800;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Socios",

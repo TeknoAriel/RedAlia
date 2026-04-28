@@ -9,6 +9,7 @@ const outDir = path.join(root, "public", "read-models");
 const partnersFile = path.join(outDir, "partner_directory_summary.json");
 const propertiesFile = path.join(outDir, "property_listing_summary.json");
 const metaFile = path.join(outDir, "catalog_meta.json");
+const portalsFile = path.join(outDir, "portal_publishers.json");
 
 function sha(input) {
   return createHash("sha256").update(input).digest("hex");
@@ -315,10 +316,48 @@ async function run() {
     storage: "static_repo_snapshot",
     status: "ok",
   };
+  let portalSourceItems = partners.map((partner) => ({
+    name: partner.name,
+    logoSrc: partner.logoUrl ?? null,
+    href: null,
+    enabled: true,
+  }));
+  try {
+    const networkPortals = await withTimeout(
+      "loadNetworkPartnerDirectoryDraftsOnly:portals",
+      loadNetworkPartnerDirectoryDraftsOnly(),
+      60000,
+    );
+    if (networkPortals.ok && networkPortals.drafts.length > 0) {
+      portalSourceItems = networkPortals.drafts.map((draft) => ({
+        name: String(draft.displayName || "").trim(),
+        logoSrc: draft.logoUrl ?? null,
+        href: draft.webUrl ?? null,
+        enabled: true,
+      }));
+    }
+  } catch {
+    /* noop: conserva fallback */
+  }
+  const portalSeen = new Set();
+  const portals = {
+    items: portalSourceItems.filter((item) => {
+      const key = normalizeToken(item.name);
+      if (!key || portalSeen.has(key)) return false;
+      const href = String(item.href || "").toLowerCase();
+      const isInternalCrm = href.includes("kitepropcrm.com");
+      if (isInternalCrm) return false;
+      portalSeen.add(key);
+      return true;
+    }).slice(0, 24),
+    generatedAt: now,
+    syncId,
+  };
 
   await writeAtomicJson(partnersFile, partnerSummary);
   await writeAtomicJson(propertiesFile, propertySummary);
   await writeAtomicJson(metaFile, meta);
+  await writeAtomicJson(portalsFile, portals);
 
   console.log(
     JSON.stringify(
