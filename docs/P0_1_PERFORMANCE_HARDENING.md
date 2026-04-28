@@ -44,5 +44,18 @@
 - `/socios` y `/propiedades` leen snapshots via adapter (sin live fetch en request publico).
 - Sync protegido con `REDALIA_SYNC_SECRET` (compatible fallback `REDALIA_HEALTH_SECRET` y `CRON_SECRET` para Vercel Cron).
 - Se agrega self-check server-side: `/api/internal/self-check-catalog?secret=...`.
-- Cron operativo cada 6 horas via GitHub Actions (`.github/workflows/catalog-sync.yml`).
+- Cron operativo cada 6 horas via GitHub Actions (`.github/workflows/catalog-static-sync.yml`).
 - Cron en `vercel.json` queda diario por limitacion de plan Hobby.
+
+## P0.3 (snapshots estaticos versionados)
+
+- Fuente de lectura publica consolidada: `static_repo_snapshot` en `public/read-models`.
+- Archivos canonicos:
+  - `partner_directory_summary.json`
+  - `property_listing_summary.json`
+  - `catalog_meta.json`
+- Contrato health reforzado:
+  - `sourceEffective=static_repo_snapshot`
+  - `liveRebuildUsed=false`
+  - `publicLiveRebuildAllowed=false`
+- La actualizacion ocurre por ingest automatizado cada 6 horas en GitHub Actions.

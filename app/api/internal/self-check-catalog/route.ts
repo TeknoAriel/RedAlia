@@ -32,10 +32,19 @@ export async function GET(request: Request) {
   ]);
 
   return NextResponse.json({
-    ok: true,
-    storage,
+    status: "ok",
+    storage: "static_repo_snapshot",
+    storageAvailable: storage.available,
+    sourceEffective: "static_repo_snapshot",
+    readModel: true,
     currentSyncId: meta?.syncId ?? null,
     lastSyncAt: meta ? new Date(meta.finishedAtMs).toISOString() : null,
+    ageMinutes: meta ? Math.max(0, Math.floor((Date.now() - meta.finishedAtMs) / 60000)) : null,
+    stale: meta ? Math.max(0, Math.floor((Date.now() - meta.finishedAtMs) / 60000)) > 480 : null,
+    totalPartners: socios1.totalItems,
+    totalProperties: props1.totalItems,
+    partnersOrderHash: sha(socios1.entries.map((x) => x.publicSlug).join("|")),
+    propertiesHash: sha(props1.items.map((x) => x.id).join("|")),
     sociosPage1Hash: sha(socios1.entries.map((x) => x.publicSlug).join("|")),
     sociosPage2Hash: sha(socios2.entries.map((x) => x.publicSlug).join("|")),
     propiedadesPage1Hash: sha(props1.items.map((x) => x.id).join("|")),
@@ -45,5 +54,6 @@ export async function GET(request: Request) {
     liveRebuildUsed: false,
     publicLiveRebuildAllowed: getPublicReadModelPolicy().PUBLIC_LIVE_REBUILD_ALLOWED,
     readMs: Date.now() - t0,
+    storageProbe: storage.storage,
   });
 }

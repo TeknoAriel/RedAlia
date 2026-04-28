@@ -1,5 +1,7 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { upstashDel, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
 import {
@@ -23,8 +25,18 @@ const REDIS_CURRENT_KEY = "redalia:readmodel:current";
 const REDIS_META_KEY = "redalia:readmodel:meta";
 const TTL_SECONDS = 60 * 60 * 24 * 14;
 const PUBLIC_LIVE_REBUILD_ALLOWED = false;
+const STATIC_READ_MODELS_DIR = path.join(process.cwd(), "public", "read-models");
+const STATIC_PARTNERS_FILE = path.join(STATIC_READ_MODELS_DIR, "partner_directory_summary.json");
+const STATIC_PROPERTIES_FILE = path.join(STATIC_READ_MODELS_DIR, "property_listing_summary.json");
+const STATIC_META_FILE = path.join(STATIC_READ_MODELS_DIR, "catalog_meta.json");
 
-export type StorageKind = "upstash" | "vercel_kv" | "blob" | "postgres" | "static_snapshot" | "missing";
+export type StorageKind =
+  | "upstash"
+  | "vercel_kv"
+  | "blob"
+  | "postgres"
+  | "static_repo_snapshot"
+  | "missing";
 
 export type StorageStatus = {
   storage: StorageKind;
@@ -52,14 +64,101 @@ type SyncPayload = {
   warnings: string[];
 };
 
+type StaticPartnerItem = {
+  id: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  propertyCount: number;
+  locationLabel: string | null;
+  coverageLabel: string | null;
+  partnerKey?: string | null;
+  roleLabel?: string | null;
+  listingCtaLabel?: string | null;
+};
+
+type StaticPartnerSummary = {
+  items: StaticPartnerItem[];
+  total: number;
+  pageSize: number;
+  partnersOrderHash: string;
+  generatedAt: string;
+  syncId: string;
+};
+
+type StaticPropertyItem = {
+  id: string;
+  slug: string;
+  title: string;
+  operation: string;
+  type: string;
+  price: number | string | null;
+  currency: string;
+  commune: string | null;
+  region: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  surface: number | null;
+  mainImageUrl: string | null;
+  partnerName: string | null;
+  partnerSlug: string | null;
+  updatedAt: string | null;
+};
+
+type StaticPropertySummary = {
+  items: StaticPropertyItem[];
+  total: number;
+  pageSize: number;
+  propertiesHash: string;
+  generatedAt: string;
+  syncId: string;
+};
+
+type StaticCatalogMeta = {
+  syncId: string;
+  generatedAt: string;
+  totalPartners: number;
+  totalProperties: number;
+  activePartners: number;
+  emptyPartners: number;
+  partnersWithLogo: number;
+  partnersWithoutLogo: number;
+  partnersOrderHash: string;
+  propertiesHash: string;
+  source: {
+    partners: string;
+    properties: string;
+  };
+  storage: "static_repo_snapshot";
+  status: "ok";
+};
+
+async function readJson<T>(filePath: string): Promise<T | null> {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function readStaticMeta(): Promise<StaticCatalogMeta | null> {
+  return readJson<StaticCatalogMeta>(STATIC_META_FILE);
+}
+
+async function readStaticPartnerSummary(): Promise<StaticPartnerSummary | null> {
+  return readJson<StaticPartnerSummary>(STATIC_PARTNERS_FILE);
+}
+
+async function readStaticPropertySummary(): Promise<StaticPropertySummary | null> {
+  return readJson<StaticPropertySummary>(STATIC_PROPERTIES_FILE);
+}
+
 function storageFromEnv(): StorageKind {
   if (getPartnerReadModelStorage() === "upstash" && getPropertyReadModelStorage() === "upstash") return "upstash";
   if (process.env.KV_REST_API_URL?.trim() && process.env.KV_REST_API_TOKEN?.trim()) return "vercel_kv";
   if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return "blob";
   if (process.env.DATABASE_URL?.trim()) return "postgres";
-  if (getPartnerReadModelStorage() === "local_snapshot" || getPropertyReadModelStorage() === "local_snapshot") {
-    return "static_snapshot";
-  }
   return "missing";
 }
 
@@ -67,9 +166,19 @@ export async function getStorageStatus(): Promise<StorageStatus> {
   const t0 = Date.now();
   const storage = storageFromEnv();
   if (storage !== "upstash") {
+    const staticMeta = await readStaticMeta();
+    if (staticMeta) {
+      return {
+        storage: "static_repo_snapshot",
+        available: true,
+        readMs: Date.now() - t0,
+        writeTestOk: false,
+        lastError: null,
+      };
+    }
     return {
       storage,
-      available: storage !== "missing",
+      available: false,
       readMs: Date.now() - t0,
       writeTestOk: false,
       lastError: storage === "missing" ? "storage_missing" : null,
@@ -100,26 +209,120 @@ export async function getStorageStatus(): Promise<StorageStatus> {
 }
 
 export async function getCurrentReadModelMeta(): Promise<ReadModelMeta | null> {
-  return readReadModelMeta();
+  const storage = storageFromEnv();
+  if (storage === "upstash") {
+    return readReadModelMeta();
+  }
+  const staticMeta = await readStaticMeta();
+  if (!staticMeta) return null;
+  const startedAtMs = Date.parse(staticMeta.generatedAt);
+  return {
+    syncId: staticMeta.syncId,
+    startedAtMs,
+    finishedAtMs: startedAtMs,
+    durationMs: 0,
+    totalPartners: staticMeta.totalPartners,
+    totalProperties: staticMeta.totalProperties,
+    partnersHash: staticMeta.partnersOrderHash,
+    propertiesHash: staticMeta.propertiesHash,
+    source: "sync_job",
+    status: staticMeta.status,
+    errors: [],
+    warnings: [],
+  };
 }
 
 export async function getPartnerDirectorySnapshot(): Promise<PublicDirectorySnapshot | null> {
-  const persisted = await readPersistedPartnerDirectorySnapshot();
-  if (!persisted?.entries?.length) return null;
+  if (storageFromEnv() === "upstash") {
+    const persisted = await readPersistedPartnerDirectorySnapshot();
+    if (persisted?.entries?.length) {
+      return {
+        entries: persisted.entries,
+        featured: persisted.entries.slice(0, 8),
+        stats: persisted.stats,
+      };
+    }
+  }
+  const staticSummary = await readStaticPartnerSummary();
+  const staticMeta = await readStaticMeta();
+  if (!staticSummary?.items?.length || !staticMeta) return null;
+  const entries = staticSummary.items.map((item, idx) => ({
+    partnerKey: item.partnerKey?.trim() || `static:partner:${item.id || idx}`,
+    publicSlug: item.slug,
+    scope: "advertiser" as const,
+    displayName: item.name,
+    roleLabel: item.roleLabel ?? "Socio de la red",
+    listingCtaLabel: item.listingCtaLabel ?? "Ver propiedades",
+    logoUrl: item.logoUrl,
+    propertyCount: Math.max(0, Number(item.propertyCount || 0)),
+    email: null,
+    phone: null,
+    mobile: null,
+    whatsapp: null,
+    webUrl: null,
+    coverageLabels: item.coverageLabel ? [item.coverageLabel] : [],
+  }));
   return {
-    entries: persisted.entries,
-    featured: persisted.entries.slice(0, 8),
-    stats: persisted.stats,
+    entries,
+    featured: entries.slice(0, 8),
+    stats: {
+      totalListings: staticMeta.totalProperties,
+      directoryCount: staticMeta.totalPartners,
+      geographicDistinctCount: 0,
+      geographicPresenceLabels: [],
+    },
   };
 }
 
 export async function getPropertyListingSnapshot(): Promise<PropertyListingSnapshot | null> {
-  const persisted = await readPersistedPropertyListingSnapshot();
-  if (!persisted?.items?.length) return null;
+  if (storageFromEnv() === "upstash") {
+    const persisted = await readPersistedPropertyListingSnapshot();
+    if (persisted?.items?.length) {
+      return {
+        generatedAtMs: persisted.generatedAtMs,
+        totalItems: persisted.totalItems,
+        items: persisted.items,
+      };
+    }
+  }
+  const staticSummary = await readStaticPropertySummary();
+  if (!staticSummary?.items?.length) return null;
   return {
-    generatedAtMs: persisted.generatedAtMs,
-    totalItems: persisted.totalItems,
-    items: persisted.items,
+    generatedAtMs: Date.parse(staticSummary.generatedAt),
+    totalItems: staticSummary.total,
+    items: staticSummary.items.map((item) => ({
+      id: item.id,
+      slug: item.slug,
+      title: item.title,
+      operation: item.operation as PropertyListingSnapshot["items"][number]["operation"],
+      propertyTypeKey: item.type,
+      propertyTypeLabel: item.type,
+      priceDisplay: item.price == null ? null : String(item.price),
+      priceNumeric: typeof item.price === "number" ? item.price : null,
+      currency: (item.currency as PropertyListingSnapshot["items"][number]["currency"]) ?? "CLP",
+      city: item.commune,
+      zone: item.commune,
+      zoneSecondary: null,
+      region: item.region,
+      address: null,
+      bedrooms: item.bedrooms,
+      bathrooms: item.bathrooms,
+      totalRooms: null,
+      parkings: null,
+      surfaceM2: item.surface,
+      coveredM2: null,
+      terrainM2: null,
+      mainImageUrl: item.mainImageUrl,
+      partnerName: item.partnerName,
+      partnerKey: item.partnerSlug ?? null,
+      referenceCode: item.id,
+      fitForCredit: null,
+      acceptBarter: null,
+      isNewConstruction: null,
+      searchBlob: `${item.title} ${item.commune ?? ""} ${item.region ?? ""}`.trim().toLowerCase(),
+      lastUpdateMs: item.updatedAt ? Date.parse(item.updatedAt) : null,
+      partnerKeys: item.partnerSlug ? [item.partnerSlug] : [],
+    })),
   };
 }
 

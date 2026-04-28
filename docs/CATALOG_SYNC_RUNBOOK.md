@@ -6,8 +6,8 @@ Mantener `/socios` y `/propiedades` leyendo snapshots persistidos, sin rebuild e
 
 ## Storage
 
-- Preferido: Upstash Redis REST (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`).
-- Si falta storage persistente: estado `degraded/error` en health, sin habilitar live rebuild publico.
+- Operativo actual: `static_repo_snapshot` versionado en `public/read-models`.
+- Futuro recomendado: Blob/KV/Postgres para historico y redundancia multi-entorno.
 
 ## Seguridad
 
@@ -21,8 +21,8 @@ Mantener `/socios` y `/propiedades` leyendo snapshots persistidos, sin rebuild e
   - path: `/api/cron/catalog`
   - schedule: `0 6 * * *` (diario, limite de plan Hobby)
 - Frecuencia operativa cada 6 horas via GitHub Actions:
-  - `.github/workflows/catalog-sync.yml` (`0 */6 * * *`)
-  - requiere secrets `REDALIA_SYNC_SECRET` y opcional `REDALIA_SYNC_BASE_URL`
+  - `.github/workflows/catalog-static-sync.yml` (`0 */6 * * *`)
+  - genera snapshots y commitea cambios en `public/read-models`.
 
 ## Flujo de sync
 
@@ -33,9 +33,9 @@ Mantener `/socios` y `/propiedades` leyendo snapshots persistidos, sin rebuild e
 3. Calcular hashes:
    - `propertiesHash`
    - `partnersOrderHash`
-4. Escribir version `syncId`.
-5. Promover `current` solo al completar OK.
-6. Mantener version anterior si falla.
+4. Validar minimos antes de sobrescribir (>=380 socios, >=1000 propiedades y listas no vacias).
+5. Escribir version `syncId` en snapshots estaticos.
+6. Mantener snapshot anterior si falla cualquier validacion.
 
 ## Health / observabilidad
 
@@ -52,6 +52,6 @@ Campos clave:
 
 ## Respuesta ante incidentes
 
-- `storage=missing`: configurar persistencia y reintentar sync.
-- `stale=true` (>6h): revisar cron y ejecutar sync interno.
-- hashes inestables sin sync: revisar orden deterministico y origen de datos versionados.
+- `stale=true` (>8h): revisar ejecucion de `catalog-static-sync` y estado de secretos.
+- falla de generacion: conservar ultimo snapshot valido, revisar logs de ingest y reintentar workflow manual.
+- hashes inestables sin sync: revisar orden deterministico y fuentes efectivas del snapshot.

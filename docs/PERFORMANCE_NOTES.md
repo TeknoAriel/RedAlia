@@ -26,12 +26,18 @@ Primera carga del catálogo y directorio más liviana, con lectura rápida desde
 - Si no existe snapshot persistido aún, la primera reconstrucción puede ser más lenta hasta ejecutar sync.
 - La consistencia de datos depende del ciclo de sync (manual/cron) y no del request público.
 
-## Operacion vigente (P0.2)
+## Operacion vigente (P0.3)
 
-- Requests publicos de `/socios` y `/propiedades`: solo lectura de snapshot/read model.
-- `live_rebuilt` solo permitido en sync interno y health explicito.
-- Cron de sync activo cada 2 horas (`/api/cron/catalog`).
-- Si storage persistente no esta disponible: health debe quedar `degraded/error` y no se habilita rebuild en trafico publico.
+- Requests publicos de `/socios` y `/propiedades`: solo lectura de `public/read-models/*`.
+- `storage` operativo: `static_repo_snapshot`.
+- `live_rebuilt` deshabilitado para trafico publico y health.
+- Sync de snapshots versionados cada 6 horas via GitHub Actions (`catalog-static-sync.yml`).
+- Si falla la generacion o los minimos de volumen (>=380 socios, >=1000 propiedades), no se sobrescribe el ultimo snapshot valido.
+
+## Stale snapshot
+
+- `stale=true` cuando el snapshot supera 8 horas desde `generatedAt`.
+- Aun con `stale=true`, se sigue sirviendo el ultimo snapshot valido para proteger estabilidad.
 
 ## Próxima etapa (opcional)
 

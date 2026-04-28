@@ -35,6 +35,18 @@ No seguir con mejoras visuales ni UX hasta **cerrar datos reales en producción*
   - sync: `/api/internal/sync-catalog?secret=...`
   - self-check: `/api/internal/self-check-catalog?secret=...`
 
+## Estado Sprint P0.3 Static Read-Model Snapshots (abril 2026)
+
+- Rama: `redalia/p0-3-static-readmodel-snapshots`.
+- Objetivo: desacoplar completamente `/socios` y `/propiedades` de APIs en tiempo real.
+- Storage operativo de lectura: `static_repo_snapshot`.
+- Archivos de snapshot versionados:
+  - `public/read-models/partner_directory_summary.json`
+  - `public/read-models/property_listing_summary.json`
+  - `public/read-models/catalog_meta.json`
+- Ingest automatizado cada 6h por GitHub Actions: `.github/workflows/catalog-static-sync.yml`.
+- Regla de estabilidad: no sobrescribir snapshots si fallan validaciones minimas de volumen o estructura.
+
 ## Criterios de cierre de esta etapa
 
 - `/propiedades` debe mostrar **>3000** propiedades reales.
