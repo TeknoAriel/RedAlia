@@ -26,7 +26,7 @@ function VideoCard({
     return (
       <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
-        <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-brand-navy/10 bg-brand-navy-soft/20 px-5 text-center">
+        <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-brand-navy/10 bg-brand-navy-soft/20 px-5 text-center">
           <p className="text-sm text-muted">Video institucional próximamente disponible.</p>
         </div>
       </article>
@@ -35,7 +35,12 @@ function VideoCard({
   return (
     <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
-      <video controls preload="metadata" className="w-full rounded-xl border border-brand-navy/10 bg-black/90" src={src}>
+      <video
+        controls
+        preload="metadata"
+        className="aspect-video w-full max-h-[220px] rounded-xl border border-brand-navy/10 bg-black/90 object-cover"
+        src={src}
+      >
         Tu navegador no soporta video HTML5.
       </video>
     </article>
@@ -90,7 +95,7 @@ export async function KitePropTechnologySection() {
           </li>
         </ul>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
+        <div className="mx-auto mt-10 grid max-w-5xl gap-6 lg:grid-cols-2">
           <VideoCard title="Video institucional KiteProp" src={institucionalSrc} />
           <VideoCard title="Características de KiteProp" src={caracteristicasSrc} />
         </div>
