@@ -2,109 +2,39 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
-import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
-import { getPropertyById } from "@/lib/get-properties";
-import {
-  fichaInmobiliariaOperativaChipEs,
-  partnersRoughlyEqual,
-  propertyFichaConsultarRow,
-  propertyFichaInmobiliariaOperativa,
-  scopedPartnerKey,
-  socioScopeLabelEs,
-  sociosGridLinkLabel,
-} from "@/lib/agencies";
-import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
-import type { NormalizedProperty, PropertyPartner } from "@/types/property";
+import { getPropertyListingSnapshot } from "@/lib/catalog-read-model/read-model-store";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 86400;
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const p = await getPropertyById(id);
+  const snapshot = await getPropertyListingSnapshot();
+  const p = snapshot?.items.find((item) => item.id === id || item.slug === id) ?? null;
   if (!p) return { title: "Propiedad" };
   return {
     title: p.title.slice(0, 60),
-    description: p.summary,
+    description: `${p.propertyTypeLabel} en ${p.city ?? p.region ?? "Chile"}`,
     openGraph: {
       title: p.title,
-      description: p.summary,
-      images: p.images[0] ? [p.images[0]] : undefined,
+      description: `${p.propertyTypeLabel} en ${p.city ?? p.region ?? "Chile"}`,
+      images: p.mainImageUrl ? [p.mainImageUrl] : undefined,
     },
   };
 }
 
-function consultarLinkLabel(scope: string): string {
-  if (scope === "agent") return "Ver publicaciones del agente";
-  if (scope === "advertiser") return "Ver publicaciones del anunciante";
-  if (scope === "agency") return "Ver propiedades de esta agencia";
-  return "Ver publicaciones de este contacto";
-}
-
-/** Anunciante del JSON o, si no viene, agente de la publicación (`listing_agent` / `agent`). */
-function fichaPublicaPartner(p: NormalizedProperty): {
-  scope: "advertiser" | "agent";
-  row: PropertyPartner & { name: string };
-  chip: string;
-} | null {
-  const adv = p.advertiser;
-  if (adv?.name?.trim() && !partnerShouldHideFromPublicaBlock(adv, p)) {
-    return {
-      scope: "advertiser",
-      row: { ...adv, name: adv.name.trim() },
-      chip: "Anunciante",
-    };
-  }
-  const ag = p.agentAgency;
-  if (ag?.name?.trim() && !partnerShouldHideFromPublicaBlock(ag, p)) {
-    return {
-      scope: "agent",
-      row: { ...ag, name: ag.name.trim() },
-      chip: "Agente de la publicación",
-    };
-  }
-  return null;
-}
-
 export default async function PropertyDetailPage({ params }: Props) {
   const { id } = await params;
-  const p = await getPropertyById(id);
+  const snapshot = await getPropertyListingSnapshot();
+  const p = snapshot?.items.find((item) => item.id === id || item.slug === id) ?? null;
   if (!p) notFound();
 
   const op = labelForOperation(p.operation);
-  const consultar = propertyFichaConsultarRow(p);
-  const inmob = propertyFichaInmobiliariaOperativa(p);
-  const publicaRaw = fichaPublicaPartner(p);
-  const publica =
-    publicaRaw?.scope === "agent" &&
-    inmob?.scope === "agent" &&
-    partnersRoughlyEqual(publicaRaw.row, inmob)
-      ? null
-      : publicaRaw;
-  const showInmobiliaria = Boolean(inmob);
-  const showConsultarBlock = Boolean(
-    consultar &&
-      !(
-        (consultar.scope === "advertiser" && publica?.scope === "advertiser") ||
-        (consultar.scope === "agent" && publica?.scope === "agent")
-      ),
-  );
-  const showPublisherEmpty =
-    !showInmobiliaria && !publica && !showConsultarBlock && !p.associatedAgentsLabel;
-  const hasPublisherSection =
-    showInmobiliaria ||
-    Boolean(publica) ||
-    showConsultarBlock ||
-    Boolean(p.associatedAgentsLabel) ||
-    showPublisherEmpty;
-  const consultMailto =
-    consultar?.email?.trim() ??
-    (inmob ? inmob.email?.trim() : undefined) ??
-    (publica ? publica.row.email?.trim() : undefined) ??
-    siteConfig.contact.email;
+  const locationLabel = [p.city, p.zone, p.zoneSecondary].filter(Boolean).join(" · ") || "Ubicación a confirmar";
+  const imageList = p.mainImageUrl ? [p.mainImageUrl] : [];
 
   return (
     <div className="pb-16">
@@ -134,178 +64,37 @@ export default async function PropertyDetailPage({ params }: Props) {
           </div>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-brand-navy sm:text-4xl">{p.title}</h1>
           <p className="mt-2 text-lg text-muted">
-            {[p.city, p.zone, p.zoneSecondary].filter(Boolean).join(" · ") || "Ubicación a confirmar"}
+            {locationLabel}
           </p>
           <p className="mt-4 text-2xl font-semibold text-brand-navy">{p.priceDisplay ?? "Consultar"}</p>
         </header>
 
-        <PropertyGallery images={p.images} title={p.title} />
+        <PropertyGallery images={imageList} title={p.title} />
 
         <div className="mt-10 grid gap-10 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <h2 className="text-lg font-semibold text-brand-navy">Descripción</h2>
+            <h2 className="text-lg font-semibold text-brand-navy">Resumen</h2>
             <div className="prose prose-slate mt-3 max-w-none whitespace-pre-wrap text-sm leading-relaxed text-brand-navy/90">
-              {p.description || p.summary}
+              {`${p.propertyTypeLabel} en ${locationLabel}. ${
+                p.surfaceM2 != null ? `Superficie ${p.surfaceM2.toLocaleString("es-CL")} m². ` : ""
+              }${p.bedrooms != null ? `${p.bedrooms} dormitorios. ` : ""}${
+                p.bathrooms != null ? `${p.bathrooms} baños.` : ""
+              }`}
             </div>
           </div>
           <aside className="tech-panel-glow rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm ring-1 ring-brand-navy/5">
-            {hasPublisherSection && (
-              <div className="mb-6 space-y-5 border-b border-brand-navy/10 pb-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
-                  Agencia y contacto
-                </h2>
-
-                {showInmobiliaria && inmob && (
-                  <div className="space-y-3">
-                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
-                      {fichaInmobiliariaOperativaChipEs[inmob.scope]}
-                    </span>
-                    <div className="flex items-start gap-3">
-                      {inmob.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={inmob.logoUrl}
-                          alt=""
-                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                          {inmob.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-navy">{inmob.name}</p>
-                        <Link
-                          href={`/propiedades?socio=${encodeURIComponent(
-                            scopedPartnerKey(inmob.scope, inmob.id, inmob.name),
-                          )}`}
-                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
-                        >
-                          {sociosGridLinkLabel(inmob.scope)}
-                        </Link>
-                        <PartnerContactLinks
-                          email={inmob.email}
-                          phone={inmob.phone}
-                          mobile={inmob.mobile}
-                          whatsapp={inmob.whatsapp}
-                          webUrl={inmob.webUrl}
-                          className="mt-3"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {publica && (
-                  <div
-                    className={`space-y-3 ${showInmobiliaria ? "border-t border-brand-navy/10 pt-4" : ""}`}
-                  >
-                    <span className="inline-block rounded-full bg-brand-navy-soft px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy/80">
-                      {publica.chip}
-                    </span>
-                    <div className="flex items-start gap-3">
-                      {publica.row.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={publica.row.logoUrl}
-                          alt=""
-                          className="h-12 w-12 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-xs font-bold text-brand-navy/50">
-                          {publica.row.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-navy">{publica.row.name}</p>
-                        <Link
-                          href={`/propiedades?socio=${encodeURIComponent(
-                            scopedPartnerKey(publica.scope, publica.row.id, publica.row.name),
-                          )}`}
-                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
-                        >
-                          {publica.scope === "advertiser"
-                            ? "Ver publicaciones de este anunciante"
-                            : "Ver publicaciones de este agente"}
-                        </Link>
-                        <PartnerContactLinks
-                          email={publica.row.email}
-                          phone={publica.row.phone}
-                          mobile={publica.row.mobile}
-                          whatsapp={publica.row.whatsapp}
-                          webUrl={publica.row.webUrl}
-                          className="mt-3"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showConsultarBlock && consultar && (
-                  <div
-                    className={`space-y-3 ${showInmobiliaria || publica ? "border-t border-brand-navy/10 pt-4" : ""}`}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-block rounded-full bg-brand-gold/25 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-navy">
-                        Consultar
-                      </span>
-                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted">
-                        {socioScopeLabelEs[consultar.scope]}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      {consultar.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={consultar.logoUrl}
-                          alt=""
-                          className="h-11 w-11 shrink-0 rounded-lg border border-brand-navy/10 object-contain p-0.5"
-                        />
-                      ) : (
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-navy-soft text-[10px] font-bold text-brand-navy/50">
-                          {consultar.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-brand-navy">{consultar.name}</p>
-                        <PartnerContactLinks
-                          email={consultar.email}
-                          phone={consultar.phone}
-                          mobile={consultar.mobile}
-                          whatsapp={consultar.whatsapp}
-                          webUrl={consultar.webUrl}
-                          className="mt-2"
-                        />
-                        <Link
-                          href={`/propiedades?socio=${encodeURIComponent(consultar.key)}`}
-                          className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
-                        >
-                          {consultarLinkLabel(consultar.scope)}
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {p.associatedAgentsLabel && (
-                  <div className="border-t border-brand-navy/10 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted">Agentes asociados</p>
-                    <p className="mt-1 text-sm leading-snug text-brand-navy/90">{p.associatedAgentsLabel}</p>
-                  </div>
-                )}
-
-                {showPublisherEmpty && (
-                  <p className="text-sm leading-relaxed text-muted">
-                    Los datos de contacto de la publicación se centralizan en Redalia para esta ficha. Para consultas
-                    específicas sobre la operación o la contraparte, usá el botón de consulta o{" "}
-                    <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-                      escribinos
-                    </Link>
-                    .
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="mb-6 space-y-3 border-b border-brand-navy/10 pb-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">Publica</h2>
+              <p className="text-sm font-semibold text-brand-navy">{p.partnerName ?? "Redalia"}</p>
+              {p.partnerName && (
+                <Link
+                  href={`/propiedades?socio=${encodeURIComponent(p.partnerName)}`}
+                  className="inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"
+                >
+                  Ver más de este socio
+                </Link>
+              )}
+            </div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
               Datos principales
             </h2>
@@ -326,7 +115,7 @@ export default async function PropertyDetailPage({ params }: Props) {
               </div>
               <div className="flex justify-between gap-4 border-b border-brand-navy/10 pb-2">
                 <dt className="text-muted">Dirección referencial</dt>
-                <dd className="max-w-[55%] text-right font-medium text-brand-navy">{p.address ?? "—"}</dd>
+                <dd className="max-w-[55%] text-right font-medium text-brand-navy">{p.address ?? locationLabel}</dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-brand-navy/10 pb-2">
                 <dt className="text-muted">Región</dt>
@@ -335,21 +124,11 @@ export default async function PropertyDetailPage({ params }: Props) {
             </dl>
             <div className="mt-8 space-y-3">
               <a
-                href={`mailto:${encodeURIComponent(consultMailto)}?subject=Consulta%20${encodeURIComponent(p.referenceCode)}`}
+                href={`mailto:${encodeURIComponent(siteConfig.contact.email)}?subject=Consulta%20${encodeURIComponent(p.referenceCode)}`}
                 className="flex w-full items-center justify-center rounded-full bg-brand-navy px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-navy-mid"
               >
                 Consultar por esta propiedad
               </a>
-              {p.sourceUrl && (
-                <a
-                  href={p.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center rounded-full border border-brand-navy/20 px-4 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-navy-soft"
-                >
-                  Ver publicación original
-                </a>
-              )}
             </div>
           </aside>
         </div>

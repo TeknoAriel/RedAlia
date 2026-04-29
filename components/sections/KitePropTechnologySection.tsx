@@ -1,6 +1,7 @@
 import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
 import { access } from "node:fs/promises";
 import path from "node:path";
+import { VideoPreviewModalCard } from "@/components/sections/VideoPreviewModalCard";
 
 const institucionalVideoPath = "/videos/kiteprop-institucional.mp4";
 const caracteristicasVideoPath = "/videos/kiteprop-caracteristicas.mp4";
@@ -13,38 +14,6 @@ async function hasPublicVideo(relativePath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function VideoCard({
-  title,
-  src,
-}: {
-  title: string;
-  src: string | null;
-}) {
-  if (!src) {
-    return (
-      <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
-        <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-brand-navy/10 bg-brand-navy-soft/20 px-5 text-center">
-          <p className="text-sm text-muted">Video institucional próximamente disponible.</p>
-        </div>
-      </article>
-    );
-  }
-  return (
-    <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
-      <video
-        controls
-        preload="metadata"
-        className="aspect-video w-full max-h-[220px] rounded-xl border border-brand-navy/10 bg-black/90 object-cover"
-        src={src}
-      >
-        Tu navegador no soporta video HTML5.
-      </video>
-    </article>
-  );
 }
 
 export async function KitePropTechnologySection() {
@@ -96,8 +65,8 @@ export async function KitePropTechnologySection() {
         </ul>
 
         <div className="mx-auto mt-10 grid max-w-5xl gap-6 lg:grid-cols-2">
-          <VideoCard title="Video institucional KiteProp" src={institucionalSrc} />
-          <VideoCard title="Características de KiteProp" src={caracteristicasSrc} />
+          <VideoPreviewModalCard title="Video institucional KiteProp" src={institucionalSrc} />
+          <VideoPreviewModalCard title="Características de KiteProp" src={caracteristicasSrc} />
         </div>
       </div>
     </section>
