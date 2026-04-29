@@ -18,20 +18,8 @@ export type PortalPublisherEntry = {
  * Para activar/desactivar un portal, editar solo este objeto (sin tocar lógica).
  */
 export const portalPublisherVisibilityControl: Record<string, boolean> = {
-  // Whitelist editorial Home (10-15 portales visibles).
-  "agentes inmobiliarios asociados aina": true,
-  "urbalia propiedades": true,
-  "todo propiedades": true,
-  "propiedades san miguel": true,
-  "propiedades ok": true,
-  "vyaok spa": true,
-  "roma corretaje": true,
-  "saenger propiedades spa": true,
-  "vivabien propiedades": true,
-  braska: true,
-  "inmobilien propiedades": true,
-  "yusprop": true,
-  "acpro acciona propiedades": true,
+  // Vacío = mostrar todos los portales del snapshot AINA.
+  // Para ordenar más adelante, agregar aquí claves normalizadas en true/false.
 };
 
 /**
