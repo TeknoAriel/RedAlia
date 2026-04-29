@@ -10,7 +10,7 @@ import {
   readPersistedPropertyListingSnapshot,
   writePersistedPropertyListingSnapshot,
 } from "@/lib/properties/property-listing-snapshot-persist";
-import type { PropertyListingSnapshot } from "@/lib/properties/read-model";
+import type { PropertyListingSummary, PropertyListingSnapshot } from "@/lib/properties/read-model";
 import {
   buildPartnersOrderHash,
   getPartnerReadModelStorage,
@@ -29,6 +29,18 @@ const STATIC_READ_MODELS_DIR = path.join(process.cwd(), "public", "read-models")
 const STATIC_PARTNERS_FILE = path.join(STATIC_READ_MODELS_DIR, "partner_directory_summary.json");
 const STATIC_PROPERTIES_FILE = path.join(STATIC_READ_MODELS_DIR, "property_listing_summary.json");
 const STATIC_META_FILE = path.join(STATIC_READ_MODELS_DIR, "catalog_meta.json");
+
+type StaticPropertyListingCache = {
+  snapshot: PropertyListingSnapshot;
+  byKey: Map<string, PropertyListingSummary>;
+};
+
+type StaticPartnerListingCache = {
+  snapshot: PublicDirectorySnapshot;
+};
+
+let staticPropertyListingCache: StaticPropertyListingCache | null = null;
+let staticPartnerDirectoryCache: StaticPartnerListingCache | null = null;
 
 export type StorageKind =
   | "upstash"
@@ -133,6 +145,42 @@ type StaticCatalogMeta = {
   status: "ok";
 };
 
+function mapStaticPropertyItemToSummary(item: StaticPropertyItem): PropertyListingSummary {
+  return {
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    operation: item.operation as PropertyListingSnapshot["items"][number]["operation"],
+    propertyTypeKey: item.type,
+    propertyTypeLabel: item.type,
+    priceDisplay: item.price == null ? null : String(item.price),
+    priceNumeric: typeof item.price === "number" ? item.price : null,
+    currency: (item.currency as PropertyListingSnapshot["items"][number]["currency"]) ?? "CLP",
+    city: item.commune,
+    zone: item.commune,
+    zoneSecondary: null,
+    region: item.region,
+    address: null,
+    bedrooms: item.bedrooms,
+    bathrooms: item.bathrooms,
+    totalRooms: null,
+    parkings: null,
+    surfaceM2: item.surface,
+    coveredM2: null,
+    terrainM2: null,
+    mainImageUrl: item.mainImageUrl,
+    partnerName: item.partnerName,
+    partnerKey: item.partnerSlug ?? null,
+    referenceCode: item.id,
+    fitForCredit: null,
+    acceptBarter: null,
+    isNewConstruction: null,
+    searchBlob: `${item.title} ${item.commune ?? ""} ${item.region ?? ""}`.trim().toLowerCase(),
+    lastUpdateMs: item.updatedAt ? Date.parse(item.updatedAt) : null,
+    partnerKeys: item.partnerSlug ? [item.partnerSlug] : [],
+  };
+}
+
 async function readJson<T>(filePath: string): Promise<T | null> {
   try {
     const raw = await readFile(filePath, "utf8");
@@ -152,6 +200,72 @@ async function readStaticPartnerSummary(): Promise<StaticPartnerSummary | null> 
 
 async function readStaticPropertySummary(): Promise<StaticPropertySummary | null> {
   return readJson<StaticPropertySummary>(STATIC_PROPERTIES_FILE);
+}
+
+async function loadStaticPropertyListingData(): Promise<StaticPropertyListingCache> {
+  if (staticPropertyListingCache) {
+    return staticPropertyListingCache;
+  }
+  const staticSummary = await readStaticPropertySummary();
+  if (!staticSummary?.items?.length) {
+    staticPropertyListingCache = { snapshot: { generatedAtMs: 0, totalItems: 0, items: [] }, byKey: new Map() };
+    return staticPropertyListingCache;
+  }
+  const items = staticSummary.items.map(mapStaticPropertyItemToSummary);
+  const byKey = new Map<string, PropertyListingSummary>();
+  for (const row of items) {
+    if (row.id) byKey.set(String(row.id), row);
+    if (row.slug) byKey.set(String(row.slug), row);
+  }
+  staticPropertyListingCache = {
+    snapshot: {
+      generatedAtMs: Date.parse(staticSummary.generatedAt),
+      totalItems: staticSummary.total,
+      items,
+    },
+    byKey,
+  };
+  return staticPropertyListingCache;
+}
+
+async function loadStaticPartnerDirectoryData(): Promise<StaticPartnerListingCache> {
+  if (staticPartnerDirectoryCache) {
+    return staticPartnerDirectoryCache;
+  }
+  const [staticSummary, staticMeta] = await Promise.all([readStaticPartnerSummary(), readStaticMeta()]);
+  if (!staticSummary?.items?.length || !staticMeta) {
+    staticPartnerDirectoryCache = { snapshot: { entries: [], featured: [], stats: { totalListings: 0, directoryCount: 0, geographicDistinctCount: 0, geographicPresenceLabels: [] } } };
+    return staticPartnerDirectoryCache;
+  }
+  const entries = staticSummary.items.map((item, idx) => ({
+    partnerKey: item.partnerKey?.trim() || `static:partner:${item.id || idx}`,
+    publicSlug: item.slug,
+    scope: "advertiser" as const,
+    displayName: item.name,
+    roleLabel: item.roleLabel ?? "Socio de la red",
+    listingCtaLabel: item.listingCtaLabel ?? "Ver propiedades",
+    logoUrl: item.logoUrl,
+    propertyCount: Math.max(0, Number(item.propertyCount || 0)),
+    email: null,
+    phone: null,
+    mobile: null,
+    whatsapp: null,
+    webUrl: null,
+    coverageLabels: item.coverageLabel ? [item.coverageLabel] : [],
+  }));
+  staticPartnerDirectoryCache = {
+    snapshot: {
+      entries,
+      featured: entries.slice(0, 8),
+      stats: {
+        totalListings: staticMeta.totalProperties,
+        directoryCount: staticMeta.totalPartners,
+        geographicDistinctCount: 0,
+        geographicPresenceLabels: [],
+      },
+    },
+  };
+  return staticPartnerDirectoryCache;
 }
 
 function storageFromEnv(): StorageKind {
@@ -243,35 +357,9 @@ export async function getPartnerDirectorySnapshot(): Promise<PublicDirectorySnap
       };
     }
   }
-  const staticSummary = await readStaticPartnerSummary();
-  const staticMeta = await readStaticMeta();
-  if (!staticSummary?.items?.length || !staticMeta) return null;
-  const entries = staticSummary.items.map((item, idx) => ({
-    partnerKey: item.partnerKey?.trim() || `static:partner:${item.id || idx}`,
-    publicSlug: item.slug,
-    scope: "advertiser" as const,
-    displayName: item.name,
-    roleLabel: item.roleLabel ?? "Socio de la red",
-    listingCtaLabel: item.listingCtaLabel ?? "Ver propiedades",
-    logoUrl: item.logoUrl,
-    propertyCount: Math.max(0, Number(item.propertyCount || 0)),
-    email: null,
-    phone: null,
-    mobile: null,
-    whatsapp: null,
-    webUrl: null,
-    coverageLabels: item.coverageLabel ? [item.coverageLabel] : [],
-  }));
-  return {
-    entries,
-    featured: entries.slice(0, 8),
-    stats: {
-      totalListings: staticMeta.totalProperties,
-      directoryCount: staticMeta.totalPartners,
-      geographicDistinctCount: 0,
-      geographicPresenceLabels: [],
-    },
-  };
+  const built = await loadStaticPartnerDirectoryData();
+  if (!built.snapshot.entries.length) return null;
+  return built.snapshot;
 }
 
 export async function getPropertyListingSnapshot(): Promise<PropertyListingSnapshot | null> {
@@ -285,45 +373,28 @@ export async function getPropertyListingSnapshot(): Promise<PropertyListingSnaps
       };
     }
   }
-  const staticSummary = await readStaticPropertySummary();
-  if (!staticSummary?.items?.length) return null;
-  return {
-    generatedAtMs: Date.parse(staticSummary.generatedAt),
-    totalItems: staticSummary.total,
-    items: staticSummary.items.map((item) => ({
-      id: item.id,
-      slug: item.slug,
-      title: item.title,
-      operation: item.operation as PropertyListingSnapshot["items"][number]["operation"],
-      propertyTypeKey: item.type,
-      propertyTypeLabel: item.type,
-      priceDisplay: item.price == null ? null : String(item.price),
-      priceNumeric: typeof item.price === "number" ? item.price : null,
-      currency: (item.currency as PropertyListingSnapshot["items"][number]["currency"]) ?? "CLP",
-      city: item.commune,
-      zone: item.commune,
-      zoneSecondary: null,
-      region: item.region,
-      address: null,
-      bedrooms: item.bedrooms,
-      bathrooms: item.bathrooms,
-      totalRooms: null,
-      parkings: null,
-      surfaceM2: item.surface,
-      coveredM2: null,
-      terrainM2: null,
-      mainImageUrl: item.mainImageUrl,
-      partnerName: item.partnerName,
-      partnerKey: item.partnerSlug ?? null,
-      referenceCode: item.id,
-      fitForCredit: null,
-      acceptBarter: null,
-      isNewConstruction: null,
-      searchBlob: `${item.title} ${item.commune ?? ""} ${item.region ?? ""}`.trim().toLowerCase(),
-      lastUpdateMs: item.updatedAt ? Date.parse(item.updatedAt) : null,
-      partnerKeys: item.partnerSlug ? [item.partnerSlug] : [],
-    })),
-  };
+  const built = await loadStaticPropertyListingData();
+  if (!built.snapshot.items.length) return null;
+  return built.snapshot;
+}
+
+/**
+ * Lookup O(1) en snapshot estático (repo). En Upstash cae a búsqueda en array.
+ */
+export async function getPropertyListingItemById(
+  idOrSlug: string,
+): Promise<PropertyListingSummary | null> {
+  const key = idOrSlug.trim();
+  if (!key) return null;
+  if (storageFromEnv() === "upstash") {
+    const persisted = await readPersistedPropertyListingSnapshot();
+    if (persisted?.items?.length) {
+      return persisted.items.find((x) => x.id === key || x.slug === key) ?? null;
+    }
+  }
+  const { byKey, snapshot } = await loadStaticPropertyListingData();
+  if (!snapshot.items.length) return null;
+  return byKey.get(key) ?? snapshot.items.find((x) => x.id === key || x.slug === key) ?? null;
 }
 
 export async function getPartnerDirectoryPage(page: number, pageSize: number): Promise<{

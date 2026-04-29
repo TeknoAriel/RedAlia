@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
-import { getPropertyListingSnapshot } from "@/lib/catalog-read-model/read-model-store";
+import { getPropertyListingItemById } from "@/lib/catalog-read-model/read-model-store";
 import { labelForOperation } from "@/lib/operation-labels";
 import { siteConfig } from "@/lib/site-config";
 
@@ -10,10 +11,13 @@ export const revalidate = 86400;
 
 type Props = { params: Promise<{ id: string }> };
 
+const loadPropertyListingItem = cache(async (id: string) => {
+  return getPropertyListingItemById(id);
+});
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const snapshot = await getPropertyListingSnapshot();
-  const p = snapshot?.items.find((item) => item.id === id || item.slug === id) ?? null;
+  const p = await loadPropertyListingItem(id);
   if (!p) return { title: "Propiedad" };
   return {
     title: p.title.slice(0, 60),
@@ -28,8 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PropertyDetailPage({ params }: Props) {
   const { id } = await params;
-  const snapshot = await getPropertyListingSnapshot();
-  const p = snapshot?.items.find((item) => item.id === id || item.slug === id) ?? null;
+  const p = await loadPropertyListingItem(id);
   if (!p) notFound();
 
   const op = labelForOperation(p.operation);
