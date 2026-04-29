@@ -31,12 +31,17 @@ export async function getPortalPublishersSnapshot(): Promise<PortalPublisherEntr
     if (!Array.isArray(parsed?.items)) return [];
     const seen = new Set<string>();
     const out: PortalPublisherEntry[] = [];
+    const hasWhitelist = Object.keys(portalPublisherVisibilityControl).length > 0;
     for (const item of parsed.items) {
       if (!item?.name || item.enabled === false) continue;
       const key = normalizeNameToken(item.name);
       if (!key || seen.has(key)) continue;
       const allowed = portalPublisherVisibilityControl[key];
-      if (allowed === false) continue;
+      if (hasWhitelist) {
+        if (allowed !== true) continue;
+      } else if (allowed === false) {
+        continue;
+      }
       seen.add(key);
       out.push({
         name: item.name,

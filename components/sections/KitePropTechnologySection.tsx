@@ -1,10 +1,61 @@
 import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
+import { access } from "node:fs/promises";
+import path from "node:path";
 
-const slackVideoUrl =
-  "https://kiteprop.slack.com/files/U048XK2PHHT/F0AJ59MQYR5/descubre_kiteprop.mp4";
-const whatsappVideoPath = "/videos/WhatsApp Video 2026-04-28 at 12.06.18.mp4";
+const institucionalVideoPath = "/videos/kiteprop-institucional.mp4";
+const caracteristicasVideoPath = "/videos/kiteprop-caracteristicas.mp4";
+const legacyCaracteristicasVideoPath = "/videos/WhatsApp Video 2026-04-28 at 12.06.18.mp4";
 
-export function KitePropTechnologySection() {
+async function hasPublicVideo(relativePath: string): Promise<boolean> {
+  try {
+    await access(path.join(process.cwd(), "public", relativePath.replace(/^\//, "")));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function VideoCard({
+  title,
+  src,
+}: {
+  title: string;
+  src: string | null;
+}) {
+  if (!src) {
+    return (
+      <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
+        <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-brand-navy/10 bg-brand-navy-soft/20 px-5 text-center">
+          <p className="text-sm text-muted">Video institucional próximamente disponible.</p>
+        </div>
+      </article>
+    );
+  }
+  return (
+    <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">{title}</p>
+      <video controls preload="metadata" className="w-full rounded-xl border border-brand-navy/10 bg-black/90" src={src}>
+        Tu navegador no soporta video HTML5.
+      </video>
+    </article>
+  );
+}
+
+export async function KitePropTechnologySection() {
+  const [hasInstitucional, hasCaracteristicas, hasLegacyCaracteristicas] = await Promise.all([
+    hasPublicVideo(institucionalVideoPath),
+    hasPublicVideo(caracteristicasVideoPath),
+    hasPublicVideo(legacyCaracteristicasVideoPath),
+  ]);
+
+  const institucionalSrc = hasInstitucional ? institucionalVideoPath : null;
+  const caracteristicasSrc = hasCaracteristicas
+    ? caracteristicasVideoPath
+    : hasLegacyCaracteristicas
+      ? legacyCaracteristicasVideoPath
+      : null;
+
   return (
     <section className="border-b border-brand-navy/10 bg-white py-14 sm:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -40,35 +91,8 @@ export function KitePropTechnologySection() {
         </ul>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">
-              Video institucional KiteProp
-            </p>
-            <video
-              controls
-              preload="metadata"
-              className="w-full rounded-xl border border-brand-navy/10 bg-black/90"
-              src={slackVideoUrl}
-            >
-              Tu navegador no soporta video HTML5.
-            </video>
-          </article>
-          <article className="rounded-2xl border border-brand-navy/10 bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-navy/70">
-              Características de KiteProp
-            </p>
-            <video
-              controls
-              preload="metadata"
-              className="w-full rounded-xl border border-brand-navy/10 bg-black/90"
-              src={whatsappVideoPath}
-            >
-              Tu navegador no soporta video HTML5.
-            </video>
-            <p className="mt-3 text-xs text-muted">
-              Si este video no aparece, subilo en `public/videos/WhatsApp Video 2026-04-28 at 12.06.18.mp4`.
-            </p>
-          </article>
+          <VideoCard title="Video institucional KiteProp" src={institucionalSrc} />
+          <VideoCard title="Características de KiteProp" src={caracteristicasSrc} />
         </div>
       </div>
     </section>

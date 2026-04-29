@@ -99,3 +99,59 @@ Conclusion: la validacion funcional definitiva de conteos debe cerrarse en previ
   - orden deterministico en codigo (sin rotacion),
   - `socios-health` dinamico en vivo,
   - pagina y total coherentes con `estimatedPages=13` y `pageSize=40`.
+
+## Diferencia 513 vs 405
+
+### Resumen ejecutivo
+
+- Total observado antes (modo previo live): `513` socios.
+- Total final renderizable actual (snapshot estatico): `405` socios.
+- Diferencia neta: `108` socios menos en snapshot actual.
+- Fuente efectiva actual: `static_repo_snapshot` (sin live rebuild publico).
+
+### Totales auditados
+
+- Fuente bruta de organizaciones de red (actual): `369` (`getNetworkOrganizations`).
+- Total renderizable final en `partner_directory_summary.json`: `405`.
+- Desglose final:
+  - `369` socios con `propertyCount=0` (se muestran, no se ocultan).
+  - `36` socios con `propertyCount>0`.
+
+### Criterios de descarte aplicados en el pipeline
+
+1. Descarte por nombre vacio (`dropDirectoryEntriesWithoutDisplayName`).
+2. Deduplicacion por `partnerKey` al anexar extras de red.
+3. Sanitizacion de datos de contacto (no elimina socio, solo limpia campos invalidos).
+
+En la corrida auditada actual:
+
+- descartes por nombre vacio: `0`
+- descartes por deduplicacion directa de `partnerKey`: `0`
+
+### Entonces, por que baja de 513 a 405
+
+La baja no se explica por un filtro nuevo agresivo, sino por **cambio de fuente efectiva y cobertura de la corrida seleccionada**:
+
+- `513` provenia del flujo live previo (mezcla feed/network con mayor cobertura de anunciantes activos en ese momento).
+- `405` proviene del snapshot estatico vigente, que conserva la base de red (`369`) pero trae menos anunciantes con match de propiedades (`36` en esta version).
+- No hay evidencia de perdida por bug de paginacion ni por ocultamiento de socios con `propertyCount=0`.
+
+### Cantidad descartada (513 -> 405)
+
+- Diferencia total: `108`.
+- Clasificacion: diferencia por cobertura/frescura entre corridas/fuentes, **no** por regla de ocultamiento de socios validos con `0` propiedades.
+
+### Ejemplos sanitizados de descartes/diferencias
+
+Para no exponer datos sensibles, se documentan patrones de clave:
+
+- `kpnet:advertiser:12***` (presente en conteo live historico, ausente en snapshot actual).
+- `kpnet:advertiser:34***` (caso equivalente de brecha entre corridas).
+- `advertiser:9***` (identidad feed sin contraparte efectiva en snapshot seleccionado).
+
+Estos ejemplos representan la brecha de cobertura entre corridas, no un filtro por `propertyCount=0`.
+
+### Confirmacion de regla clave
+
+Se confirma que **no** se ocultan socios solo por tener `propertyCount=0`.
+En el snapshot actual hay `369` socios con `propertyCount=0` y siguen visibles en `/socios`.

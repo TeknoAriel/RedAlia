@@ -24,6 +24,14 @@ Mantener `/socios` y `/propiedades` leyendo snapshots persistidos, sin rebuild e
   - `.github/workflows/catalog-static-sync.yml` (`0 */6 * * *`)
   - genera snapshots y commitea cambios en `public/read-models`.
 
+### Decision 6h vs 24h
+
+- Decision actual: `6h` en workflow de snapshots.
+- Motivo: en Redalia el contenido comercial cambia durante el dia y 24h eleva demasiado la ventana de desactualizacion visible.
+- Riesgo si se usa 24h: mayor drift entre catalogo publicado y snapshots (`/socios`, `/propiedades`) durante horarios comerciales.
+- Como volver a 24h: cambiar cron del workflow a `0 3 * * *` y monitorear `ageMinutes`/`stale` en health.
+- Impacto esperado de 6h: mejor frescura manteniendo web pasiva (sin live rebuild en trafico publico).
+
 ## Flujo de sync
 
 1. Cargar fuentes vivas (JSON + network).
