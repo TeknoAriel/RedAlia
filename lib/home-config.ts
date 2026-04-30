@@ -23,7 +23,8 @@ export const portalPublishers: PortalPublisherEntry[] = [
 
 
 export const portalPublisherVisibilityControl = {
-  enabled: true,
+  // Desactivado intencionalmente hasta contar con fuente real y validada de portales.
+  enabled: false,
   maxVisible: 12,
 } as const;
 
