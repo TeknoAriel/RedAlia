@@ -14,9 +14,9 @@ export function HomeValuePillars({ pillars }: Props) {
         <SectionLogoMark size="sm" className="mb-5" />
         <SectionHeader
           align="center"
-          eyebrow="Por qué somos distintos"
-          title="Una comunidad profesional, orientada a cierres"
-          description="Publicar es solo una parte del valor: el corazón está en el negocio compartido, el apoyo entre pares y los resultados concretos en el mercado chileno."
+          eyebrow="Una red pensada para generar negocios reales"
+          title="Beneficios concretos para corredoras y equipos comerciales"
+          description="Colaboración, catálogo y tecnología al servicio de una operación profesional con resultados medibles en el mercado chileno."
           titleVariant="display"
         />
         <ul className="mt-10 grid gap-5 sm:grid-cols-2">

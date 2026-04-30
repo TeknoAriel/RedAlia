@@ -297,9 +297,9 @@ export default async function PropertyDetailPage({ params }: Props) {
                 {showPublisherEmpty && (
                   <p className="text-sm leading-relaxed text-muted">
                     Los datos de contacto de la publicación se centralizan en Redalia para esta ficha. Para consultas
-                    específicas sobre la operación o la contraparte, usá el botón de consulta o{" "}
+                    específicas sobre la operación o la contraparte, usa el botón de consulta o{" "}
                     <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-                      escribinos
+                      escríbenos
                     </Link>
                     .
                   </p>

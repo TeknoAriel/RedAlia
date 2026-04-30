@@ -15,11 +15,11 @@ export function HomeTechnologyBand({ points }: Props) {
         <div className="max-w-3xl">
           <p className="redalia-eyebrow redalia-eyebrow--onNavy">Plataforma y apoyo</p>
           <h2 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-white sm:text-[1.75rem] lg:text-[2rem]">
-            Tecnología al servicio de la comunidad —sin tono frío
+            Tecnología KiteProp al servicio de la red
           </h2>
           <p className="mt-3 text-base leading-relaxed text-white/85 sm:text-lg">
-            La herramienta trabaja para ordenar difusión, priorizar y acompañar decisiones; el negocio sigue siendo
-            humano, entre profesionales que se conocen en la red.
+            KiteProp aporta soporte tecnológico para ordenar catálogos, conectar información y acompañar la gestión comercial.
+            La decisión y el cierre siguen en manos de los profesionales de la red.
           </p>
         </div>
         <ul className="mt-10 grid gap-6 sm:grid-cols-3">
@@ -35,9 +35,9 @@ export function HomeTechnologyBand({ points }: Props) {
           ))}
         </ul>
         <p className="mt-8 text-center text-xs text-white/65 sm:text-sm">
-          Integraciones y buscador siguen evolucionando con la operación de socios; si querés profundidad técnica,{" "}
+          Integraciones y buscador siguen evolucionando con la operación de socios; si quieres profundidad técnica,{" "}
           <Link href="/contacto" className="font-semibold text-brand-gold underline-offset-2 hover:underline">
-            coordinamos una conversación
+            coordinamos una reunión
           </Link>
           .
         </p>

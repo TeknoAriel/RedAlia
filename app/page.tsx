@@ -13,7 +13,7 @@ import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { siteConfig } from "@/lib/site-config";
-import { portalPublishers } from "@/lib/home-config";
+import { getVisiblePortalPublishers, portalPublishers } from "@/lib/home-config";
 import {
   homeHeroFootnote,
   homeHeroLead,
@@ -41,6 +41,7 @@ export default async function HomePage() {
   const directorySnapshot = stable?.snapshot ?? null;
   const mcpOverlay = await loadPublicMcpNetworkOverlay();
   const carouselEntries = directorySnapshot?.featured ?? [];
+  const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);
 
   return (
     <>
@@ -65,13 +66,29 @@ export default async function HomePage() {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
           <Link href="/propiedades" className="btn-redalia-gold-solid px-8 py-3.5">
-            Ver catálogo
+            Ver propiedades
           </Link>
-          <Link href="/unete" className="btn-redalia-outline-on-navy px-8 py-3.5">
-            Postular como socio
+          <Link href="/socios" className="btn-redalia-outline-on-navy px-8 py-3.5">
+            Ver corredoras
+          </Link>
+          <Link href="https://www.kiteprop.com/auth/login" className="btn-redalia-ghost-on-navy px-8 py-3.5" target="_blank" rel="noopener noreferrer">
+            Acceso
           </Link>
         </div>
       </PageHero>
+
+      <section className="border-b border-brand-navy/10 bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+          <p className="redalia-eyebrow redalia-eyebrow--muted">Una red con historia</p>
+          <h2 className="font-display mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.9rem]">
+            La confianza y experiencia de una red inmobiliaria colaborativa, ahora potenciada en Redalia.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
+            Redalia toma lo mejor del trabajo colaborativo entre corredoras y lo proyecta en una plataforma más moderna,
+            ordenada y tecnológica, pensada para generar más oportunidades reales de negocio.
+          </p>
+        </div>
+      </section>
 
       <HomeValuePillars pillars={homeValuePillars} />
 
@@ -79,7 +96,7 @@ export default async function HomePage() {
 
       <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
 
-      <PortalPublishersStrip portals={portalPublishers} />
+      <PortalPublishersStrip portals={visiblePortalPublishers} />
 
       {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
 
@@ -166,8 +183,8 @@ export default async function HomePage() {
           description="Coordinamos una conversación sin compromiso: criterios de colaboración, membresía con acompañamiento y claridad sobre honorarios y relación con el cliente."
           primaryHref="/propiedades"
           primaryLabel="Ver catálogo"
-          secondaryHref="/unete"
-          secondaryLabel="Postular como socio"
+          secondaryHref="https://www.kiteprop.com/auth/login"
+          secondaryLabel="Acceso"
           footnote="Respuesta en días hábiles, con tono profesional y sin presión indebida."
         />
       </section>

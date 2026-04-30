@@ -107,7 +107,7 @@ export function PartnerDirectoryPreview({ feedOk, snapshot, showFeaturedGrid = t
               </ul>
             ) : (
               <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-muted">
-                Recorré socios destacados en el carrusel de arriba; acá consolidamos métricas y el acceso al directorio
+                Recorre socios destacados en el carrusel de arriba; aquí consolidamos métricas y el acceso al directorio
                 completo.
               </p>
             )}

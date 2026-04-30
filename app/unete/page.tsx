@@ -8,7 +8,7 @@ import { Field, LeadForm } from "@/components/forms/LeadForm";
 export const metadata: Metadata = {
   title: "Únete",
   description:
-    "Postulá a la comunidad profesional Redalia en Chile: negocios reales, canje y colaboración entre pares, capacitación y acompañamiento con estándares claros.",
+    "Postula a la comunidad profesional Redalia en Chile: negocios reales, canje y colaboración entre pares, capacitación y acompañamiento con estándares claros.",
 };
 
 const despues = [
@@ -30,8 +30,8 @@ export default function UnetePage() {
         variant="navy-solid"
         prepend={<SectionLogoMark size="sm" className="mb-5 opacity-95" />}
         eyebrow="Únete"
-        title="Postulá como socio en una comunidad orientada a cierres"
-        lead="Si sos corredor o parte de una corredora y buscás más circulación de oportunidades, visibilidad entre pares y un marco claro de colaboración y membresía, este es el punto de partida institucional."
+        title="Postula como socio en una comunidad orientada a cierres"
+        lead="Si eres corredor o parte de una corredora y buscas más circulación de oportunidades, visibilidad entre pares y un marco claro de colaboración y membresía, este es el punto de partida institucional."
         footnote="La postulación no reemplaza la reunión inicial: nos permite prepararla con contexto y seriedad."
         contentClassName="py-20 sm:py-24"
       >
@@ -78,8 +78,8 @@ export default function UnetePage() {
             <p className="redalia-eyebrow redalia-eyebrow--muted !mb-0">Datos</p>
             <h2 className="redalia-h2-section mt-2">Formulario de postulación</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              Los datos nos permiten preparar la primera conversación con contexto. Incluí ciudad, tipo de operación y,
-              si podés, tamaño aproximado del equipo —misma exigencia de claridad que pedimos dentro de la comunidad.
+              Los datos nos permiten preparar la primera conversación con contexto. Incluye ciudad, tipo de operación y,
+              si puedes, tamaño aproximado del equipo —misma exigencia de claridad que pedimos dentro de la comunidad.
             </p>
             <div className="mt-6">
               <LeadForm kind="join" submitLabel="Enviar postulación">
@@ -96,7 +96,7 @@ export default function UnetePage() {
               </LeadForm>
             </div>
             <p className="mt-4 text-xs text-muted">
-              Si necesitás urgencia o tema sensible, complementá con un correo directo desde la página de{" "}
+              Si necesitas urgencia o tema sensible, complementa con un correo directo desde la página de{" "}
               <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
                 contacto
               </Link>

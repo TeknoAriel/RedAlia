@@ -100,7 +100,7 @@ export default function PlanesPage() {
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Niveles"
-          title="Elegís el punto de partida; afinamos en conjunto"
+          title="Eliges el punto de partida; afinamos en conjunto"
           description="La comparación resume enfoques típicos. El contrato y los beneficios concretos —cierres, canje y acompañamiento— se ajustan a tu corredora en la propuesta comercial."
           titleVariant="display"
         />
@@ -227,7 +227,7 @@ export default function PlanesPage() {
           primaryLabel="Postular como socio"
           secondaryHref="/colaboracion"
           secondaryLabel="Canje y colaboración"
-          footnote="Si ya tenés claro el nivel, igual conviene una conversación para validar encaje territorial y de operación."
+          footnote="Si ya tienes claro el nivel, igual conviene una conversación para validar encaje territorial y de operación."
         />
       </section>
     </div>

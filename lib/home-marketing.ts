@@ -4,50 +4,50 @@
  */
 
 export const homeHeroTitle =
-  "Comunidad inmobiliaria en Chile para negocios reales, canje y mejores cierres";
+  "Redalia conecta corredoras, propiedades y oportunidades";
 
 /** Primera parte de la promesa (ritmo claro, tono institucional chileno). */
 export const homeHeroLead =
-  "Redalia conecta inmobiliarias, corredoras y agentes en Chile para generar negocios reales, compartir oportunidades con criterio y lograr más y mejores cierres.";
+  "Una red inmobiliaria colaborativa para compartir propiedades, ampliar visibilidad, generar contactos y trabajar con más orden, tecnología y respaldo profesional.";
 
 /** Segunda parte: marca, cliente y honorarios (sin perder el sentido acordado). */
 export const homeHeroLeadSecondary =
-  "Tu marca y tu relación con el cliente siguen siendo tuyas. La red te aporta colaboración profesional, tecnología, capacitación y más negocio, manteniendo el 100% de tus honorarios.";
+  "Redalia reúne corredoras que buscan operar con reglas claras, confianza entre pares y foco en resultados comerciales sostenibles.";
 
 export const homeHeroFootnote =
-  "Incorporación conversada · Estándares entre socios · Plataforma y apoyo alineados a la operación en Chile";
+  "Colaboración profesional · Catálogo actualizado · Tecnología aplicada al negocio inmobiliario";
 
 export const homeValuePillars = [
   {
-    title: "Comunidad de negocios",
-    text: "No somos un multipublicador: somos una red de profesionales que colaboran para ejecutar mejor, con canje y reglas claras.",
+    title: "Corredoras conectadas",
+    text: "Más visibilidad, más colaboración y más oportunidades entre profesionales del rubro.",
   },
   {
-    title: "Tecnología que trabaja por vos",
-    text: "IA y perfiles de búsqueda inteligentes para detectar oportunidades y ordenar el seguimiento, sin reemplazar tu criterio frente al cliente.",
+    title: "Catálogo actualizado",
+    text: "Propiedades organizadas en un entorno claro, navegable y preparado para consultas reales.",
   },
   {
-    title: "Capacitación permanente",
-    text: "Instancias regulares en práctica comercial y actualización del rubro, pensadas para el día siguiente en terreno.",
+    title: "Tecnología aplicada",
+    text: "Redalia se apoya en KiteProp para ordenar información, catálogos y oportunidades comerciales.",
   },
   {
-    title: "Tu marca, tu cliente, tus honorarios",
-    text: "La visibilidad útil y el apoyo de la red potencian resultados sin ceder la relación directa ni el 100% de tus honorarios.",
+    title: "Comunidad profesional",
+    text: "Un espacio para trabajar con reglas claras, confianza y foco en resultados.",
   },
 ] as const;
 
 export const homeTechnologyPoints = [
   {
-    title: "IA aplicada al corretaje",
-    text: "Herramientas que ayudan a priorizar y acompañar, con foco en oportunidades concretas —no en ruido.",
+    title: "KiteProp como base tecnológica",
+    text: "KiteProp aporta la base tecnológica que permite ordenar catálogos, conectar información y acompañar la gestión comercial de la red.",
   },
   {
-    title: "Perfiles de búsqueda inteligentes",
-    text: "Señales alineadas a la operación de la comunidad para acercar oferta y demanda con más intención de cierre.",
+    title: "Herramientas para priorizar oportunidades",
+    text: "Herramientas que ayudan a priorizar y acompañar, con foco en oportunidades concretas y cierre real.",
   },
   {
-    title: "Detección de oportunidades",
-    text: "Apoyo para que tu equipo vea mejor dónde insistir, coordinar visitas y avanzar con rigor frente a socios y clientes.",
+    title: "Operación comercial con respaldo",
+    text: "Información más ordenada para coordinar publicaciones, seguimiento y conversaciones comerciales entre socios.",
   },
 ] as const;
 

@@ -34,7 +34,7 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
       const data = (await res.json()) as { ok?: boolean; error?: string };
 
       if (!res.ok || !data.ok) {
-        setErrorMessage(data.error ?? "No se pudo enviar. Intentá de nuevo.");
+        setErrorMessage(data.error ?? "No se pudo enviar. Intenta de nuevo.");
         setStatus("error");
         return;
       }
@@ -42,7 +42,7 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
       setStatus("sent");
       form.reset();
     } catch {
-      setErrorMessage("Error de conexión. Revisá tu red e intentá de nuevo.");
+      setErrorMessage("Error de conexión. Revisa tu red e intentá de nuevo.");
       setStatus("error");
     }
   }

@@ -103,7 +103,7 @@ export default function QueEsPage() {
           <h2 className="redalia-h2-section">Para quién está pensada</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Para corredoras que quieren escalar resultados sin diluir su marca, y para agentes que necesitan más oferta
-            real, más respaldo y una comunidad seria con la que coordinar visitas y cierres. Si valorás el trabajo
+            real, más respaldo y una comunidad seria con la que coordinar visitas y cierres. Si valoras el trabajo
             profesional y la confianza entre socios, Redalia encaja en esa lógica.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -125,7 +125,7 @@ export default function QueEsPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
-          title="¿Querés profundizar con el equipo?"
+          title="¿Quieres profundizar con el equipo?"
           description="Coordinamos una presentación acotada a tu zona y tu tipo de operación, con foco comercial."
           primaryHref="/planes"
           primaryLabel="Ver membresía"

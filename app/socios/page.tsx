@@ -161,7 +161,7 @@ export default async function SociosPage({
           ))}
         </ul>
         <p className="mt-10 max-w-3xl text-sm leading-relaxed text-muted">
-          El ingreso se coordina con el equipo de Redalia. Para el detalle del proceso comercial, revisá{" "}
+          El ingreso se coordina con el equipo de Redalia. Para el detalle del proceso comercial, revisa{" "}
           <Link href="/unete" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
             Postulación
           </Link>{" "}
@@ -226,7 +226,7 @@ export default async function SociosPage({
                 <p className="text-lg font-semibold text-brand-navy">Tu marca en un espacio de alto estándar</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   Cuando haya publicaciones que asocien corredoras o anunciantes según las reglas de la red, aparecerán
-                  acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
+                  aquí automáticamente. Mientras tanto puedes explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link href="/unete" className="btn-redalia-gold-solid min-w-[200px]">
