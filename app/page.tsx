@@ -173,6 +173,47 @@ export default async function HomePage() {
 
       <PartnerLogosStrip />
 
+      <section className="border-y border-brand-navy/10 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <SectionLogoMark size="sm" className="mb-5" />
+          <SectionHeader
+            align="center"
+            eyebrow="Membresía Redalia"
+            title="Planes para integrarte a Redalia"
+            description="Elige la modalidad que mejor se adapte a tu corredora y comienza a participar de una red colaborativa con visibilidad, catálogo, tecnología y oportunidades reales de negocio."
+            titleVariant="display"
+          />
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Base</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para corredoras que quieren integrarse a la red, tener presencia institucional y participar del
+                ecosistema colaborativo.
+              </p>
+            </article>
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Profesional</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para corredoras que buscan mayor visibilidad, publicación de propiedades y acceso más activo a
+                oportunidades de colaboración.
+              </p>
+            </article>
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Red / Empresa</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para equipos, oficinas o grupos inmobiliarios que necesitan mayor alcance, soporte y presencia dentro
+                de la red.
+              </p>
+            </article>
+          </div>
+          <div className="mt-8 flex justify-center">
+            <Link href="/planes" className="btn-redalia-gold-solid px-8 py-3.5">
+              Ver planes
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 sm:py-16">
         <p className="redalia-eyebrow redalia-eyebrow--muted mx-auto !mb-0 max-w-xl text-center">
           Pertenencia a la comunidad
