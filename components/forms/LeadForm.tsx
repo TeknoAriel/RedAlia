@@ -42,7 +42,7 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
       setStatus("sent");
       form.reset();
     } catch {
-      setErrorMessage("Error de conexión. Revisa tu red e intentá de nuevo.");
+      setErrorMessage("Error de conexión. Revisa tu red e intenta de nuevo.");
       setStatus("error");
     }
   }
