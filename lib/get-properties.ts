@@ -21,7 +21,9 @@ function catalogRevalidateSeconds(): number {
     process.env.REDALIA_CATALOG_REVALIDATE_SECONDS?.trim() ||
     process.env.CATALOG_INGEST_REVALIDATE_SECONDS?.trim();
   const n = raw ? parseInt(raw, 10) : NaN;
-  if (!Number.isFinite(n) || n < 60) return 7200;
+  // Default 24 h: el cron diario invalida el tag y prepopula `unstable_cache`,
+  // así un usuario casi nunca paga el costo del cold ingest del feed JSON.
+  if (!Number.isFinite(n) || n < 60) return 86_400;
   return Math.min(86_400, n);
 }
 

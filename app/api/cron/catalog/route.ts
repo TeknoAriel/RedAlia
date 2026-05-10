@@ -1,9 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
+import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function isAuthorizedCronRequest(authHeader: string | null, secret: string): boolean {
   if (!authHeader?.startsWith("Bearer ")) return false;
@@ -40,12 +42,24 @@ export async function GET(request: Request) {
 
   revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
 
+  // Pre-populación: tras invalidar, ejecutamos la ingesta una vez en background.
+  // De esta forma el primer usuario tras el cron NO paga el costo del cold
+  // ingest del feed JSON; encuentra `unstable_cache` ya caliente.
+  after(async () => {
+    try {
+      await loadCatalogSnapshotUncached();
+    } catch {
+      /* noop: el siguiente request del usuario reintentará la ingesta */
+    }
+  });
+
   const revalidatedAt = new Date().toISOString();
   return NextResponse.json({
     ok: true,
     tag: REDALIA_CATALOG_CACHE_TAG,
     revalidatedAt,
+    prepopulated: true,
     message:
-      "Tag invalidado; las siguientes peticiones disparan recálculo según el comportamiento de Data Cache de Next.",
+      "Tag invalidado y precalentamiento programado en background; los siguientes requests deberían encontrar el cache caliente.",
   });
 }
