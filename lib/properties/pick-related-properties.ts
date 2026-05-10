@@ -81,15 +81,6 @@ export function pickRelatedProperties(
 
   let primary = scored.slice(0, limit).map((s) => s.p);
 
-  const strongMatches = primary.filter((p) => scorePair(current, p) >= 40).length;
-  if (strongMatches < 3 && others.length > primary.length) {
-    const regional = others
-      .filter((p) => !primary.some((q) => q.id === p.id))
-      .filter((p) => norm(p.region) === norm(current.region))
-      .sort((a, b) => (b.lastUpdateMs ?? 0) - (a.lastUpdateMs ?? 0));
-    primary = dedupeById([...primary, ...regional]).slice(0, limit);
-  }
-
   if (primary.length < limit) {
     const fill = others
       .filter((p) => !primary.some((q) => q.id === p.id))
