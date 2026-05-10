@@ -99,9 +99,14 @@ function schedulePersist(value: GetPropertiesResult): void {
  *
  * Capas de cache (de más rápida a más lenta):
  *  1. In-memory global (TTL 1 h, dentro del mismo proceso lambda warm).
- *  2. `unstable_cache` (TTL 24 h, dentro del mismo proceso lambda).
- *  3. Snapshot persistido en Upstash (TTL 12 h, compartido entre lambdas).
+ *  2. Snapshot persistido en Upstash (TTL 12 h, compartido entre todos los lambdas).
+ *  3. `unstable_cache` (TTL 24 h, process-local, sólo útil si el cron precalentó este lambda).
  *  4. Ingesta en vivo `loadCatalogSnapshotUncached()`.
+ *
+ * Diseño: Upstash va antes que `unstable_cache`/ingest porque los lambdas serverless en
+ * Vercel se reciclan rápido. Si cada lambda cold tuviera que ingestar el feed, la primera
+ * request al lambda paga ~30–60 s. Con Upstash adelante, cualquier lambda cold resuelve
+ * en ~100–300 ms (un round-trip a Redis) mientras haya un snapshot vigente.
  *
  * Dev: `CATALOG_INGEST_DISABLE_CACHE=1` salta toda la cache y va a la ingesta en vivo.
  */
@@ -116,14 +121,18 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     return fresh;
   }
 
+  // Capa cross-lambda primero: si hay snapshot persistido vigente, lo servimos
+  // sin tocar `unstable_cache` ni el feed. Esto es lo que evita el cold ingest
+  // en lambdas nuevos.
+  const persistedFastPath = await readPersistedCatalogSnapshot();
+  if (persistedFastPath?.snapshot.ok && persistedFastPath.snapshot.properties.length > 0) {
+    writeMemoryCache(persistedFastPath.snapshot);
+    return persistedFastPath.snapshot;
+  }
+
   const cached = await loadCatalogCached();
 
   if (!cached.ok) {
-    const persisted = await readPersistedCatalogSnapshot();
-    if (persisted?.snapshot.ok) {
-      writeMemoryCache(persisted.snapshot);
-      return persisted.snapshot;
-    }
     return cached;
   }
 
@@ -138,12 +147,6 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     if (cached.properties.length > 0) {
       writeMemoryCache(cached);
       schedulePersist(cached);
-      return cached;
-    }
-    const persisted = await readPersistedCatalogSnapshot();
-    if (persisted?.snapshot.ok) {
-      writeMemoryCache(persisted.snapshot);
-      return persisted.snapshot;
     }
     return cached;
   }
@@ -157,12 +160,6 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   if (cached.properties.length > 0) {
     writeMemoryCache(cached);
     schedulePersist(cached);
-    return cached;
-  }
-  const persisted = await readPersistedCatalogSnapshot();
-  if (persisted?.snapshot.ok) {
-    writeMemoryCache(persisted.snapshot);
-    return persisted.snapshot;
   }
   return cached;
 });
