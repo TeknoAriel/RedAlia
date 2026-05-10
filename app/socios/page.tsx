@@ -10,6 +10,13 @@ import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stab
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const revalidate = 1800;
+/**
+ * El primer lambda cold puede pagar el costo de ingest + persist del catálogo (~30–60 s).
+ * Subimos `maxDuration` a 60 s para que el snapshot llegue a poblar la cache (in-memory +
+ * `unstable_cache` + Upstash) antes de que la función serverless se mate. Los siguientes
+ * requests, dentro o fuera del lambda, leen del cache y resuelven en sub-segundo.
+ */
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Socios",

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { NextResponse, after } from "next/server";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
+import { writePersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 
 export const runtime = "nodejs";
@@ -44,10 +45,15 @@ export async function GET(request: Request) {
 
   // Pre-populación: tras invalidar, ejecutamos la ingesta una vez en background.
   // De esta forma el primer usuario tras el cron NO paga el costo del cold
-  // ingest del feed JSON; encuentra `unstable_cache` ya caliente.
+  // ingest del feed JSON; encuentra `unstable_cache` ya caliente. Además
+  // persistimos el snapshot a Upstash para que cualquier OTRO lambda (cold)
+  // pueda servirlo sin re-ingestar.
   after(async () => {
     try {
-      await loadCatalogSnapshotUncached();
+      const snapshot = await loadCatalogSnapshotUncached();
+      if (snapshot.ok && snapshot.properties.length > 0) {
+        await writePersistedCatalogSnapshot(snapshot);
+      }
     } catch {
       /* noop: el siguiente request del usuario reintentará la ingesta */
     }

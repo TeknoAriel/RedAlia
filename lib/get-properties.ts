@@ -1,10 +1,15 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { after } from "next/server";
 import { cache } from "react";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
-import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
+import type { CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
+import {
+  readPersistedCatalogSnapshot,
+  writePersistedCatalogSnapshot,
+} from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { getKitepropPropertiesSourceMode } from "@/lib/kiteprop-network/network-env";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
@@ -40,16 +45,87 @@ const loadCatalogCached = unstable_cache(
 );
 
 /**
+ * In-memory cache global del catálogo público (TTL 1 h).
+ *
+ * Vive por proceso lambda: una vez poblado, sucesivas requests al MISMO lambda warm
+ * resuelven `getProperties()` en <5 ms. Convive con `unstable_cache` (process-local,
+ * TTL 24 h) y con el snapshot persistido en Upstash (cross-lambda, TTL 12 h).
+ *
+ * Diseño: nada de keys complejas. Solo un slot. El primer hit OK del proceso lo puebla.
+ * Bumpeá `MEMORY_CACHE_VERSION` si el shape de `GetPropertiesResult` cambia.
+ */
+const MEMORY_CACHE_VERSION = 1;
+const IN_MEMORY_TTL_MS = 60 * 60 * 1000;
+type CatalogMemoryCacheEntry = { v: number; value: CatalogSnapshotSuccess; expiresAt: number };
+const memoryCacheGlobal = globalThis as unknown as {
+  __redaliaCatalogMemoryCache?: CatalogMemoryCacheEntry;
+};
+
+function readMemoryCache(): CatalogSnapshotSuccess | null {
+  const entry = memoryCacheGlobal.__redaliaCatalogMemoryCache;
+  if (!entry || entry.v !== MEMORY_CACHE_VERSION) return null;
+  if (Date.now() >= entry.expiresAt) return null;
+  return entry.value;
+}
+
+function writeMemoryCache(value: GetPropertiesResult): void {
+  if (!value.ok || value.properties.length === 0) return;
+  memoryCacheGlobal.__redaliaCatalogMemoryCache = {
+    v: MEMORY_CACHE_VERSION,
+    value,
+    expiresAt: Date.now() + IN_MEMORY_TTL_MS,
+  };
+}
+
+/** Persistencia diferida del snapshot. No bloquea TTFB. Best-effort, errores silenciados. */
+function schedulePersist(value: GetPropertiesResult): void {
+  if (!value.ok || value.properties.length === 0) return;
+  try {
+    after(async () => {
+      try {
+        await writePersistedCatalogSnapshot(value);
+      } catch {
+        /* noop */
+      }
+    });
+  } catch {
+    // `after()` solo está disponible en contexto request. En CLI/build queda noop.
+  }
+}
+
+/**
  * Catálogo público: **propiedades e imágenes** desde el feed de difusión (default `json`), directorio
  * desde reglas en `load-catalog-snapshot` y `docs/redalia-hybrid-catalog-architecture.md`.
- * Caché: `CATALOG_INGEST_REVALIDATE_SECONDS` (default 7200 s). Dev: `CATALOG_INGEST_DISABLE_CACHE=1`.
+ *
+ * Capas de cache (de más rápida a más lenta):
+ *  1. In-memory global (TTL 1 h, dentro del mismo proceso lambda warm).
+ *  2. `unstable_cache` (TTL 24 h, dentro del mismo proceso lambda).
+ *  3. Snapshot persistido en Upstash (TTL 12 h, compartido entre lambdas).
+ *  4. Ingesta en vivo `loadCatalogSnapshotUncached()`.
+ *
+ * Dev: `CATALOG_INGEST_DISABLE_CACHE=1` salta toda la cache y va a la ingesta en vivo.
  */
 export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
+  const mem = readMemoryCache();
+  if (mem) return mem;
+
   if (process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1") {
-    return loadCatalogSnapshotUncached();
+    const fresh = await loadCatalogSnapshotUncached();
+    writeMemoryCache(fresh);
+    schedulePersist(fresh);
+    return fresh;
   }
+
   const cached = await loadCatalogCached();
-  if (!cached.ok) return cached;
+
+  if (!cached.ok) {
+    const persisted = await readPersistedCatalogSnapshot();
+    if (persisted?.snapshot.ok) {
+      writeMemoryCache(persisted.snapshot);
+      return persisted.snapshot;
+    }
+    return cached;
+  }
 
   const sourceMode = getKitepropPropertiesSourceMode();
   const shouldRetryNetworkNow =
@@ -59,11 +135,36 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     Boolean(cached.ingestMeta?.networkErrorCode);
 
   if (!shouldRetryNetworkNow) {
+    if (cached.properties.length > 0) {
+      writeMemoryCache(cached);
+      schedulePersist(cached);
+      return cached;
+    }
+    const persisted = await readPersistedCatalogSnapshot();
+    if (persisted?.snapshot.ok) {
+      writeMemoryCache(persisted.snapshot);
+      return persisted.snapshot;
+    }
     return cached;
   }
 
   const refreshed = await loadCatalogSnapshotUncached();
-  return refreshed.ok ? refreshed : cached;
+  if (refreshed.ok && refreshed.properties.length > 0) {
+    writeMemoryCache(refreshed);
+    schedulePersist(refreshed);
+    return refreshed;
+  }
+  if (cached.properties.length > 0) {
+    writeMemoryCache(cached);
+    schedulePersist(cached);
+    return cached;
+  }
+  const persisted = await readPersistedCatalogSnapshot();
+  if (persisted?.snapshot.ok) {
+    writeMemoryCache(persisted.snapshot);
+    return persisted.snapshot;
+  }
+  return cached;
 });
 
 export function getPartnerDirectoryExtraDrafts(
