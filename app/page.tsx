@@ -36,11 +36,15 @@ const heroImage =
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const catalog = await getProperties();
+  // `getProperties` y `loadPublicMcpNetworkOverlay` son independientes: los lanzamos en paralelo
+  // para reducir TTFB. `resolveStablePublicDirectorySnapshot` sí depende del catálogo.
+  const [catalog, mcpOverlay] = await Promise.all([
+    getProperties(),
+    loadPublicMcpNetworkOverlay(),
+  ]);
   const listingCount = catalog.ok ? catalog.properties.length : 0;
   const stable = catalog.ok ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 }) : null;
   const directorySnapshot = stable?.snapshot ?? null;
-  const mcpOverlay = await loadPublicMcpNetworkOverlay();
   const carouselEntries = directorySnapshot?.featured ?? [];
   const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);
   const membersPortalUrl = getMembersPortalUrl();

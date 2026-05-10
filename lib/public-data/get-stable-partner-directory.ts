@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data/from-properties-feed";
@@ -82,7 +83,15 @@ export async function resolveStablePublicDirectorySnapshot(
   }
 
   if (snapshot.entries.length > 0) {
-    await writePersistedPartnerDirectorySnapshot(snapshot);
+    // Persistencia diferida: no bloquea TTFB. Vercel `after()` garantiza ejecución
+    // tras enviar la response. Errores se silencian; el próximo request reintenta.
+    after(async () => {
+      try {
+        await writePersistedPartnerDirectorySnapshot(snapshot);
+      } catch {
+        /* noop: el snapshot persistido es best-effort */
+      }
+    });
   }
 
   return { snapshot, source: "live" };
