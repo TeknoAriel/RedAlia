@@ -38,7 +38,7 @@ export default function ServiciosPage() {
             Servicios para la comunidad
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-white/88">
-            Más allá del listado de propiedades, Redalia ofrece estructura comercial, acompañamiento y servicios
+            Además del listado de propiedades, Redalia ofrece estructura comercial, acompañamiento y servicios
             pensados para que la colaboración entre socios sea sostenible.
           </p>
         </div>
@@ -58,11 +58,11 @@ export default function ServiciosPage() {
           ))}
         </ul>
         <p className="mt-10 text-sm text-muted">
-          Para un detalle acotado a tu corredora o equipo, revisá también la sección{" "}
+          Para un detalle acotado a tu corredora o equipo, revisa también la sección{" "}
           <Link href="/planes" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
             Membresía
           </Link>{" "}
-          o coordiná una reunión en{" "}
+          o coordina una reunión en{" "}
           <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
             Contacto
           </Link>

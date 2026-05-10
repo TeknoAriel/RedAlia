@@ -8,59 +8,82 @@ import { CTASection } from "@/components/sections/CTASection";
 export const metadata: Metadata = {
   title: "Membresía",
   description:
-    "Membresía Redalia: publicaciones, visibilidad institucional, canje y colaboración entre pares, capacitación y soporte para corredoras y agentes en Chile. Propuesta comercial clara, sin precios genéricos en web.",
+    "Planes de membresía Redalia: presencia institucional, visibilidad y colaboración entre corredoras en Chile. Propuesta comercial clara en reunión —sin precios genéricos en web.",
 };
 
 const plans = [
   {
-    key: "inicial",
-    name: "Plan inicial",
-    pitch: "Presencia institucional en la comunidad y circulación ordenada de oportunidades para equipos que validan el modelo con seriedad.",
+    key: "base",
+    name: "Plan Base",
+    pitch:
+      "Para corredoras que quieren integrarse a la red, tener presencia institucional y participar del ecosistema colaborativo.",
     bullets: [
-      "Participación en flujos de canje y colaboración definidos",
-      "Visibilidad acorde al nivel entre socios de la red",
-      "Acompañamiento en la incorporación y alineación de expectativas",
+      "Presencia en la red",
+      "Acceso al ecosistema Redalia",
+      "Visibilidad institucional",
+      "Participación en oportunidades colaborativas",
     ],
-    cta: "Solicitar propuesta",
-    profile: "Equipos en crecimiento o que recién estructuran canje con terceros.",
+    profile: "Equipos que validan la membresía y buscan marco claro sin sobredimensionar alcance al inicio.",
   },
   {
     key: "profesional",
-    name: "Plan profesional",
-    pitch: "Mayor visibilidad entre pares, coordinación comercial más cercana y soporte reforzado para escalar canje y cierres con criterio.",
+    name: "Plan Profesional",
+    pitch:
+      "Para corredoras que buscan mayor visibilidad, publicación de propiedades y acceso más activo a oportunidades de colaboración.",
     bullets: [
-      "Mayor visibilidad y prioridad en flujos de difusión acordados",
-      "Herramientas y criterios ampliados para publicaciones y seguimiento",
-      "Soporte comercial más cercano y revisión de objetivos orientada a resultados",
+      "Mayor visibilidad",
+      "Publicación de propiedades",
+      "Participación activa en catálogo",
+      "Acceso a herramientas de colaboración",
     ],
-    cta: "Solicitar propuesta",
     featured: true,
-    profile: "Corredoras con operación establecida que buscan intensificar colaboración y resultados.",
+    profile: "Corredoras con operación establecida que quieren intensificar difusión y colaboración entre socios.",
   },
   {
-    key: "corporativo",
-    name: "Plan corporativo",
-    pitch: "Diseño a medida para varias sucursales o marcas, con coordinación central y territorios definidos según tu operación en Chile.",
+    key: "redEmpresa",
+    name: "Plan Red / Empresa",
+    pitch:
+      "Para equipos, oficinas o grupos inmobiliarios que necesitan mayor alcance, soporte y presencia dentro de la red.",
     bullets: [
-      "Arquitectura según perfil, territorio y número de oficinas o marcas",
-      "Coordinación con responsables por zona o unidad de negocio",
-      "Contrato y plan comercial acotados a tu realidad",
+      "Mayor alcance institucional",
+      "Gestión para equipos",
+      "Presencia destacada",
+      "Acompañamiento comercial",
     ],
-    cta: "Solicitar propuesta",
-    profile: "Organizaciones multi-sede o con cobertura nacional segmentada.",
+    profile: "Organizaciones multi-sede o con varias marcas que requieren coordinación y alcance acorde.",
   },
 ];
 
-/** Filas comparativas cualitativas (sin precios). true = incluido / reforzado en ese nivel. */
-const comparisonRows: { label: string; inicial: boolean; profesional: boolean; corporativo: boolean }[] = [
-  { label: "Participación en canje y colaboración entre socios", inicial: true, profesional: true, corporativo: true },
-  { label: "Visibilidad de marca en la comunidad", inicial: true, profesional: true, corporativo: true },
-  { label: "Capacitación continua", inicial: true, profesional: true, corporativo: true },
-  { label: "Soporte comercial en incorporación", inicial: true, profesional: true, corporativo: true },
-  { label: "Intensidad de difusión y prioridad en flujos", inicial: false, profesional: true, corporativo: true },
-  { label: "Revisión periódica de objetivos con el equipo", inicial: false, profesional: true, corporativo: true },
-  { label: "Diseño territorial / multi-marca / multi-sede", inicial: false, profesional: false, corporativo: true },
-  { label: "Interlocución dedicada por estructura grande", inicial: false, profesional: false, corporativo: true },
+/** Comparación cualitativa (sin precios). */
+const comparisonRows: { label: string; base: boolean; profesional: boolean; redEmpresa: boolean }[] = [
+  {
+    label: "Participación en canje y colaboración entre socios",
+    base: true,
+    profesional: true,
+    redEmpresa: true,
+  },
+  { label: "Visibilidad de marca en la comunidad", base: true, profesional: true, redEmpresa: true },
+  { label: "Capacitación y alineación con estándares de la red", base: true, profesional: true, redEmpresa: true },
+  { label: "Soporte en incorporación y expectativas comerciales", base: true, profesional: true, redEmpresa: true },
+  {
+    label: "Intensidad de difusión y uso activo del catálogo",
+    base: false,
+    profesional: true,
+    redEmpresa: true,
+  },
+  { label: "Revisión periódica de objetivos con el equipo Redalia", base: false, profesional: true, redEmpresa: true },
+  {
+    label: "Diseño territorial / multi-equipo / mayor alcance institucional",
+    base: false,
+    profesional: false,
+    redEmpresa: true,
+  },
+  {
+    label: "Interlocución y plan comercial acorde a estructura grande",
+    base: false,
+    profesional: false,
+    redEmpresa: true,
+  },
 ];
 
 const pasos = [
@@ -91,23 +114,23 @@ export default function PlanesPage() {
         variant="light"
         prepend={<SectionLogoMark size="sm" className="mb-5" />}
         eyebrow="Membresía"
-        title="Operar con la comunidad, con propuesta clara"
-        lead="Tres niveles de referencia para orientar la conversación: publicaciones, visibilidad institucional, canje y colaboración entre pares. Montos y alcance finos se definen en reunión, según perfil y territorio —sin cifras genéricas en la web."
-        footnote="La membresía se entiende como relación comercial de largo plazo, con incorporación conversada y estándares compartidos."
+        title="Planes de membresía Redalia"
+        lead="Elige la modalidad que mejor se adapte a tu corredora y comienza a participar de una red colaborativa con visibilidad, catálogo, tecnología y oportunidades reales de negocio. Montos y alcance finos se definen en reunión —sin cifras genéricas en la web."
+        footnote="La membresía es una relación comercial de largo plazo, con incorporación conversada y estándares compartidos."
         contentClassName="py-20 sm:py-24"
       />
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Niveles"
-          title="Elegís el punto de partida; afinamos en conjunto"
+          title="Eliges el punto de partida; afinamos en conjunto"
           description="La comparación resume enfoques típicos. El contrato y los beneficios concretos —cierres, canje y acompañamiento— se ajustan a tu corredora en la propuesta comercial."
           titleVariant="display"
         />
         <div className="mt-12 grid gap-8 lg:grid-cols-3">
           {plans.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.key}
               className={`flex flex-col rounded-2xl border p-8 ${
                 plan.featured
                   ? "border-brand-gold/50 bg-white shadow-lg ring-1 ring-brand-gold/25"
@@ -142,10 +165,16 @@ export default function PlanesPage() {
                     : "rounded-full border border-brand-navy/25 bg-white px-8 py-3.5 text-brand-navy shadow-sm hover:border-brand-gold/35 hover:bg-brand-navy-soft/50"
                 }`}
               >
-                {plan.cta}
+                Consultar plan
               </Link>
             </div>
           ))}
+        </div>
+
+        <div className="mt-12 flex justify-center">
+          <Link href="/contacto" className="btn-redalia-outline-on-light px-10 py-3.5 text-center text-sm font-semibold">
+            Hablar con Redalia
+          </Link>
         </div>
       </section>
 
@@ -162,9 +191,9 @@ export default function PlanesPage() {
               <thead>
                 <tr className="bg-brand-navy text-white">
                   <th className="border-b border-white/15 px-4 py-3.5 font-semibold">Criterio</th>
-                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Inicial</th>
-                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Profesional</th>
-                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Corporativo</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Plan Base</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Plan Profesional</th>
+                  <th className="border-b border-white/15 px-3 py-3.5 text-center font-semibold">Plan Red / Empresa</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,9 +202,9 @@ export default function PlanesPage() {
                     <th className="border-b border-brand-navy/10 px-4 py-3 font-normal text-brand-navy/90">
                       {row.label}
                     </th>
-                    <Cell ok={row.inicial} />
+                    <Cell ok={row.base} />
                     <Cell ok={row.profesional} />
-                    <Cell ok={row.corporativo} />
+                    <Cell ok={row.redEmpresa} />
                   </tr>
                 ))}
               </tbody>
@@ -221,13 +250,13 @@ export default function PlanesPage() {
       <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
         <SectionLogoMark size="sm" className="mx-auto mb-5" />
         <CTASection
-          title="¿Querés la propuesta escrita para tu corredora?"
+          title="¿Quieres la propuesta escrita para tu corredora?"
           description="En una reunión breve dejamos fijo alcance, nivel sugerido y próximos pasos —con transparencia comercial y el mismo tono institucional que en el resto de la red."
           primaryHref="/unete"
           primaryLabel="Postular como socio"
           secondaryHref="/colaboracion"
           secondaryLabel="Canje y colaboración"
-          footnote="Si ya tenés claro el nivel, igual conviene una conversación para validar encaje territorial y de operación."
+          footnote="Si ya tienes claro el nivel, igual conviene una conversación para validar encaje territorial y de operación."
         />
       </section>
     </div>

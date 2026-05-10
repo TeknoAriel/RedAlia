@@ -13,7 +13,8 @@ import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { siteConfig } from "@/lib/site-config";
-import { portalPublishers } from "@/lib/home-config";
+import { getMembersPortalUrl } from "@/lib/public-contact";
+import { getVisiblePortalPublishers, portalPublishers } from "@/lib/home-config";
 import {
   homeHeroFootnote,
   homeHeroLead,
@@ -41,6 +42,8 @@ export default async function HomePage() {
   const directorySnapshot = stable?.snapshot ?? null;
   const mcpOverlay = await loadPublicMcpNetworkOverlay();
   const carouselEntries = directorySnapshot?.featured ?? [];
+  const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);
+  const membersPortalUrl = getMembersPortalUrl();
 
   return (
     <>
@@ -65,13 +68,35 @@ export default async function HomePage() {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
           <Link href="/propiedades" className="btn-redalia-gold-solid px-8 py-3.5">
-            Ver catálogo
+            Ver propiedades
           </Link>
-          <Link href="/unete" className="btn-redalia-outline-on-navy px-8 py-3.5">
-            Postular como socio
+          <Link href="/socios" className="btn-redalia-outline-on-navy px-8 py-3.5">
+            Ver corredoras
           </Link>
+          <a
+            href={membersPortalUrl}
+            className="btn-redalia-ghost-on-navy px-8 py-3.5"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Acceso
+            <span className="sr-only"> (abre en nueva pestaña)</span>
+          </a>
         </div>
       </PageHero>
+
+      <section className="border-b border-brand-navy/10 bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+          <p className="redalia-eyebrow redalia-eyebrow--muted">Una red con historia</p>
+          <h2 className="font-display mt-2 text-2xl font-bold tracking-tight text-brand-navy sm:text-[1.9rem]">
+            La confianza y experiencia de una red inmobiliaria colaborativa, ahora potenciada en Redalia.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
+            Redalia toma lo mejor del trabajo colaborativo entre corredoras y lo proyecta en una plataforma más moderna,
+            ordenada y tecnológica, pensada para generar más oportunidades reales de negocio.
+          </p>
+        </div>
+      </section>
 
       <HomeValuePillars pillars={homeValuePillars} />
 
@@ -79,7 +104,7 @@ export default async function HomePage() {
 
       <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
 
-      <PortalPublishersStrip portals={portalPublishers} />
+      <PortalPublishersStrip portals={visiblePortalPublishers} />
 
       {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
 
@@ -156,6 +181,47 @@ export default async function HomePage() {
 
       <PartnerLogosStrip />
 
+      <section className="border-y border-brand-navy/10 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <SectionLogoMark size="sm" className="mb-5" />
+          <SectionHeader
+            align="center"
+            eyebrow="Membresía Redalia"
+            title="Planes para integrarte a Redalia"
+            description="Elige la modalidad que mejor se adapte a tu corredora y comienza a participar de una red colaborativa con visibilidad, catálogo, tecnología y oportunidades reales de negocio."
+            titleVariant="display"
+          />
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Base</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para corredoras que quieren integrarse a la red, tener presencia institucional y participar del
+                ecosistema colaborativo.
+              </p>
+            </article>
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Profesional</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para corredoras que buscan mayor visibilidad, publicación de propiedades y acceso más activo a
+                oportunidades de colaboración.
+              </p>
+            </article>
+            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
+              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Red / Empresa</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                Para equipos, oficinas o grupos inmobiliarios que necesitan mayor alcance, soporte y presencia dentro
+                de la red.
+              </p>
+            </article>
+          </div>
+          <div className="mt-8 flex justify-center">
+            <Link href="/planes" className="btn-redalia-gold-solid px-8 py-3.5">
+              Ver planes
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 sm:py-16">
         <p className="redalia-eyebrow redalia-eyebrow--muted mx-auto !mb-0 max-w-xl text-center">
           Pertenencia a la comunidad
@@ -166,8 +232,8 @@ export default async function HomePage() {
           description="Coordinamos una conversación sin compromiso: criterios de colaboración, membresía con acompañamiento y claridad sobre honorarios y relación con el cliente."
           primaryHref="/propiedades"
           primaryLabel="Ver catálogo"
-          secondaryHref="/unete"
-          secondaryLabel="Postular como socio"
+          secondaryHref={membersPortalUrl}
+          secondaryLabel="Acceso"
           footnote="Respuesta en días hábiles, con tono profesional y sin presión indebida."
         />
       </section>

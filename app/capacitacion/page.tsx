@@ -64,7 +64,7 @@ export default function CapacitacionPage() {
             El calendario y el formato (presencial, online o mixto) se comunican a los socios según cada ciclo. Para
             conocer el alcance según tu plan,{" "}
             <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
-              escribinos
+              escríbenos
             </Link>
             .
           </p>
@@ -73,7 +73,7 @@ export default function CapacitacionPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
-          title="¿Querés sumarte y acceder a la formación?"
+          title="¿Quieres sumarte y acceder a la formación?"
           description="Te contamos cómo es el proceso de ingreso y qué incluye tu nivel de membresía."
           primaryHref="/unete"
           primaryLabel="Postular como socio"

@@ -161,7 +161,7 @@ export default async function SociosPage({
           ))}
         </ul>
         <p className="mt-10 max-w-3xl text-sm leading-relaxed text-muted">
-          El ingreso se coordina con el equipo de Redalia. Para el detalle del proceso comercial, revisá{" "}
+          El ingreso se coordina con el equipo de Redalia. Para el detalle del proceso comercial, revisa{" "}
           <Link href="/unete" className="font-semibold text-brand-gold-deep underline-offset-2 hover:underline">
             Postulación
           </Link>{" "}
@@ -204,8 +204,8 @@ export default async function SociosPage({
             <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-8 text-center shadow-sm">
               <p className="font-display text-lg font-semibold text-brand-navy">Vista del directorio en pausa</p>
               <p className="mt-2 text-sm leading-relaxed text-muted">
-                El listado público se restablece cuando el catálogo vuelve a estar disponible. Podés escribirnos y
-                coordinamos la información que necesités.
+                El listado público se restablece cuando el catálogo vuelve a estar disponible. Puedes escribirnos y
+                coordinamos la información que necesites.
               </p>
               <Link
                 href="/contacto"
@@ -226,7 +226,7 @@ export default async function SociosPage({
                 <p className="text-lg font-semibold text-brand-navy">Tu marca en un espacio de alto estándar</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   Cuando haya publicaciones que asocien corredoras o anunciantes según las reglas de la red, aparecerán
-                  acá automáticamente. Mientras tanto podés explorar el catálogo o conversar con el equipo.
+                  aquí automáticamente. Mientras tanto puedes explorar el catálogo o conversar con el equipo.
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Link href="/unete" className="btn-redalia-gold-solid min-w-[200px]">
@@ -297,13 +297,13 @@ export default async function SociosPage({
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionLogoMark size="sm" className="mx-auto mb-5" />
         <CTASection
-          title="¿Querés sumar tu corredora al directorio y a la comunidad?"
+          title="¿Quieres sumar tu corredora al directorio y a la comunidad?"
           description="Coordinamos una reunión para revisar admisión, visibilidad y plan de membresía —sin compromiso y con el mismo tono profesional que en el resto de la red."
           primaryHref="/planes"
           primaryLabel="Ver membresía"
           secondaryHref="/unete"
           secondaryLabel="Postular como socio"
-          footnote="Si ya operás con la comunidad, el equipo te indicará los pasos para visibilidad pública cuando corresponda."
+          footnote="Si ya operas con la comunidad, el equipo te indicará los pasos para visibilidad pública cuando corresponda."
         />
       </section>
     </div>

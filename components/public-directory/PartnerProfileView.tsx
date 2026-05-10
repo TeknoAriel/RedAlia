@@ -95,7 +95,7 @@ export function PartnerProfileView({ detail, propertiesPreview, totalPropertyCou
             <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-navy">Contacto público</h2>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                Datos publicados en las fichas del listado. Si no figura un canal, podés consultar por el catálogo
+                Datos publicados en las fichas del listado. Si no figura un canal, puedes consultar por el catálogo
                 filtrado o escribir a Redalia.
               </p>
               <div className="mt-4">
@@ -155,7 +155,7 @@ export function PartnerProfileView({ detail, propertiesPreview, totalPropertyCou
 
           {propertiesPreview.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-brand-navy/10 bg-white px-6 py-12 text-center text-sm text-muted">
-              No hay publicaciones visibles asociadas a esta marca en el catálogo cargado. Podés volver más tarde o
+              No hay publicaciones visibles asociadas a esta marca en el catálogo cargado. Puedes volver más tarde o
               revisar el listado general.
             </div>
           ) : (

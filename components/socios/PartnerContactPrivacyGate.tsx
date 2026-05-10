@@ -224,7 +224,7 @@ export function PartnerContactPrivacyGate({
       ) : (
         <div className="rounded-xl border border-brand-navy/15 bg-brand-navy-soft/35 px-3 py-3 text-left">
           <p className="text-xs leading-relaxed text-muted">
-            Para ver teléfono, WhatsApp, mail o web de este socio, necesitás iniciar sesión o cargar tus datos.
+            Para ver teléfono, WhatsApp, mail o web de este socio, necesitas iniciar sesión o cargar tus datos.
           </p>
           <button
             type="button"

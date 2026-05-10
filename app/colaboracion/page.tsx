@@ -72,8 +72,8 @@ export default function ColaboracionPage() {
         <div className="mt-8 rounded-2xl border border-brand-gold/25 bg-brand-navy-soft/50 p-6 sm:p-8">
           <h3 className="text-lg font-semibold text-brand-navy">No es networking sin operación detrás</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Redalia separa el encuentro social del trabajo comercial: acá se priorizan acuerdos que llevan a visitas,
-            ofertas y cierres concretos. Si buscás solo ampliar agenda sin ejecutar, hay otros espacios más adecuados.
+            Redalia separa el encuentro social del trabajo comercial: aquí se priorizan acuerdos que llevan a visitas,
+            ofertas y cierres concretos. Si buscas solo ampliar agenda sin ejecutar, hay otros espacios más adecuados.
           </p>
         </div>
       </section>
@@ -137,7 +137,7 @@ export default function ColaboracionPage() {
               </li>
             </ol>
             <p className="mt-6 text-sm text-muted">
-              El detalle contractual y comercial se ajusta a cada corredora; desde el primer día sabés cómo colaborar
+              El detalle contractual y comercial se ajusta a cada corredora; desde el primer día sabes cómo colaborar
               dentro de Redalia.
             </p>
           </div>
@@ -146,7 +146,7 @@ export default function ColaboracionPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
-          title="¿Querés ordenar el canje de tu equipo con la comunidad?"
+          title="¿Quieres ordenar el canje de tu equipo con la comunidad?"
           description="Coordinamos una reunión para mapear oportunidades, transparencia en la colaboración y el nivel de membresía que mejor calce."
           primaryHref="/propiedades"
           primaryLabel="Ver catálogo"

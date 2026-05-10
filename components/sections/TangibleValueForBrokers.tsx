@@ -15,7 +15,7 @@ const outcomes = [
   },
   {
     title: "Marca intacta, honorarios tuyos",
-    text: "Seguís siendo vos frente al cliente; la comunidad suma canales y respaldo sin reemplazar tu identidad ni ceder el 100% de tus honorarios.",
+    text: "Sigues siendo tú frente al cliente; la comunidad suma canales y respaldo sin reemplazar tu identidad ni ceder el 100% de tus honorarios.",
   },
 ];
 
@@ -28,7 +28,7 @@ export function TangibleValueForBrokers() {
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <p className="redalia-eyebrow redalia-eyebrow--onNavy">Negocios reales</p>
         <h2 className="redalia-h2-band mt-2 max-w-3xl">
-          Qué cambia en el día a día cuando entrás a Redalia
+          Qué cambia en el día a día cuando entras a Redalia
         </h2>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">
           No es un club de contactos: es una estructura para compartir negocio con otros profesionales, con marco

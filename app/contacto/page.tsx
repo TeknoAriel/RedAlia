@@ -30,7 +30,7 @@ export default function ContactoPage() {
         eyebrow="Contacto"
         title="Coordinemos una reunión inicial"
         lead="Presentaciones, consultas sobre Redalia o evaluación junto a tu corredora. El equipo responde con criterio comercial y transparencia sobre proceso, membresía y comunidad."
-        footnote="Si preferís un primer contacto breve, usá el formulario o los canales de la izquierda; tratamos cada caso con la misma seriedad."
+        footnote="Si prefieres un primer contacto breve, usa el formulario o los canales de la izquierda; tratamos cada caso con la misma seriedad."
         contentClassName="py-20 sm:py-24"
       />
 
@@ -77,7 +77,7 @@ export default function ContactoPage() {
                 <li className="text-muted">
                   <span className="font-medium text-brand-navy">WhatsApp</span>
                   <br />
-                  Escribinos por correo; si publicamos un número, también figurará en esta página.
+                  Escríbenos por correo; si publicamos un número, también figurará en esta página.
                 </li>
               )}
               <li>
@@ -94,7 +94,7 @@ export default function ContactoPage() {
             <p className="redalia-eyebrow redalia-eyebrow--muted !mb-0">Consulta</p>
             <h2 className="redalia-h2-section mt-2">Enviar mensaje</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              Contanos tu corredora, zona y qué querés resolver: presentación, canje o membresía. A mayor concreción,
+              Cuéntanos tu corredora, zona y qué quieres resolver: presentación, canje o membresía. A mayor concreción,
               más útil será nuestra respuesta en el mismo tono institucional con el que opera la comunidad.
             </p>
             <div className="mt-6">
@@ -110,7 +110,7 @@ export default function ContactoPage() {
               </LeadForm>
             </div>
             <p className="mt-4 text-xs text-muted">
-              Al enviar, aceptás que usemos estos datos solo para contactarte en relación con Redalia.
+              Al enviar, aceptas que usemos estos datos solo para contactarte en relación con Redalia.
             </p>
           </div>
         </div>
