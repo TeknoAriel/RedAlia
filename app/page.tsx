@@ -13,6 +13,7 @@ import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { siteConfig } from "@/lib/site-config";
+import { getMembersPortalUrl } from "@/lib/public-contact";
 import { getVisiblePortalPublishers, portalPublishers } from "@/lib/home-config";
 import {
   homeHeroFootnote,
@@ -42,6 +43,7 @@ export default async function HomePage() {
   const mcpOverlay = await loadPublicMcpNetworkOverlay();
   const carouselEntries = directorySnapshot?.featured ?? [];
   const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);
+  const membersPortalUrl = getMembersPortalUrl();
 
   return (
     <>
@@ -71,9 +73,15 @@ export default async function HomePage() {
           <Link href="/socios" className="btn-redalia-outline-on-navy px-8 py-3.5">
             Ver corredoras
           </Link>
-          <Link href="https://www.kiteprop.com/auth/login" className="btn-redalia-ghost-on-navy px-8 py-3.5" target="_blank" rel="noopener noreferrer">
+          <a
+            href={membersPortalUrl}
+            className="btn-redalia-ghost-on-navy px-8 py-3.5"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Acceso
-          </Link>
+            <span className="sr-only"> (abre en nueva pestaña)</span>
+          </a>
         </div>
       </PageHero>
 
@@ -224,7 +232,7 @@ export default async function HomePage() {
           description="Coordinamos una conversación sin compromiso: criterios de colaboración, membresía con acompañamiento y claridad sobre honorarios y relación con el cliente."
           primaryHref="/propiedades"
           primaryLabel="Ver catálogo"
-          secondaryHref="https://www.kiteprop.com/auth/login"
+          secondaryHref={membersPortalUrl}
           secondaryLabel="Acceso"
           footnote="Respuesta en días hábiles, con tono profesional y sin presión indebida."
         />

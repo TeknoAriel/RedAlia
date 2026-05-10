@@ -43,6 +43,7 @@ export function CTASection({
               className="btn-redalia-gold-solid min-w-[200px]"
             >
               {primaryLabel}
+              <span className="sr-only"> (abre en nueva pestaña)</span>
             </a>
           ) : (
             <Link href={primaryHref} className="btn-redalia-gold-solid min-w-[200px]">
@@ -50,40 +51,38 @@ export function CTASection({
             </Link>
           )}
           {secondaryHref && secondaryLabel && (
-            <>
-              {isExternalHref(secondaryHref) ? (
-                <a
-                  href={secondaryHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-redalia-outline-on-navy min-w-[200px]"
-                >
-                  {secondaryLabel}
-                </a>
-              ) : (
-                <Link href={secondaryHref} className="btn-redalia-outline-on-navy min-w-[200px]">
-                  {secondaryLabel}
-                </Link>
-              )}
-            </>
+            isExternalHref(secondaryHref) ? (
+              <a
+                href={secondaryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-redalia-outline-on-navy min-w-[200px]"
+              >
+                {secondaryLabel}
+                <span className="sr-only"> (abre en nueva pestaña)</span>
+              </a>
+            ) : (
+              <Link href={secondaryHref} className="btn-redalia-outline-on-navy min-w-[200px]">
+                {secondaryLabel}
+              </Link>
+            )
           )}
           {tertiaryHref && tertiaryLabel && (
-            <>
-              {isExternalHref(tertiaryHref) ? (
-                <a
-                  href={tertiaryHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-redalia-ghost-on-navy min-w-[200px]"
-                >
-                  {tertiaryLabel}
-                </a>
-              ) : (
-                <Link href={tertiaryHref} className="btn-redalia-ghost-on-navy min-w-[200px]">
-                  {tertiaryLabel}
-                </Link>
-              )}
-            </>
+            isExternalHref(tertiaryHref) ? (
+              <a
+                href={tertiaryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-redalia-ghost-on-navy min-w-[200px]"
+              >
+                {tertiaryLabel}
+                <span className="sr-only"> (abre en nueva pestaña)</span>
+              </a>
+            ) : (
+              <Link href={tertiaryHref} className="btn-redalia-ghost-on-navy min-w-[200px]">
+                {tertiaryLabel}
+              </Link>
+            )
           )}
         </div>
         {footnote && <p className="mt-6 text-xs leading-relaxed text-white/60">{footnote}</p>}
