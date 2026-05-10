@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
-import { getPropertyById } from "@/lib/get-properties";
+import { getProperties, getPropertyById } from "@/lib/get-properties";
+import { pickRelatedProperties } from "@/lib/properties/pick-related-properties";
+import { RelatedPropertyCard } from "@/components/properties/RelatedPropertyCard";
 import {
   fichaInmobiliariaOperativaChipEs,
   partnersRoughlyEqual,
@@ -71,8 +73,12 @@ function fichaPublicaPartner(p: NormalizedProperty): {
 
 export default async function PropertyDetailPage({ params }: Props) {
   const { id } = await params;
-  const p = await getPropertyById(id);
+  const catalog = await getProperties();
+  if (!catalog.ok) notFound();
+  const p = catalog.properties.find((x) => x.id === id) ?? null;
   if (!p) notFound();
+
+  const related = pickRelatedProperties(p, catalog.properties, { limit: 6 });
 
   const op = labelForOperation(p.operation);
   const consultar = propertyFichaConsultarRow(p);
@@ -354,6 +360,24 @@ export default async function PropertyDetailPage({ params }: Props) {
           </aside>
         </div>
       </article>
+
+      {related.length > 0 ? (
+        <section className="border-t border-brand-navy/10 bg-brand-navy-soft/30 py-12 sm:py-16">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <h2 className="font-display text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
+              Propiedades relacionadas
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+              Otras alternativas similares que podrían interesarte.
+            </p>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((item) => (
+                <RelatedPropertyCard key={item.id} property={item} />
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
