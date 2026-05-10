@@ -1,17 +1,12 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { CTASection } from "@/components/sections/CTASection";
 import { EvidenceSection } from "@/components/sections/EvidenceSection";
-import { ListingPulseStrip } from "@/components/sections/ListingPulseStrip";
 import { PartnerLogosStrip } from "@/components/sections/PartnerLogosStrip";
 import { TangibleValueForBrokers } from "@/components/sections/TangibleValueForBrokers";
-import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
-import { getProperties } from "@/lib/get-properties";
-import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
-import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { siteConfig } from "@/lib/site-config";
 import { getMembersPortalUrl } from "@/lib/public-contact";
 import { getVisiblePortalPublishers, portalPublishers } from "@/lib/home-config";
@@ -27,25 +22,23 @@ import {
 import { HomeValuePillars } from "@/components/sections/HomeValuePillars";
 import { HomeTechnologyBand } from "@/components/sections/HomeTechnologyBand";
 import { PortalPublishersStrip } from "@/components/sections/PortalPublishersStrip";
-import { HomePartnersCarousel } from "@/components/sections/HomePartnersCarousel";
+import {
+  HomeDataSections,
+  HomeDataSectionsFallback,
+} from "@/components/sections/HomeDataSections";
 
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
 
-/** Evita que el build de producción ejecute toda la ingesta de red en SSG (timeout 60s). Misma UI en runtime. */
+/**
+ * Render dinámico: las secciones que dependen del catálogo + red AINA viven
+ * dentro de un `<Suspense>` (ver `HomeDataSections`) y se streamean cuando los
+ * datos están listos. La cáscara (hero, valor, tecnología, planes, CTA) se
+ * entrega de inmediato — TTFB de la home no debería depender del cold ingest.
+ */
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  // `getProperties` y `loadPublicMcpNetworkOverlay` son independientes: los lanzamos en paralelo
-  // para reducir TTFB. `resolveStablePublicDirectorySnapshot` sí depende del catálogo.
-  const [catalog, mcpOverlay] = await Promise.all([
-    getProperties(),
-    loadPublicMcpNetworkOverlay(),
-  ]);
-  const listingCount = catalog.ok ? catalog.properties.length : 0;
-  const stable = catalog.ok ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 }) : null;
-  const directorySnapshot = stable?.snapshot ?? null;
-  const carouselEntries = directorySnapshot?.featured ?? [];
+export default function HomePage() {
   const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);
   const membersPortalUrl = getMembersPortalUrl();
 
@@ -106,19 +99,11 @@ export default async function HomePage() {
 
       <HomeTechnologyBand points={homeTechnologyPoints} />
 
-      <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
-
       <PortalPublishersStrip portals={visiblePortalPublishers} />
 
-      {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
-
-      <HomePartnersCarousel entries={carouselEntries} />
-
-      <PartnerDirectoryPreview
-        feedOk={catalog.ok}
-        snapshot={directorySnapshot}
-        showFeaturedGrid={carouselEntries.length === 0}
-      />
+      <Suspense fallback={<HomeDataSectionsFallback />}>
+        <HomeDataSections />
+      </Suspense>
 
       <TangibleValueForBrokers />
 
