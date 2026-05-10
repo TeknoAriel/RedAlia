@@ -12,7 +12,7 @@ export default function PropiedadesError({
     <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
       <h1 className="text-2xl font-bold text-brand-navy">Propiedades</h1>
       <p className="mt-4 text-muted">
-        En este momento no pudimos cargar el listado. Podés intentar de nuevo o escribirnos para orientarte sobre
+        En este momento no pudimos cargar el listado. Puedes intentar de nuevo o escribirnos para orientarte sobre
         publicaciones y socios.
       </p>
       <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

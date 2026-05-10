@@ -52,7 +52,7 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
           <div className="mb-8 rounded-2xl border border-brand-navy/15 bg-brand-navy-soft/50 px-5 py-6 text-center text-brand-navy">
             <p className="font-medium">No pudimos mostrar el catálogo en este momento</p>
             <p className="mt-2 text-sm text-muted">
-              Podés volver a intentar más tarde o coordinar con nosotros por correo y te orientamos.
+              Puedes volver a intentar más tarde o coordinar con nosotros por correo y te orientamos.
             </p>
             <Link
               href="/contacto"

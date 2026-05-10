@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       source: "not_available",
       durationMs: Date.now() - startedAtMs,
       warnings: [
-        "Medición pasiva: usá include_data=1 para intentar lectura de conteos desde snapshot estable de socios.",
+        "Medición pasiva: usa include_data=1 para intentar lectura de conteos desde snapshot estable de socios.",
       ],
       errorsRecent: [],
     });

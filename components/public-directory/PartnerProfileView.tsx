@@ -155,7 +155,7 @@ export function PartnerProfileView({ detail, propertiesPreview, totalPropertyCou
 
           {propertiesPreview.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-brand-navy/10 bg-white px-6 py-12 text-center text-sm text-muted">
-              No hay publicaciones visibles asociadas a esta marca en el catálogo cargado. Podés volver más tarde o
+              No hay publicaciones visibles asociadas a esta marca en el catálogo cargado. Puedes volver más tarde o
               revisar el listado general.
             </div>
           ) : (
