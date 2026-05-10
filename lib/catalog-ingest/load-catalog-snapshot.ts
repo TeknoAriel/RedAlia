@@ -201,25 +201,57 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     return runNetworkFallbackJsonFlow(trace, runId);
   }
 
-  const jsonOnly = await loadJsonFeedSnapshot(trace);
-  let partnerDirectoryExtraDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
+  // Modo "json" (default de producto). Las tres llamadas son independientes:
+  //   1. feed JSON (propiedades),
+  //   2. network organizations overlay (si está habilitado),
+  //   3. advertiser overlay (si el directorio no es 'feed' puro).
+  // En cold start (sin unstable_cache), ejecutarlas en serie agrega latencia
+  // innecesaria. Las disparamos en paralelo y luego aplicamos la misma
+  // semántica de merge / trace que la versión secuencial.
+  const wantsOrganizations = isNetworkOrganizationsMergedWithJsonCatalog();
+  const wantsAdvertiserOverlay = getRedaliaPartnerDirectorySourceMode() !== "feed";
+  if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
+  if (wantsAdvertiserOverlay) trace.partnerDirectoryOverlayAttempted = true;
 
-  if (isNetworkOrganizationsMergedWithJsonCatalog()) {
-    trace.networkOrganizationsAttempted = true;
-    const orgLoad = await loadNetworkPartnerDirectoryDraftsOnly();
-    if (orgLoad.ok) {
+  const [jsonOnly, orgLoadResult, advertiserOverlayResult] = await Promise.all([
+    loadJsonFeedSnapshot(trace),
+    wantsOrganizations ? loadNetworkPartnerDirectoryDraftsOnly() : Promise.resolve(null),
+    wantsAdvertiserOverlay
+      ? loadNetworkPartnerDirectoryAdvertiserOverlayDrafts()
+      : Promise.resolve(null),
+  ]);
+
+  let partnerDirectoryExtraDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
+  if (orgLoadResult) {
+    if (orgLoadResult.ok) {
       trace.networkOrganizationsErrorCode = null;
-      if (orgLoad.drafts.length > 0) {
-        partnerDirectoryExtraDrafts = orgLoad.drafts;
+      if (orgLoadResult.drafts.length > 0) {
+        partnerDirectoryExtraDrafts = orgLoadResult.drafts;
       }
     } else {
-      trace.networkOrganizationsErrorCode = orgLoad.error;
+      trace.networkOrganizationsErrorCode = orgLoadResult.error;
     }
   }
 
-  const base: CatalogSnapshotSuccess = partnerDirectoryExtraDrafts
+  let base: CatalogSnapshotSuccess = partnerDirectoryExtraDrafts
     ? { ...jsonOnly, partnerDirectoryExtraDrafts }
     : jsonOnly;
-  const withOverlay = await withPartnerDirectoryNetworkOverlayIfNeeded(trace, base);
-  return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(withOverlay), trace, runId);
+
+  if (advertiserOverlayResult) {
+    if (base.partnerDirectoryNetworkAdvertiserDrafts?.length) {
+      // Ya venía poblado: respetamos la misma rama del helper original.
+    } else if (!advertiserOverlayResult.ok) {
+      trace.partnerDirectoryOverlayErrorCode = advertiserOverlayResult.error;
+    } else {
+      trace.partnerDirectoryOverlayErrorCode = null;
+      if (advertiserOverlayResult.drafts.length) {
+        base = {
+          ...base,
+          partnerDirectoryNetworkAdvertiserDrafts: advertiserOverlayResult.drafts,
+        };
+      }
+    }
+  }
+
+  return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(base), trace, runId);
 }
