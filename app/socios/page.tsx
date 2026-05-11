@@ -9,13 +9,16 @@ import { getProperties } from "@/lib/get-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
-export const revalidate = 1800;
 /**
- * El primer lambda cold puede pagar el costo de ingest + persist del catálogo (~30–60 s).
- * Subimos `maxDuration` a 60 s para que el snapshot llegue a poblar la cache (in-memory +
- * `unstable_cache` + Upstash) antes de que la función serverless se mate. Los siguientes
- * requests, dentro o fuera del lambda, leen del cache y resuelven en sub-segundo.
+ * `force-dynamic` evita que Next intente generar HTML estático para `/socios`
+ * (sin query params) y caiga en un flujo ISR donde el primer cold paga 60 s
+ * de ingest y termina en 504. Como la página depende de `searchParams` y de
+ * `getProperties`, no hay valor real en cachear el HTML por ruta.
+ *
+ * `maxDuration = 60` queda como cinturón de seguridad para el primer cold
+ * lambda que aún tenga que poblar la cache (in-memory + Upstash).
  */
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export const metadata: Metadata = {
