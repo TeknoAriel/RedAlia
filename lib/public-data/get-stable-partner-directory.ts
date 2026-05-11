@@ -25,6 +25,51 @@ export type StablePartnerDirectoryResult = {
 };
 
 /**
+ * In-memory cache global del directorio resuelto.
+ *
+ * `buildPublicDirectorySnapshot()` recorre todas las propiedades del catálogo y arma el
+ * directorio (~1.5–2 s con 500+ propiedades). Para una página informativa que cambia
+ * a lo sumo una vez al día, repetir ese cómputo en cada request es derroche.
+ *
+ * Cache key determinística: `cantidad de propiedades` + `ingestMeta.completedAtMs` +
+ * `featuredMax`. Si el catálogo subyacente cambia (nuevo ingest), `completedAtMs`
+ * cambia y la entrada queda invalidada automáticamente. TTL defensivo de 1 h por si
+ * `completedAtMs` no estuviera disponible.
+ *
+ * Se cachean SOLO snapshots con entries > 0 y source `live` (los pocos snapshots
+ * desde `snapshot_persisted` no se cachean para no enmascarar errores intermitentes).
+ */
+const DIRECTORY_MEMORY_CACHE_TTL_MS = 60 * 60 * 1000;
+type DirectoryMemoryEntry = { key: string; value: StablePartnerDirectoryResult; expiresAt: number };
+const directoryMemoryCacheGlobal = globalThis as unknown as {
+  __redaliaDirectoryMemoryCache?: DirectoryMemoryEntry;
+};
+
+function directoryCacheKey(result: GetPropertiesResult, featuredMax: number): string | null {
+  if (!result.ok) return null;
+  const completedAtMs = result.ingestMeta?.completedAtMs ?? 0;
+  if (!completedAtMs) return null;
+  return `${result.properties.length}|${completedAtMs}|${featuredMax}`;
+}
+
+function readDirectoryMemoryCache(key: string): StablePartnerDirectoryResult | null {
+  const entry = directoryMemoryCacheGlobal.__redaliaDirectoryMemoryCache;
+  if (!entry || entry.key !== key) return null;
+  if (Date.now() >= entry.expiresAt) return null;
+  return entry.value;
+}
+
+function writeDirectoryMemoryCache(key: string, value: StablePartnerDirectoryResult): void {
+  if (value.source !== "live") return;
+  if (!value.snapshot || value.snapshot.entries.length === 0) return;
+  directoryMemoryCacheGlobal.__redaliaDirectoryMemoryCache = {
+    key,
+    value,
+    expiresAt: Date.now() + DIRECTORY_MEMORY_CACHE_TTL_MS,
+  };
+}
+
+/**
  * Directorio de socios estable: intenta live desde `getProperties`; si la red falló y el listado quedó vacío,
  * reutiliza último snapshot persistido (Upstash Redis o archivo local en dev).
  */
@@ -33,6 +78,12 @@ export async function resolveStablePublicDirectorySnapshot(
   options?: { featuredMax?: number },
 ): Promise<StablePartnerDirectoryResult> {
   const featuredMax = options?.featuredMax ?? 8;
+
+  const memKey = directoryCacheKey(result, featuredMax);
+  if (memKey) {
+    const cached = readDirectoryMemoryCache(memKey);
+    if (cached) return cached;
+  }
 
   if (!result.ok) {
     const persisted = await readPersistedPartnerDirectorySnapshot();
@@ -94,5 +145,7 @@ export async function resolveStablePublicDirectorySnapshot(
     });
   }
 
-  return { snapshot, source: "live" };
+  const live: StablePartnerDirectoryResult = { snapshot, source: "live" };
+  if (memKey) writeDirectoryMemoryCache(memKey, live);
+  return live;
 }
