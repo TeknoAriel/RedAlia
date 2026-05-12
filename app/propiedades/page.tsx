@@ -16,7 +16,7 @@ export const maxDuration = 60;
 export const metadata: Metadata = {
   title: "Propiedades",
   description:
-    "Publicaciones del catálogo Redalia: venta, arriendo y otras operaciones. Consultá oportunidades y derivá consultas con criterio profesional.",
+    "Publicaciones del catálogo Redalia: venta, arriendo y otras operaciones. Consulta oportunidades y deriva consultas con criterio profesional.",
 };
 
 export default async function PropiedadesPage({

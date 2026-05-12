@@ -97,7 +97,7 @@ export async function CatalogListingPage({ basePath, searchParams }: Props) {
             <p className="font-medium">Listado referencial</p>
             <p className="mt-1 text-muted">
               Mostramos una selección de ejemplo mientras se restablece la conexión con el catálogo actualizado. Para
-              publicaciones vigentes y prioridades comerciales, contactá al equipo de Redalia.
+              publicaciones vigentes y prioridades comerciales, contacta al equipo de Redalia.
             </p>
           </div>
         )}

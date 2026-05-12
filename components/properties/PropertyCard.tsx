@@ -8,6 +8,7 @@ import {
 import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
+import { displayPropertyTypeLabel } from "@/lib/properties/catalog-query";
 
 type PropertyCardProps = {
   property: NormalizedProperty;
@@ -27,6 +28,7 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const img = property.images[0];
   const opLabel = labelForOperation(property.operation);
+  const typeLabel = displayPropertyTypeLabel(property.propertyTypeKey, property.propertyTypeLabel);
   const showCompare = Boolean(onToggleCompare);
   const consultar = propertyFichaConsultarRow(property);
   const inmobCard = propertyFichaInmobiliariaOperativa(property);
@@ -69,7 +71,7 @@ export function PropertyCard({
             {opLabel}
           </span>
           <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-brand-navy shadow-sm">
-            {property.propertyTypeLabel}
+            {typeLabel}
           </span>
         </div>
         {showCompare && (

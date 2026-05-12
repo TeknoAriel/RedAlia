@@ -5,13 +5,10 @@ import { getLinkedInUrl, getWhatsappContact } from "@/lib/public-contact";
 const footerLinks = [
   { href: "/", label: "Inicio" },
   { href: "/que-es", label: "Qué es Redalia" },
-  { href: "/colaboracion", label: "Canje y colaboración" },
+  { href: "/propiedades", label: "Propiedades" },
   { href: "/socios", label: "Socios" },
-  { href: "/capacitacion", label: "Capacitación" },
-  { href: "/planes", label: "Membresía" },
-  { href: "/propiedades", label: "Catálogo" },
   { href: "/servicios", label: "Servicios" },
-  { href: "/unete", label: "Únete" },
+  { href: "/planes", label: "Planes" },
   { href: "/contacto", label: "Contacto" },
 ];
 

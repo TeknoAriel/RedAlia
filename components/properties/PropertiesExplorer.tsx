@@ -139,7 +139,7 @@ export function PropertiesExplorer({
       <div className="mb-8 overflow-hidden rounded-2xl border border-brand-navy/12 bg-card/95 shadow-lg backdrop-blur-sm tech-panel-glow">
         <div className="border-b border-brand-navy/10 bg-brand-navy-soft/40 px-4 py-3 sm:px-6">
           <p className="text-xs text-muted">
-            Refiná el listado por operación, zona y características. Los filtros se aplican en el servidor: cada
+            Refina el listado por operación, zona y características. Los filtros se aplican en el servidor: cada
             cambio actualiza la página con hasta {pageSize} publicaciones visibles.
           </p>
         </div>
@@ -518,7 +518,7 @@ export function PropertiesExplorer({
       {totalFiltered === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-navy/20 bg-brand-navy-soft/40 px-6 py-16 text-center">
           <p className="text-lg font-medium text-brand-navy">No hay resultados con estos criterios.</p>
-          <p className="mt-2 text-sm text-muted">Probá ampliar la búsqueda o limpiar filtros.</p>
+          <p className="mt-2 text-sm text-muted">Prueba ampliar la búsqueda o limpiar filtros.</p>
         </div>
       ) : (
         <>
