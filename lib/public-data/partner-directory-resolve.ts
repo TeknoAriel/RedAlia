@@ -1,6 +1,7 @@
 import "server-only";
 
 import { extractSociosGridCatalog, propertyMatchesPartnerKey } from "@/lib/agencies";
+import { propertyBelongsToPublicPartner } from "@/lib/public-data/partner-property-match";
 import {
   canonicalNetworkAdvertiserPartnerKey,
   parseNetworkAdvertiserIdFromPartnerKey,
@@ -14,44 +15,11 @@ import type { NormalizedProperty } from "@/types/property";
 
 const MAX_COVERAGE = 12;
 
-function normalizeNameToken(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function matchesByDisplayName(
-  property: NormalizedProperty,
-  scope: PublicPartnerScope,
-  displayName: string,
-): boolean {
-  const want = normalizeNameToken(displayName);
-  if (!want) return false;
-  const keys = [property.agency, property.advertiser, property.agentAgency, property.subAgentAgency];
-  for (const partner of keys) {
-    const name = partner?.name?.trim();
-    if (!name) continue;
-    if (normalizeNameToken(name) !== want) continue;
-    if (scope === "advertiser" && partner === property.advertiser) return true;
-    if (scope === "agency" && (partner === property.agency || partner === property.agentAgency || partner === property.subAgentAgency)) return true;
-  }
-  return false;
-}
-
 function propertyBelongsToDraft(
   property: NormalizedProperty,
   draft: PublicPartnerDirectoryRowDraft,
 ): boolean {
-  if (propertyMatchesPartnerKey(property, draft.partnerKey)) return true;
-  if (draft.partnerKey.startsWith("kpnet:")) {
-    return matchesByDisplayName(property, draft.scope, draft.displayName);
-  }
-  return false;
+  return propertyBelongsToPublicPartner(property, draft);
 }
 
 function coverageLabelsForPartner(properties: NormalizedProperty[], partnerKey: string): string[] {
@@ -142,11 +110,7 @@ function recomputeCountsAndCoverage(
 ): PublicPartnerDirectoryRowDraft[] {
   return drafts.map((d) => ({
     ...d,
-    propertyCount: (() => {
-      const matched = properties.filter((p) => propertyBelongsToDraft(p, d)).length;
-      const seeded = d.partnerKey.startsWith("kpnet:") ? Math.max(0, d.propertyCount || 0) : 0;
-      return Math.max(matched, seeded);
-    })(),
+    propertyCount: properties.filter((p) => propertyBelongsToDraft(p, d)).length,
     coverageLabels: (() => {
       const set = new Set<string>();
       for (const p of properties) {

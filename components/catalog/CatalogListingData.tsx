@@ -3,6 +3,8 @@ import "server-only";
 import Link from "next/link";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
+import { findPartnerEntryByPartnerKey } from "@/lib/public-data/find-partner";
+import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import {
   buildCatalogFilterOptionsCached,
   catalogHasActiveFilters,
@@ -64,7 +66,14 @@ export async function CatalogListingData({ basePath, searchParams }: Props) {
     result.properties,
     result.ingestMeta?.completedAtMs,
   );
-  const filtered = filterPropertiesCatalog(result.properties, query);
+
+  let socioRef = null;
+  if (query.socio) {
+    const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
+    socioRef = findPartnerEntryByPartnerKey(stable.snapshot?.entries ?? [], query.socio);
+  }
+
+  const filtered = filterPropertiesCatalog(result.properties, query, socioRef);
   const sorted = sortPropertiesCatalog(filtered, query.sort);
   const { slice: pageItems, total, totalPages, safePage } = paginateCatalog(sorted, query.page, pageSize);
   const hasFilters = catalogHasActiveFilters(query);

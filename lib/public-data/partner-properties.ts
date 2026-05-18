@@ -1,13 +1,28 @@
 import { propertyMatchesPartnerKey } from "@/lib/agencies";
+import {
+  propertyBelongsToPublicPartner,
+  type PublicPartnerPropertyRef,
+} from "@/lib/public-data/partner-property-match";
 import type { NormalizedProperty } from "@/types/property";
 
 /**
- * Propiedades del catálogo asociadas a un socio (misma clave que `?socio=` en /propiedades).
+ * Propiedades del catálogo asociadas a un socio (mismo criterio que el directorio y `?socio=`).
  */
+export function filterPropertiesForPartner(
+  properties: NormalizedProperty[],
+  ref: PublicPartnerPropertyRef,
+): NormalizedProperty[] {
+  return properties.filter((p) => propertyBelongsToPublicPartner(p, ref));
+}
+
 export function filterPropertiesForPartnerKey(
   properties: NormalizedProperty[],
   partnerKey: string,
+  ref?: PublicPartnerPropertyRef | null,
 ): NormalizedProperty[] {
+  if (ref && ref.partnerKey === partnerKey) {
+    return filterPropertiesForPartner(properties, ref);
+  }
   return properties.filter((p) => propertyMatchesPartnerKey(p, partnerKey));
 }
 
@@ -22,9 +37,9 @@ export function sortPartnerPropertiesRecent(properties: NormalizedProperty[]): N
 
 export function selectPartnerPropertiesPreview(
   properties: NormalizedProperty[],
-  partnerKey: string,
+  ref: PublicPartnerPropertyRef,
   limit: number,
 ): NormalizedProperty[] {
-  const list = sortPartnerPropertiesRecent(filterPropertiesForPartnerKey(properties, partnerKey));
+  const list = sortPartnerPropertiesRecent(filterPropertiesForPartner(properties, ref));
   return list.slice(0, Math.max(0, limit));
 }
