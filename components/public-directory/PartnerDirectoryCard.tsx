@@ -17,7 +17,7 @@ type Props = {
 
 export function PartnerDirectoryCard({ entry, variant = "default" }: Props) {
   const compact = variant === "compact";
-  const listingHref = `/propiedades?socio=${encodeURIComponent(entry.partnerKey)}`;
+  const listingHref = `/propiedades?socio=${encodeURIComponent(entry.catalogSocioKey ?? entry.partnerKey)}`;
   const profileHref = `/socios/${encodeURIComponent(entry.publicSlug)}`;
 
   const btnPrimary =

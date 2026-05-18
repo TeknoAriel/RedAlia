@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function PartnerProfileView({ detail, propertiesPreview, totalPropertyCount }: Props) {
-  const listingHref = `/propiedades?socio=${encodeURIComponent(detail.partnerKey)}`;
+  const listingHref = `/propiedades?socio=${encodeURIComponent(detail.catalogSocioKey ?? detail.partnerKey)}`;
 
   return (
     <div className="bg-background">

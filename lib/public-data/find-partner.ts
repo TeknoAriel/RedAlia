@@ -44,5 +44,5 @@ export function findPartnerEntryByPartnerKey(
 ): PublicPartnerDirectoryEntry | null {
   const key = partnerKey.trim();
   if (!key) return null;
-  return entries.find((e) => e.partnerKey === key) ?? null;
+  return entries.find((e) => e.partnerKey === key || (e.catalogSocioKey ?? e.partnerKey) === key) ?? null;
 }

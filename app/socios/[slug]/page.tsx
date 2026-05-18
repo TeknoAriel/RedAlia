@@ -6,7 +6,8 @@ import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";
 import {
-  filterPropertiesForPartner,
+  filterPropertiesForDirectoryEntry,
+  partnerRefFromDirectoryEntry,
   selectPartnerPropertiesPreview,
 } from "@/lib/public-data/partner-properties";
 
@@ -48,12 +49,8 @@ export default async function SocioProfilePage({ params }: PageProps) {
     notFound();
   }
   const detail = buildPublicPartnerDetail(entry);
-  const partnerRef = {
-    partnerKey: entry.partnerKey,
-    scope: entry.scope,
-    displayName: entry.displayName,
-  };
-  const allForPartner = filterPropertiesForPartner(result.properties, partnerRef);
+  const partnerRef = partnerRefFromDirectoryEntry(entry);
+  const allForPartner = filterPropertiesForDirectoryEntry(result.properties, entry);
   const preview = selectPartnerPropertiesPreview(result.properties, partnerRef, PREVIEW_LIMIT);
 
   return (

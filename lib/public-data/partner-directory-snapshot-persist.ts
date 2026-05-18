@@ -5,11 +5,11 @@ import path from "node:path";
 import { isUpstashRedisConfigured, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
 import type { PublicDirectorySnapshot, PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 
-const REDIS_KEY = "redalia:partner-directory:snapshot:v1";
+const REDIS_KEY = "redalia:partner-directory:snapshot:v2";
 const TTL_SECONDS = 60 * 60 * 24 * 14;
 
 export type PersistedPartnerDirectorySnapshotV1 = {
-  version: 1;
+  version: 1 | 2;
   generatedAtMs: number;
   entryCount: number;
   activeCount: number;
@@ -36,7 +36,7 @@ async function readDevFile(): Promise<PersistedPartnerDirectorySnapshotV1 | null
   try {
     const raw = await readFile(devSnapshotPath(), "utf8");
     const parsed = JSON.parse(raw) as PersistedPartnerDirectorySnapshotV1;
-    if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) return null;
+    if (parsed?.version !== 2 || !Array.isArray(parsed.entries)) return null;
     return parsed;
   } catch {
     return null;
@@ -60,7 +60,7 @@ export async function readPersistedPartnerDirectorySnapshot(): Promise<Persisted
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw) as PersistedPartnerDirectorySnapshotV1;
-      if (parsed?.version !== 1 || !Array.isArray(parsed.entries)) return null;
+      if (parsed?.version !== 2 || !Array.isArray(parsed.entries)) return null;
       return parsed;
     } catch {
       return null;
@@ -74,7 +74,7 @@ export async function writePersistedPartnerDirectorySnapshot(
 ): Promise<void> {
   const { entryCount, activeCount, inactiveCount } = counts(snapshot.entries);
   const payload: PersistedPartnerDirectorySnapshotV1 = {
-    version: 1,
+    version: 2,
     generatedAtMs: Date.now(),
     entryCount,
     activeCount,

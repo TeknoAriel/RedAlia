@@ -3,6 +3,10 @@ import {
   normalizePublicDisplayName,
   sortPublicDirectoryEntries,
 } from "@/lib/public-data/directory-order";
+import {
+  buildFeedPartnerIndex,
+  resolveCatalogSocioKey,
+} from "@/lib/public-data/partner-property-match";
 import { resolvePublicPartnerDirectoryDrafts } from "@/lib/public-data/partner-directory-resolve";
 import { buildPublicSlugForEntry } from "@/lib/public-data/public-slug";
 import { sanitizePublicPartnerDirectoryEntry } from "@/lib/public-data/sanitize-entry";
@@ -19,7 +23,9 @@ const DEFAULT_FEATURED_MAX = 8;
 
 function finalizeDirectoryEntries(
   raw: PublicPartnerDirectoryRowDraft[],
+  properties: NormalizedProperty[],
 ): PublicPartnerDirectoryEntry[] {
+  const feedIndex = buildFeedPartnerIndex(properties);
   const named = raw.map((e) => ({
     ...e,
     displayName: normalizePublicDisplayName(e.displayName),
@@ -29,6 +35,7 @@ function finalizeDirectoryEntries(
   const sorted = sortPublicDirectoryEntries(sanitized);
   return sorted.map((e) => ({
     ...e,
+    catalogSocioKey: resolveCatalogSocioKey(e, properties, feedIndex),
     publicSlug: buildPublicSlugForEntry({
       displayName: e.displayName,
       scope: e.scope,
@@ -83,7 +90,7 @@ export function buildPublicPartnerDirectoryFromFeed(
     extraDirectoryDrafts,
     networkAdvertiserDrafts,
   });
-  return finalizeDirectoryEntries(raw);
+  return finalizeDirectoryEntries(raw, properties);
 }
 
 /**
