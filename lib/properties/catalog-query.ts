@@ -1,4 +1,6 @@
 import { propertyMatchesPartnerKey } from "@/lib/agencies";
+import type { PublicPartnerPropertyRef } from "@/lib/public-data/partner-property-match";
+import { propertyBelongsToPublicPartner } from "@/lib/public-data/partner-property-match";
 import type { NormalizedProperty, PropertyOperation } from "@/types/property";
 
 export type CatalogSortKey = "recent" | "price_asc" | "price_desc" | "surface_desc";
@@ -200,6 +202,7 @@ export function sortPropertiesCatalog(list: NormalizedProperty[], sort: CatalogS
 export function filterPropertiesCatalog(
   properties: NormalizedProperty[],
   q: CatalogQueryState,
+  socioRef?: PublicPartnerPropertyRef | null,
 ): NormalizedProperty[] {
   const needle = q.q.trim().toLowerCase();
   const addr = q.addressNeedle.trim().toLowerCase();
@@ -210,7 +213,13 @@ export function filterPropertiesCatalog(
   const terMin = q.m2TerrainMin ? parseFloat(q.m2TerrainMin.replace(",", ".")) : null;
 
   return properties.filter((p) => {
-    if (q.socio && !propertyMatchesPartnerKey(p, q.socio)) return false;
+    if (q.socio) {
+      if (socioRef && socioRef.partnerKey === q.socio) {
+        if (!propertyBelongsToPublicPartner(p, socioRef)) return false;
+      } else if (!propertyMatchesPartnerKey(p, q.socio)) {
+        return false;
+      }
+    }
     if (needle && !p.searchBlob.includes(needle) && !p.title.toLowerCase().includes(needle)) {
       return false;
     }

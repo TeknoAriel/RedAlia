@@ -6,11 +6,12 @@ import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";
 import {
-  filterPropertiesForPartnerKey,
+  filterPropertiesForPartner,
   selectPartnerPropertiesPreview,
 } from "@/lib/public-data/partner-properties";
 
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const PREVIEW_LIMIT = 6;
 
@@ -47,8 +48,13 @@ export default async function SocioProfilePage({ params }: PageProps) {
     notFound();
   }
   const detail = buildPublicPartnerDetail(entry);
-  const allForPartner = filterPropertiesForPartnerKey(result.properties, entry.partnerKey);
-  const preview = selectPartnerPropertiesPreview(result.properties, entry.partnerKey, PREVIEW_LIMIT);
+  const partnerRef = {
+    partnerKey: entry.partnerKey,
+    scope: entry.scope,
+    displayName: entry.displayName,
+  };
+  const allForPartner = filterPropertiesForPartner(result.properties, partnerRef);
+  const preview = selectPartnerPropertiesPreview(result.properties, partnerRef, PREVIEW_LIMIT);
 
   return (
     <PartnerProfileView

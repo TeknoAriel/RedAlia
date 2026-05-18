@@ -9,10 +9,7 @@ function isActive(e: PublicPartnerDirectoryRowDraft): boolean {
   return e.propertyCount > 0;
 }
 
-/**
- * Orden institucional: activos primero; más publicaciones; rol (corredora → anunciante → oficina → subagente); nombre.
- * Rotación opcional entre empates: `REDALIA_SOCIOS_ROTATE_ACTIVE_TIES=1` + `REDALIA_SOCIOS_ROTATION_PERIOD` (default weekly).
- */
+/** Orden del directorio: más propiedades activas en catálogo primero; sin publicaciones al final; empate por nombre. */
 export function sortPublicDirectoryEntries(
   entries: PublicPartnerDirectoryRowDraft[],
 ): PublicPartnerDirectoryRowDraft[] {
