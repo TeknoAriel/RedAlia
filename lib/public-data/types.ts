@@ -32,10 +32,14 @@ export type PublicPartnerDirectoryEntry = {
    * (máximo acotado en el mapper).
    */
   coverageLabels: string[];
+  /**
+   * Clave para filtrar `/propiedades?socio=` (p. ej. `agency:12` del feed cuando `partnerKey` es `kpnet:*`).
+   */
+  catalogSocioKey: string;
 };
 
-/** Fila antes de asignar `publicSlug` (uso interno del builder). */
-export type PublicPartnerDirectoryRowDraft = Omit<PublicPartnerDirectoryEntry, "publicSlug">;
+/** Fila antes de asignar `publicSlug` y `catalogSocioKey` (uso interno del builder). */
+export type PublicPartnerDirectoryRowDraft = Omit<PublicPartnerDirectoryEntry, "publicSlug" | "catalogSocioKey">;
 
 /**
  * Ficha institucional `/socios/[slug]`: mismo núcleo que el directorio + bloque narrativo neutro (sin copy comercial inventado).

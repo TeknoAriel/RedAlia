@@ -4,12 +4,13 @@ import Link from "next/link";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
 import { findPartnerEntryByPartnerKey } from "@/lib/public-data/find-partner";
+import { partnerRefFromDirectoryEntry } from "@/lib/public-data/partner-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { filterPropertiesCatalog } from "@/lib/properties/catalog-filter.server";
 import {
   buildCatalogFilterOptionsCached,
   catalogHasActiveFilters,
   catalogPageSize,
-  filterPropertiesCatalog,
   paginateCatalog,
   parseCatalogQuery,
   serializeCatalogQuery,
@@ -70,7 +71,8 @@ export async function CatalogListingData({ basePath, searchParams }: Props) {
   let socioRef = null;
   if (query.socio) {
     const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-    socioRef = findPartnerEntryByPartnerKey(stable.snapshot?.entries ?? [], query.socio);
+    const entry = findPartnerEntryByPartnerKey(stable.snapshot?.entries ?? [], query.socio);
+    socioRef = entry ? partnerRefFromDirectoryEntry(entry) : null;
   }
 
   const filtered = filterPropertiesCatalog(result.properties, query, socioRef);

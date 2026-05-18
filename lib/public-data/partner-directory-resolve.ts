@@ -1,7 +1,11 @@
 import "server-only";
 
 import { extractSociosGridCatalog, propertyMatchesPartnerKey } from "@/lib/agencies";
-import { propertyBelongsToPublicPartner } from "@/lib/public-data/partner-property-match";
+import {
+  buildFeedPartnerIndex,
+  propertyBelongsToPublicPartner,
+  type FeedPartnerIndex,
+} from "@/lib/public-data/partner-property-match";
 import {
   canonicalNetworkAdvertiserPartnerKey,
   parseNetworkAdvertiserIdFromPartnerKey,
@@ -18,8 +22,9 @@ const MAX_COVERAGE = 12;
 function propertyBelongsToDraft(
   property: NormalizedProperty,
   draft: PublicPartnerDirectoryRowDraft,
+  feedIndex: FeedPartnerIndex,
 ): boolean {
-  return propertyBelongsToPublicPartner(property, draft);
+  return propertyBelongsToPublicPartner(property, draft, feedIndex);
 }
 
 function coverageLabelsForPartner(properties: NormalizedProperty[], partnerKey: string): string[] {
@@ -107,14 +112,15 @@ function parseFeedAdvertiserNumericId(partnerKey: string): number | null {
 function recomputeCountsAndCoverage(
   drafts: PublicPartnerDirectoryRowDraft[],
   properties: NormalizedProperty[],
+  feedIndex: FeedPartnerIndex,
 ): PublicPartnerDirectoryRowDraft[] {
   return drafts.map((d) => ({
     ...d,
-    propertyCount: properties.filter((p) => propertyBelongsToDraft(p, d)).length,
+    propertyCount: properties.filter((p) => propertyBelongsToDraft(p, d, feedIndex)).length,
     coverageLabels: (() => {
       const set = new Set<string>();
       for (const p of properties) {
-        if (!propertyBelongsToDraft(p, d)) continue;
+        if (!propertyBelongsToDraft(p, d, feedIndex)) continue;
         for (const label of [p.region, p.city, p.zone, p.zoneSecondary]) {
           const t = label?.trim();
           if (t) set.add(t);
@@ -176,7 +182,8 @@ function mergeFeedAndNetwork(
     });
   }
 
-  const withCounts = recomputeCountsAndCoverage(out, properties);
+  const feedIndex = buildFeedPartnerIndex(properties);
+  const withCounts = recomputeCountsAndCoverage(out, properties, feedIndex);
   return appendExtrasDeduped(withCounts, extras);
 }
 
@@ -189,7 +196,8 @@ function networkPrimaryRows(
   if (!network.length) {
     return appendExtrasDeduped(feedFallback, extras);
   }
-  const withCounts = recomputeCountsAndCoverage(network, properties);
+  const feedIndex = buildFeedPartnerIndex(properties);
+  const withCounts = recomputeCountsAndCoverage(network, properties, feedIndex);
   return appendExtrasDeduped(withCounts, extras);
 }
 

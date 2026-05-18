@@ -24,10 +24,18 @@ export {
   findPartnerEntryByPartnerKey,
   findPartnerEntryByPublicSlug,
 } from "@/lib/public-data/find-partner";
-export { propertyBelongsToPublicPartner } from "@/lib/public-data/partner-property-match";
 export {
+  buildFeedPartnerIndex,
+  countPropertiesForPublicPartner,
+  normalizePartnerDisplayToken,
+  propertyBelongsToPublicPartner,
+  resolveCatalogSocioKey,
+} from "@/lib/public-data/partner-property-match";
+export {
+  filterPropertiesForDirectoryEntry,
   filterPropertiesForPartner,
   filterPropertiesForPartnerKey,
+  partnerRefFromDirectoryEntry,
   selectPartnerPropertiesPreview,
 } from "@/lib/public-data/partner-properties";
 export { buildPublicSlugForEntry, fingerprintPartnerKey } from "@/lib/public-data/public-slug";
