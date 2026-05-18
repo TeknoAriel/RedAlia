@@ -87,10 +87,10 @@ const comparisonRows: { label: string; base: boolean; profesional: boolean; redE
 ];
 
 const pasos = [
-  { title: "1. Conversación inicial", text: "Entendemos tu operación, zona y objetivos comerciales." },
-  { title: "2. Propuesta acotada", text: "Alcance, nivel sugerido y condiciones sin cifras genéricas en el aire." },
-  { title: "3. Incorporación", text: "Alineación de publicaciones, accesos y formación de ingreso a la comunidad." },
-  { title: "4. Operación continua", text: "Colaboración entre socios, canje y capacitación según tu plan." },
+  { title: "Conversación inicial", text: "Entendemos tu operación, zona y objetivos comerciales." },
+  { title: "Propuesta acotada", text: "Alcance, nivel sugerido y condiciones sin cifras genéricas en el aire." },
+  { title: "Incorporación", text: "Alineación de publicaciones, accesos y formación de ingreso a la comunidad." },
+  { title: "Operación continua", text: "Colaboración entre socios, canje y capacitación según tu plan." },
 ];
 
 function Cell({ ok }: { ok: boolean }) {

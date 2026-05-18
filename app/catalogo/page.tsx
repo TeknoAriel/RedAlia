@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
 
-export const revalidate = 1800;
+/** Misma política que `/propiedades`: HTML por request; cache en `getProperties`. */
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Catálogo de propiedades",

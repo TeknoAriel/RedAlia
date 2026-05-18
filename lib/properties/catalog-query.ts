@@ -33,6 +33,21 @@ export type CatalogFilterOptions = {
   currencyOptions: NormalizedProperty["currency"][];
 };
 
+const propertyTypeLabelsEsCl: Record<string, string> = {
+  businesses: "Negocios",
+  "cemetery lots": "Terrenos en cementerio",
+  "industrial lands": "Terrenos industriales",
+  "industrial warehouses": "Bodegas industriales",
+  "medical spaces": "Espacios médicos",
+  "parking spaces": "Estacionamientos",
+  "retail spaces": "Locales comerciales",
+};
+
+export function displayPropertyTypeLabel(key: string, label: string): string {
+  const normalizedLabel = label.trim().toLowerCase();
+  return propertyTypeLabelsEsCl[key] ?? propertyTypeLabelsEsCl[normalizedLabel] ?? label;
+}
+
 function parsePriceInput(s: string): number | null {
   const n = parseFloat(s.replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -96,7 +111,9 @@ export function parseCatalogQuery(sp: URLSearchParams): CatalogQueryState {
 export function buildCatalogFilterOptions(properties: NormalizedProperty[]): CatalogFilterOptions {
   const typeMap = new Map<string, string>();
   for (const p of properties) {
-    if (!typeMap.has(p.propertyTypeKey)) typeMap.set(p.propertyTypeKey, p.propertyTypeLabel);
+    if (!typeMap.has(p.propertyTypeKey)) {
+      typeMap.set(p.propertyTypeKey, displayPropertyTypeLabel(p.propertyTypeKey, p.propertyTypeLabel));
+    }
   }
   const typeOptions = [...typeMap.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "es"))
@@ -114,6 +131,38 @@ export function buildCatalogFilterOptions(properties: NormalizedProperty[]): Cat
   const currencyOptions = order.filter((c) => cur.has(c));
 
   return { typeOptions, cityOptions, currencyOptions };
+}
+
+const FILTER_OPTIONS_CACHE_TTL_MS = 60 * 60 * 1000;
+type FilterOptionsCacheEntry = { key: string; value: CatalogFilterOptions; expiresAt: number };
+const filterOptionsCacheGlobal = globalThis as unknown as {
+  __redaliaCatalogFilterOptionsCache?: FilterOptionsCacheEntry;
+};
+
+function catalogFilterOptionsCacheKey(properties: NormalizedProperty[], completedAtMs?: number): string | null {
+  if (!completedAtMs) return null;
+  return `${properties.length}|${completedAtMs}`;
+}
+
+/** Misma salida que `buildCatalogFilterOptions`, con cache in-memory por snapshot del catálogo. */
+export function buildCatalogFilterOptionsCached(
+  properties: NormalizedProperty[],
+  completedAtMs?: number | null,
+): CatalogFilterOptions {
+  const key = catalogFilterOptionsCacheKey(properties, completedAtMs ?? undefined);
+  if (key) {
+    const entry = filterOptionsCacheGlobal.__redaliaCatalogFilterOptionsCache;
+    if (entry && entry.key === key && Date.now() < entry.expiresAt) return entry.value;
+  }
+  const value = buildCatalogFilterOptions(properties);
+  if (key) {
+    filterOptionsCacheGlobal.__redaliaCatalogFilterOptionsCache = {
+      key,
+      value,
+      expiresAt: Date.now() + FILTER_OPTIONS_CACHE_TTL_MS,
+    };
+  }
+  return value;
 }
 
 export function sortPropertiesCatalog(list: NormalizedProperty[], sort: CatalogSortKey): NormalizedProperty[] {
