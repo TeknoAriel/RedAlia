@@ -68,6 +68,31 @@ function readMemoryCache(): CatalogSnapshotSuccess | null {
   return entry.value;
 }
 
+function catalogMemoryKey(value: CatalogSnapshotSuccess): string | null {
+  const completedAtMs = value.ingestMeta?.completedAtMs ?? 0;
+  if (!completedAtMs) return null;
+  return `${value.properties.length}|${completedAtMs}`;
+}
+
+type PropertyIndexEntry = { key: string; index: Map<string, NormalizedProperty>; expiresAt: number };
+const propertyIndexGlobal = globalThis as unknown as {
+  __redaliaPropertyIndexCache?: PropertyIndexEntry;
+};
+
+function readPropertyIndex(key: string): Map<string, NormalizedProperty> | null {
+  const entry = propertyIndexGlobal.__redaliaPropertyIndexCache;
+  if (!entry || entry.key !== key || Date.now() >= entry.expiresAt) return null;
+  return entry.index;
+}
+
+function writePropertyIndex(key: string, properties: NormalizedProperty[]): void {
+  propertyIndexGlobal.__redaliaPropertyIndexCache = {
+    key,
+    index: new Map(properties.map((p) => [p.id, p])),
+    expiresAt: Date.now() + IN_MEMORY_TTL_MS,
+  };
+}
+
 function writeMemoryCache(value: GetPropertiesResult): void {
   if (!value.ok || value.properties.length === 0) return;
   memoryCacheGlobal.__redaliaCatalogMemoryCache = {
@@ -75,6 +100,8 @@ function writeMemoryCache(value: GetPropertiesResult): void {
     value,
     expiresAt: Date.now() + IN_MEMORY_TTL_MS,
   };
+  const key = catalogMemoryKey(value);
+  if (key) writePropertyIndex(key, value.properties);
 }
 
 /** Persistencia diferida del snapshot. No bloquea TTFB. Best-effort, errores silenciados. */
@@ -190,5 +217,10 @@ export function getPartnerDirectoryBuildOptions(result: GetPropertiesResult): {
 export async function getPropertyById(id: string): Promise<NormalizedProperty | null> {
   const result = await getProperties();
   if (!result.ok) return null;
+  const key = catalogMemoryKey(result);
+  if (key) {
+    const index = readPropertyIndex(key);
+    if (index) return index.get(id) ?? null;
+  }
   return result.properties.find((p) => p.id === id) ?? null;
 }
