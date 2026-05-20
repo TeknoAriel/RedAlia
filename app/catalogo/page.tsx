@@ -3,7 +3,7 @@ import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
 
 /** Misma política que `/propiedades`: HTML por request; cache en `getProperties`. */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export const metadata: Metadata = {
   title: "Catálogo de propiedades",

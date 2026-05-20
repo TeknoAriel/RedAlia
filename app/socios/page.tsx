@@ -16,11 +16,10 @@ import {
  * de ingest y termina en 504. Como la página depende de `searchParams` y de
  * `getProperties`, no hay valor real en cachear el HTML por ruta.
  *
- * `maxDuration = 60` queda como cinturón de seguridad para el primer cold
- * lambda que aún tenga que poblar la cache (in-memory + Upstash).
+ * `maxDuration = 300` evita corte del stream RSC ("This page couldn't load") en cold ingest.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export const metadata: Metadata = {
   title: "Socios",

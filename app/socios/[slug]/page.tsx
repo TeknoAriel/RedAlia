@@ -12,7 +12,7 @@ import {
 } from "@/lib/public-data/partner-properties";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const PREVIEW_LIMIT = 6;
 
