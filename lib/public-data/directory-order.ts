@@ -1,18 +1,18 @@
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 
+type SortableDirectoryRow = Pick<PublicPartnerDirectoryRowDraft, "propertyCount" | "displayName">;
+
 /** Normaliza el nombre visible: espacios colapsados, sin vacío. */
 export function normalizePublicDisplayName(name: string): string {
   return name.replace(/\s+/g, " ").trim();
 }
 
-function isActive(e: PublicPartnerDirectoryRowDraft): boolean {
+function isActive(e: SortableDirectoryRow): boolean {
   return e.propertyCount > 0;
 }
 
 /** Orden del directorio: más propiedades activas en catálogo primero; sin publicaciones al final; empate por nombre. */
-export function sortPublicDirectoryEntries(
-  entries: PublicPartnerDirectoryRowDraft[],
-): PublicPartnerDirectoryRowDraft[] {
+export function sortPublicDirectoryEntries<T extends SortableDirectoryRow>(entries: T[]): T[] {
   return [...entries].sort((a, b) => {
     const activeA = isActive(a);
     const activeB = isActive(b);

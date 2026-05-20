@@ -14,6 +14,10 @@
     {
       "path": "/api/cron/catalog",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/socios",
+      "schedule": "0 7 */2 * *"
     }
   ]
 }
