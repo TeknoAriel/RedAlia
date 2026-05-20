@@ -187,20 +187,6 @@ function mergeFeedAndNetwork(
   return appendExtrasDeduped(withCounts, extras);
 }
 
-function networkPrimaryRows(
-  properties: NormalizedProperty[],
-  network: PublicPartnerDirectoryRowDraft[],
-  extras: PublicPartnerDirectoryRowDraft[],
-  feedFallback: PublicPartnerDirectoryRowDraft[],
-): PublicPartnerDirectoryRowDraft[] {
-  if (!network.length) {
-    return appendExtrasDeduped(feedFallback, extras);
-  }
-  const feedIndex = buildFeedPartnerIndex(properties);
-  const withCounts = recomputeCountsAndCoverage(network, properties, feedIndex);
-  return appendExtrasDeduped(withCounts, extras);
-}
-
 /**
  * Resuelve la lista de **borradores** del directorio (antes de `publicSlug` / saneo final).
  * Centraliza `feed` / `network` / `merge` y la deduplicación con extras `kpnet:org:*` del endpoint de organizaciones.
@@ -221,11 +207,20 @@ export function resolvePublicPartnerDirectoryDrafts(params: {
     return appendExtrasDeduped(feed, extras);
   }
 
-  if (mode === "network") {
-    return networkPrimaryRows(params.properties, net, extras, feed);
+  // `network` y `merge`: socios del feed JSON + overlay/red (`kpnet:*`). No usar solo
+  // `networkPrimaryRows`: si hay overlay de anunciantes pero el feed tiene las corredoras,
+  // ignorar el feed dejaba 0 socios visibles con miles de publicaciones.
+  const feedIndex = buildFeedPartnerIndex(params.properties);
+  let drafts = mergeFeedAndNetwork(params.properties, feed, net, extras);
+
+  if (drafts.length === 0 && feed.length > 0) {
+    drafts = recomputeCountsAndCoverage(appendExtrasDeduped(feed, extras), params.properties, feedIndex);
+  }
+  if (drafts.length === 0 && extras.length > 0) {
+    drafts = recomputeCountsAndCoverage(extras, params.properties, feedIndex);
   }
 
-  return mergeFeedAndNetwork(params.properties, feed, net, extras);
+  return drafts;
 }
 
 /**

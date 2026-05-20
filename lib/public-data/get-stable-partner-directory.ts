@@ -39,6 +39,9 @@ export type StablePartnerDirectoryResult = {
  * Se cachean SOLO snapshots con entries > 0 y source `live` (los pocos snapshots
  * desde `snapshot_persisted` no se cachean para no enmascarar errores intermitentes).
  */
+/** Bump al cambiar reglas de armado del directorio (invalida entradas en memoria por proceso). */
+const DIRECTORY_LOGIC_VERSION = 3;
+
 const DIRECTORY_MEMORY_CACHE_TTL_MS = 60 * 60 * 1000;
 type DirectoryMemoryEntry = { key: string; value: StablePartnerDirectoryResult; expiresAt: number };
 const directoryMemoryCacheGlobal = globalThis as unknown as {
@@ -49,7 +52,57 @@ function directoryCacheKey(result: GetPropertiesResult, featuredMax: number): st
   if (!result.ok) return null;
   const completedAtMs = result.ingestMeta?.completedAtMs ?? 0;
   if (!completedAtMs) return null;
-  return `${result.properties.length}|${completedAtMs}|${featuredMax}`;
+  return `${DIRECTORY_LOGIC_VERSION}|${result.properties.length}|${completedAtMs}|${featuredMax}`;
+}
+
+function snapshotFromPersisted(
+  persisted: NonNullable<Awaited<ReturnType<typeof readPersistedPartnerDirectorySnapshot>>>,
+  featuredMax: number,
+): StablePartnerDirectoryResult {
+  return {
+    snapshot: {
+      entries: persisted.entries,
+      featured: persisted.entries.slice(0, Math.min(featuredMax, persisted.entries.length)),
+      stats: persisted.stats,
+    },
+    source: "snapshot_persisted",
+    persistedSnapshotMeta: {
+      generatedAtMs: persisted.generatedAtMs,
+      entryCount: persisted.entryCount,
+      activeCount: persisted.activeCount,
+      inactiveCount: persisted.inactiveCount,
+    },
+  };
+}
+
+/**
+ * Si el armado híbrido no dejó filas pero hay publicaciones, reintenta solo feed y snapshot guardado.
+ * Devuelve `null` si el snapshot primario ya es usable.
+ */
+async function rebuildDirectoryWhenEmpty(
+  result: GetPropertiesResult,
+  featuredMax: number,
+  primary: PublicDirectorySnapshot,
+): Promise<StablePartnerDirectoryResult | null> {
+  if (primary.entries.length > 0 || !result.ok || result.properties.length === 0) {
+    return null;
+  }
+
+  const feedOnly = buildPublicDirectorySnapshot(result.properties, {
+    featuredMax,
+    ...getPartnerDirectoryBuildOptions(result),
+    directorySourceOverride: "feed",
+  });
+  if (feedOnly.entries.length > 0) {
+    return { snapshot: feedOnly, source: "live" };
+  }
+
+  const persisted = await readPersistedPartnerDirectorySnapshot();
+  if (persisted?.entries.length) {
+    return snapshotFromPersisted(persisted, featuredMax);
+  }
+
+  return null;
 }
 
 function readDirectoryMemoryCache(key: string): StablePartnerDirectoryResult | null {
@@ -88,64 +141,51 @@ export async function resolveStablePublicDirectorySnapshot(
   if (!result.ok) {
     const persisted = await readPersistedPartnerDirectorySnapshot();
     if (persisted?.entries.length) {
-      return {
-        snapshot: {
-          entries: persisted.entries,
-          featured: persisted.entries.slice(0, Math.min(featuredMax, persisted.entries.length)),
-          stats: persisted.stats,
-        },
-        source: "snapshot_persisted",
-        persistedSnapshotMeta: {
-          generatedAtMs: persisted.generatedAtMs,
-          entryCount: persisted.entryCount,
-          activeCount: persisted.activeCount,
-          inactiveCount: persisted.inactiveCount,
-        },
-      };
+      return snapshotFromPersisted(persisted, featuredMax);
     }
     return { snapshot: null, source: "none" };
   }
 
-  const snapshot = buildPublicDirectorySnapshot(result.properties, {
+  const buildOptions = getPartnerDirectoryBuildOptions(result);
+  const primary = buildPublicDirectorySnapshot(result.properties, {
     featuredMax,
-    ...getPartnerDirectoryBuildOptions(result),
+    ...buildOptions,
   });
+  const rebuilt = await rebuildDirectoryWhenEmpty(result, featuredMax, primary);
+  const rebuiltSnapshot = rebuilt?.snapshot;
+  if (rebuilt && rebuiltSnapshot) {
+    if (rebuilt.source === "live" && rebuiltSnapshot.entries.length > 0) {
+      after(async () => {
+        try {
+          await writePersistedPartnerDirectorySnapshot(rebuiltSnapshot);
+        } catch {
+          /* noop */
+        }
+      });
+      if (memKey) writeDirectoryMemoryCache(memKey, rebuilt);
+    }
+    return rebuilt;
+  }
 
   const hadNetworkErrors = partnerDirectoryIngestHadNetworkErrors(result.ingestMeta);
-
-  if (snapshot.entries.length === 0 && hadNetworkErrors) {
+  if (primary.entries.length === 0 && hadNetworkErrors) {
     const persisted = await readPersistedPartnerDirectorySnapshot();
     if (persisted?.entries.length) {
-      return {
-        snapshot: {
-          entries: persisted.entries,
-          featured: persisted.entries.slice(0, Math.min(featuredMax, persisted.entries.length)),
-          stats: persisted.stats,
-        },
-        source: "snapshot_persisted",
-        persistedSnapshotMeta: {
-          generatedAtMs: persisted.generatedAtMs,
-          entryCount: persisted.entryCount,
-          activeCount: persisted.activeCount,
-          inactiveCount: persisted.inactiveCount,
-        },
-      };
+      return snapshotFromPersisted(persisted, featuredMax);
     }
   }
 
-  if (snapshot.entries.length > 0) {
-    // Persistencia diferida: no bloquea TTFB. Vercel `after()` garantiza ejecución
-    // tras enviar la response. Errores se silencian; el próximo request reintenta.
+  if (primary.entries.length > 0) {
     after(async () => {
       try {
-        await writePersistedPartnerDirectorySnapshot(snapshot);
+        await writePersistedPartnerDirectorySnapshot(primary);
       } catch {
         /* noop: el snapshot persistido es best-effort */
       }
     });
   }
 
-  const live: StablePartnerDirectoryResult = { snapshot, source: "live" };
+  const live: StablePartnerDirectoryResult = { snapshot: primary, source: "live" };
   if (memKey) writeDirectoryMemoryCache(memKey, live);
   return live;
 }
