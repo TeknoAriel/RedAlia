@@ -35,12 +35,9 @@ export type StablePartnerDirectoryResult = {
  * `featuredMax`. Si el catálogo subyacente cambia (nuevo ingest), `completedAtMs`
  * cambia y la entrada queda invalidada automáticamente. TTL defensivo de 1 h por si
  * `completedAtMs` no estuviera disponible.
- *
- * Se cachean SOLO snapshots con entries > 0 y source `live` (los pocos snapshots
- * desde `snapshot_persisted` no se cachean para no enmascarar errores intermitentes).
  */
 /** Bump al cambiar reglas de armado del directorio (invalida entradas en memoria por proceso). */
-const DIRECTORY_LOGIC_VERSION = 3;
+const DIRECTORY_LOGIC_VERSION = 4;
 
 const DIRECTORY_MEMORY_CACHE_TTL_MS = 60 * 60 * 1000;
 type DirectoryMemoryEntry = { key: string; value: StablePartnerDirectoryResult; expiresAt: number };
@@ -58,12 +55,17 @@ function directoryCacheKey(result: GetPropertiesResult, featuredMax: number): st
 function snapshotFromPersisted(
   persisted: NonNullable<Awaited<ReturnType<typeof readPersistedPartnerDirectorySnapshot>>>,
   featuredMax: number,
+  totalListings?: number,
 ): StablePartnerDirectoryResult {
+  const stats =
+    totalListings != null && totalListings !== persisted.stats.totalListings
+      ? { ...persisted.stats, totalListings, directoryCount: persisted.entries.length }
+      : persisted.stats;
   return {
     snapshot: {
       entries: persisted.entries,
       featured: persisted.entries.slice(0, Math.min(featuredMax, persisted.entries.length)),
-      stats: persisted.stats,
+      stats,
     },
     source: "snapshot_persisted",
     persistedSnapshotMeta: {
@@ -75,9 +77,33 @@ function snapshotFromPersisted(
   };
 }
 
+function persistedMatchesCatalog(
+  persisted: NonNullable<Awaited<ReturnType<typeof readPersistedPartnerDirectorySnapshot>>>,
+  result: GetPropertiesResult,
+): boolean {
+  if (!result.ok || result.properties.length === 0) return false;
+  const want = result.properties.length;
+  const got = persisted.stats.totalListings;
+  return got === want || Math.abs(got - want) <= 5;
+}
+
 /**
- * Si el armado híbrido no dejó filas pero hay publicaciones, reintenta solo feed y snapshot guardado.
- * Devuelve `null` si el snapshot primario ya es usable.
+ * Upstash Redis antes del armado live: mismo patrón que `getProperties` con catálogo.
+ */
+async function tryPersistedDirectoryFastPath(
+  result: GetPropertiesResult,
+  featuredMax: number,
+): Promise<StablePartnerDirectoryResult | null> {
+  if (!result.ok || result.properties.length === 0) return null;
+  const persisted = await readPersistedPartnerDirectorySnapshot();
+  if (!persisted?.entries.length || !persistedMatchesCatalog(persisted, result)) {
+    return null;
+  }
+  return snapshotFromPersisted(persisted, featuredMax, result.properties.length);
+}
+
+/**
+ * Si el armado híbrido no dejó filas pero hay publicaciones, reintenta solo feed.
  */
 async function rebuildDirectoryWhenEmpty(
   result: GetPropertiesResult,
@@ -97,11 +123,6 @@ async function rebuildDirectoryWhenEmpty(
     return { snapshot: feedOnly, source: "live" };
   }
 
-  const persisted = await readPersistedPartnerDirectorySnapshot();
-  if (persisted?.entries.length) {
-    return snapshotFromPersisted(persisted, featuredMax);
-  }
-
   return null;
 }
 
@@ -113,7 +134,6 @@ function readDirectoryMemoryCache(key: string): StablePartnerDirectoryResult | n
 }
 
 function writeDirectoryMemoryCache(key: string, value: StablePartnerDirectoryResult): void {
-  if (value.source !== "live") return;
   if (!value.snapshot || value.snapshot.entries.length === 0) return;
   directoryMemoryCacheGlobal.__redaliaDirectoryMemoryCache = {
     key,
@@ -122,9 +142,19 @@ function writeDirectoryMemoryCache(key: string, value: StablePartnerDirectoryRes
   };
 }
 
+function scheduleDirectoryPersist(snapshot: PublicDirectorySnapshot): void {
+  if (snapshot.entries.length === 0) return;
+  after(async () => {
+    try {
+      await writePersistedPartnerDirectorySnapshot(snapshot);
+    } catch {
+      /* noop */
+    }
+  });
+}
+
 /**
- * Directorio de socios estable: intenta live desde `getProperties`; si la red falló y el listado quedó vacío,
- * reutiliza último snapshot persistido (Upstash Redis o archivo local en dev).
+ * Directorio de socios estable: memoria → Redis → armado live; fallback si red falla.
  */
 export async function resolveStablePublicDirectorySnapshot(
   result: GetPropertiesResult,
@@ -146,6 +176,12 @@ export async function resolveStablePublicDirectorySnapshot(
     return { snapshot: null, source: "none" };
   }
 
+  const persistedFast = await tryPersistedDirectoryFastPath(result, featuredMax);
+  if (persistedFast) {
+    if (memKey) writeDirectoryMemoryCache(memKey, persistedFast);
+    return persistedFast;
+  }
+
   const buildOptions = getPartnerDirectoryBuildOptions(result);
   const primary = buildPublicDirectorySnapshot(result.properties, {
     featuredMax,
@@ -154,16 +190,8 @@ export async function resolveStablePublicDirectorySnapshot(
   const rebuilt = await rebuildDirectoryWhenEmpty(result, featuredMax, primary);
   const rebuiltSnapshot = rebuilt?.snapshot;
   if (rebuilt && rebuiltSnapshot) {
-    if (rebuilt.source === "live" && rebuiltSnapshot.entries.length > 0) {
-      after(async () => {
-        try {
-          await writePersistedPartnerDirectorySnapshot(rebuiltSnapshot);
-        } catch {
-          /* noop */
-        }
-      });
-      if (memKey) writeDirectoryMemoryCache(memKey, rebuilt);
-    }
+    scheduleDirectoryPersist(rebuiltSnapshot);
+    if (memKey) writeDirectoryMemoryCache(memKey, rebuilt);
     return rebuilt;
   }
 
@@ -171,18 +199,12 @@ export async function resolveStablePublicDirectorySnapshot(
   if (primary.entries.length === 0 && hadNetworkErrors) {
     const persisted = await readPersistedPartnerDirectorySnapshot();
     if (persisted?.entries.length) {
-      return snapshotFromPersisted(persisted, featuredMax);
+      return snapshotFromPersisted(persisted, featuredMax, result.properties.length);
     }
   }
 
   if (primary.entries.length > 0) {
-    after(async () => {
-      try {
-        await writePersistedPartnerDirectorySnapshot(primary);
-      } catch {
-        /* noop: el snapshot persistido es best-effort */
-      }
-    });
+    scheduleDirectoryPersist(primary);
   }
 
   const live: StablePartnerDirectoryResult = { snapshot: primary, source: "live" };

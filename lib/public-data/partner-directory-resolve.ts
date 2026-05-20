@@ -1,9 +1,9 @@
 import "server-only";
 
-import { extractSociosGridCatalog, propertyMatchesPartnerKey } from "@/lib/agencies";
+import { distinctScopedPartnersOnProperty, extractSociosGridCatalog } from "@/lib/agencies";
 import {
   buildFeedPartnerIndex,
-  propertyBelongsToPublicPartner,
+  normalizePartnerDisplayToken,
   type FeedPartnerIndex,
 } from "@/lib/public-data/partner-property-match";
 import {
@@ -19,34 +19,55 @@ import type { NormalizedProperty } from "@/types/property";
 
 const MAX_COVERAGE = 12;
 
-function propertyBelongsToDraft(
-  property: NormalizedProperty,
-  draft: PublicPartnerDirectoryRowDraft,
-  feedIndex: FeedPartnerIndex,
-): boolean {
-  return propertyBelongsToPublicPartner(property, draft, feedIndex);
-}
-
-function coverageLabelsForPartner(properties: NormalizedProperty[], partnerKey: string): string[] {
-  const set = new Set<string>();
-  for (const p of properties) {
-    if (!propertyMatchesPartnerKey(p, partnerKey)) continue;
-    for (const label of [p.region, p.city, p.zone, p.zoneSecondary]) {
-      const t = label?.trim();
-      if (t) set.add(t);
-    }
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE);
-}
-
 function feedDraftRowsFromProperties(properties: NormalizedProperty[]): PublicPartnerDirectoryRowDraft[] {
   const catalog = extractSociosGridCatalog(properties);
   const raw: PublicPartnerDirectoryRowDraft[] = [];
   for (const row of catalog) {
-    const mapped = mapSocioCatalogEntryToPublicDirectory(row, coverageLabelsForPartner(properties, row.key));
+    const mapped = mapSocioCatalogEntryToPublicDirectory(row, []);
     if (mapped) raw.push(mapped);
   }
   return raw;
+}
+
+function addPropertyCoverage(set: Set<string>, property: NormalizedProperty): void {
+  for (const label of [property.region, property.city, property.zone, property.zoneSecondary]) {
+    const t = label?.trim();
+    if (t) set.add(t);
+  }
+}
+
+function indexDraftsForCounting(
+  drafts: PublicPartnerDirectoryRowDraft[],
+  feedIndex: FeedPartnerIndex,
+): {
+  counts: number[];
+  coverage: Set<string>[];
+  byPartnerKey: Map<string, number[]>;
+  kpnetByToken: Map<string, number[]>;
+} {
+  const counts = new Array<number>(drafts.length).fill(0);
+  const coverage = drafts.map(() => new Set<string>());
+  const byPartnerKey = new Map<string, number[]>();
+  const kpnetByToken = new Map<string, number[]>();
+
+  const pushIndex = (map: Map<string, number[]>, key: string, index: number) => {
+    const list = map.get(key);
+    if (list) list.push(index);
+    else map.set(key, [index]);
+  };
+
+  for (let i = 0; i < drafts.length; i++) {
+    const d = drafts[i];
+    pushIndex(byPartnerKey, d.partnerKey, i);
+    if (d.partnerKey.startsWith("kpnet:")) {
+      const feedRow = feedIndex.get(normalizePartnerDisplayToken(d.displayName));
+      if (feedRow) pushIndex(byPartnerKey, feedRow.key, i);
+      const token = normalizePartnerDisplayToken(d.displayName);
+      if (token) pushIndex(kpnetByToken, token, i);
+    }
+  }
+
+  return { counts, coverage, byPartnerKey, kpnetByToken };
 }
 
 function appendExtrasDeduped(
@@ -109,27 +130,45 @@ function parseFeedAdvertiserNumericId(partnerKey: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Una pasada sobre propiedades (O(n)) en lugar de O(socios × n). */
 function recomputeCountsAndCoverage(
   drafts: PublicPartnerDirectoryRowDraft[],
   properties: NormalizedProperty[],
   feedIndex: FeedPartnerIndex,
 ): PublicPartnerDirectoryRowDraft[] {
-  return drafts.map((d) => ({
-    ...d,
-    propertyCount: properties.filter((p) => propertyBelongsToDraft(p, d, feedIndex)).length,
-    coverageLabels: (() => {
-      const set = new Set<string>();
-      for (const p of properties) {
-        if (!propertyBelongsToDraft(p, d, feedIndex)) continue;
-        for (const label of [p.region, p.city, p.zone, p.zoneSecondary]) {
-          const t = label?.trim();
-          if (t) set.add(t);
-        }
-      }
-      const merged = [...set, ...(d.coverageLabels ?? [])];
-      return [...new Set(merged)].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE);
-    })(),
-  }));
+  if (drafts.length === 0) return [];
+  const index = indexDraftsForCounting(drafts, feedIndex);
+  const matched = new Set<number>();
+
+  const bump = (indices: number[] | undefined, property: NormalizedProperty) => {
+    if (!indices) return;
+    for (const i of indices) {
+      if (matched.has(i)) continue;
+      matched.add(i);
+      index.counts[i]++;
+      addPropertyCoverage(index.coverage[i], property);
+    }
+  };
+
+  for (const property of properties) {
+    matched.clear();
+    for (const row of distinctScopedPartnersOnProperty(property)) {
+      bump(index.byPartnerKey.get(row.key), property);
+    }
+    for (const row of distinctScopedPartnersOnProperty(property)) {
+      const token = normalizePartnerDisplayToken(row.name);
+      if (token) bump(index.kpnetByToken.get(token), property);
+    }
+  }
+
+  return drafts.map((d, i) => {
+    const merged = new Set([...(d.coverageLabels ?? []), ...index.coverage[i]]);
+    return {
+      ...d,
+      propertyCount: index.counts[i],
+      coverageLabels: [...merged].sort((a, b) => a.localeCompare(b, "es")).slice(0, MAX_COVERAGE),
+    };
+  });
 }
 
 function mergeFeedAndNetwork(
@@ -150,11 +189,7 @@ function mergeFeedAndNetwork(
 
   for (const f of feed) {
     if (f.scope !== "advertiser") {
-      out.push({
-        ...f,
-        propertyCount: 0,
-        coverageLabels: coverageLabelsForPartner(properties, f.partnerKey),
-      });
+      out.push({ ...f, propertyCount: 0, coverageLabels: [] });
       continue;
     }
     const advId = parseFeedAdvertiserNumericId(f.partnerKey);
@@ -166,20 +201,12 @@ function mergeFeedAndNetwork(
         continue;
       }
     }
-    out.push({
-      ...f,
-      propertyCount: 0,
-      coverageLabels: coverageLabelsForPartner(properties, f.partnerKey),
-    });
+    out.push({ ...f, propertyCount: 0, coverageLabels: [] });
   }
 
   for (const [idNum, n] of netAdvertisers) {
     if (consumedNetIds.has(idNum)) continue;
-    out.push({
-      ...n,
-      propertyCount: 0,
-      coverageLabels: coverageLabelsForPartner(properties, n.partnerKey),
-    });
+    out.push({ ...n, propertyCount: 0, coverageLabels: [] });
   }
 
   const feedIndex = buildFeedPartnerIndex(properties);
