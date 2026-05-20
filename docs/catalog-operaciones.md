@@ -26,7 +26,16 @@ Referencia operativa. Arquitectura híbrida fijada: **`docs/redalia-hybrid-catal
 | `merge` | Fusiona feed + red por `advertiser.id` numérico (logos/contacto red primero en match). |
 | `feed` | Sin overlay de anunciantes de red; solo `extractSociosGridCatalog` + extras de orgs si aplica. |
 
-Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (local). Cron: `CRON_SECRET` + `GET /api/cron/catalog` con Bearer. `ingestMeta.kitepropPropertiesSourceMode` y `partnerDirectorySourceMode` trazan cada corrida.
+Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (local). Crons (mismo `CRON_SECRET`):
+
+| Ruta | Frecuencia (ver `vercel.json`) | Qué hace |
+|------|-------------------------------|----------|
+| `GET /api/cron/catalog` | Diario 06:00 UTC | Invalida tag + precalienta **solo propiedades** en Upstash |
+| `GET /api/cron/socios` | Cada 48 h 07:00 UTC | Sync **incremental** del directorio por `partnerKey` (registro en Redis `redalia:partner-directory:registry:v1`) |
+
+Sync socios: id ya conocido → no toca la fila; id nuevo → alta; id ausente → baja. Si las bajas superan `max(50, 2% del registro)` se **diferen** (posible corte de red) y se reintenta en la próxima corrida; tras 3 diferidos seguidos, sync completo. Requiere `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` y catálogo precalentado.
+
+`ingestMeta.kitepropPropertiesSourceMode` y `partnerDirectorySourceMode` trazan cada corrida de ingesta live.
 
 ## Orden de ejecución (modo `json` + default)
 
