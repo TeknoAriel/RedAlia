@@ -5,8 +5,25 @@ import {
   resolveCatalogSocioKey,
   type PublicPartnerPropertyRef,
 } from "@/lib/public-data/partner-property-match";
+import type { PublicPartnerScope } from "@/lib/public-data/types";
 import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
+
+const PARTNER_KEY_SCOPE_RE = /^(agency|advertiser|agent|sub_agent):/;
+
+/**
+ * Ref mínima para filtrar `?socio=` sin armar el directorio completo (evita ~2s en /propiedades).
+ */
+export function partnerRefFromPartnerKey(partnerKey: string): PublicPartnerPropertyRef | null {
+  const key = partnerKey.trim();
+  const m = PARTNER_KEY_SCOPE_RE.exec(key);
+  if (!m) return null;
+  return {
+    partnerKey: key,
+    scope: m[1] as PublicPartnerScope,
+    displayName: "",
+  };
+}
 
 /**
  * Propiedades del catálogo asociadas a un socio (mismo criterio que el directorio y `?socio=`).

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { PropertiesExplorer } from "@/components/properties/PropertiesExplorer";
 import { getProperties } from "@/lib/get-properties";
 import { findPartnerEntryByPartnerKey } from "@/lib/public-data/find-partner";
-import { partnerRefFromDirectoryEntry } from "@/lib/public-data/partner-properties";
+import {
+  partnerRefFromDirectoryEntry,
+  partnerRefFromPartnerKey,
+} from "@/lib/public-data/partner-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { filterPropertiesCatalog } from "@/lib/properties/catalog-filter.server";
 import {
@@ -68,8 +71,8 @@ export async function CatalogListingData({ basePath, searchParams }: Props) {
     result.ingestMeta?.completedAtMs,
   );
 
-  let socioRef = null;
-  if (query.socio) {
+  let socioRef = partnerRefFromPartnerKey(query.socio);
+  if (query.socio && !socioRef) {
     const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
     const entry = findPartnerEntryByPartnerKey(stable.snapshot?.entries ?? [], query.socio);
     socioRef = entry ? partnerRefFromDirectoryEntry(entry) : null;

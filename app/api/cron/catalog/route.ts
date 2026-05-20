@@ -4,6 +4,9 @@ import { NextResponse, after } from "next/server";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
 import { writePersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
+import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
+import { buildPublicDirectorySnapshot } from "@/lib/public-data/from-properties-feed";
+import { writePersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -51,8 +54,14 @@ export async function GET(request: Request) {
   after(async () => {
     try {
       const snapshot = await loadCatalogSnapshotUncached();
-      if (snapshot.ok && snapshot.properties.length > 0) {
-        await writePersistedCatalogSnapshot(snapshot);
+      if (!snapshot.ok || snapshot.properties.length === 0) return;
+      await writePersistedCatalogSnapshot(snapshot);
+      const directory = buildPublicDirectorySnapshot(snapshot.properties, {
+        featuredMax: 8,
+        ...getPartnerDirectoryBuildOptions(snapshot),
+      });
+      if (directory.entries.length > 0) {
+        await writePersistedPartnerDirectorySnapshot(directory);
       }
     } catch {
       /* noop: el siguiente request del usuario reintentará la ingesta */
