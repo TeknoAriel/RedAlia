@@ -7,6 +7,7 @@ import {
   buildFeedPartnerIndex,
   resolveCatalogSocioKey,
 } from "@/lib/public-data/partner-property-match";
+import type { RedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import { resolvePublicPartnerDirectoryDrafts } from "@/lib/public-data/partner-directory-resolve";
 import { buildPublicSlugForEntry } from "@/lib/public-data/public-slug";
 import { sanitizePublicPartnerDirectoryEntry } from "@/lib/public-data/sanitize-entry";
@@ -84,11 +85,13 @@ export function buildPublicPartnerDirectoryFromFeed(
   properties: NormalizedProperty[],
   extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null,
   networkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[] | null,
+  directorySourceOverride?: RedaliaPartnerDirectorySourceMode,
 ): PublicPartnerDirectoryEntry[] {
   const raw = resolvePublicPartnerDirectoryDrafts({
     properties,
     extraDirectoryDrafts,
     networkAdvertiserDrafts,
+    sourceOverride: directorySourceOverride,
   });
   return finalizeDirectoryEntries(raw, properties);
 }
@@ -104,6 +107,8 @@ export function buildPublicDirectorySnapshot(
     extraDirectoryDrafts?: PublicPartnerDirectoryRowDraft[] | null;
     /** Borradores `kpnet:*` desde propiedades de red (ingesta / overlay). */
     networkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[] | null;
+    /** Solo tests / fallback estable: forzar modo sin leer env. */
+    directorySourceOverride?: RedaliaPartnerDirectorySourceMode;
   },
 ): PublicDirectorySnapshot {
   const featuredMax = options?.featuredMax ?? DEFAULT_FEATURED_MAX;
@@ -111,6 +116,7 @@ export function buildPublicDirectorySnapshot(
     properties,
     options?.extraDirectoryDrafts,
     options?.networkAdvertiserDrafts,
+    options?.directorySourceOverride,
   );
   const featured = entries.slice(0, Math.min(featuredMax, entries.length));
   const stats = buildStats(properties, entries);
