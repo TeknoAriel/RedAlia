@@ -7,6 +7,7 @@ import { loadNetworkPartnerDirectoryDraftsOnly } from "@/lib/kiteprop-network/lo
 import { isNetworkOrganizationsMergedWithJsonCatalog } from "@/lib/kiteprop-network/network-env";
 import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { sortPublicDirectoryEntries } from "@/lib/public-data/directory-order";
+import { refreshDirectoryEntryCounts } from "@/lib/public-data/refresh-directory-entry-counts";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data/from-properties-feed";
 import {
   readPartnerDirectoryRegistry,
@@ -372,9 +373,12 @@ export async function runPartnerDirectoryIncrementalSync(): Promise<PartnerDirec
     addedEntries = built.entries.filter((e) => addSet.has(e.partnerKey));
   }
 
-  const mergedEntries = sortPublicDirectoryEntries([...kept, ...addedEntries]);
+  const mergedWithCounts = refreshDirectoryEntryCounts(
+    sortPublicDirectoryEntries([...kept, ...addedEntries]),
+    scan.properties,
+  );
   const geoSet = new Set<string>();
-  for (const e of mergedEntries) {
+  for (const e of mergedWithCounts) {
     for (const l of e.coverageLabels) {
       const t = l.trim();
       if (t) geoSet.add(t);
@@ -382,11 +386,11 @@ export async function runPartnerDirectoryIncrementalSync(): Promise<PartnerDirec
   }
   const geoSorted = [...geoSet].sort((a, b) => a.localeCompare(b, "es"));
   const snapshot: PublicDirectorySnapshot = {
-    entries: mergedEntries,
-    featured: mergedEntries.slice(0, Math.min(8, mergedEntries.length)),
+    entries: mergedWithCounts,
+    featured: mergedWithCounts.slice(0, Math.min(8, mergedWithCounts.length)),
     stats: {
       totalListings: scan.catalogListings,
-      directoryCount: mergedEntries.length,
+      directoryCount: mergedWithCounts.length,
       geographicDistinctCount: geoSorted.length,
       geographicPresenceLabels: geoSorted.slice(0, 12),
     },
@@ -394,7 +398,7 @@ export async function runPartnerDirectoryIncrementalSync(): Promise<PartnerDirec
 
   const nextRegistry = mergeRegistryRecords(
     registry,
-    mergedEntries,
+    mergedWithCounts,
     scan.catalogListings,
     "applied",
     `applied_+${toAdd.length}_-${toRemove.length}`,

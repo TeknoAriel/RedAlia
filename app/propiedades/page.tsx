@@ -7,11 +7,10 @@ import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
  * (in-memory + Upstash) y el rendering de la lista filtrada es siempre por
  * request, según `searchParams`.
  *
- * `maxDuration = 60` cubre el primer cold lambda donde haya que rehidratar
- * desde Upstash o ingestar como último recurso.
+ * `maxDuration = 300` cubre cold ingest del feed JSON sin cortar el stream.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export const metadata: Metadata = {
   title: "Propiedades",

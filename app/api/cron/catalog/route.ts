@@ -6,7 +6,7 @@ import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-s
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Cron de **propiedades** (feed JSON / red): invalida caché y precalienta solo el catálogo en Upstash.

@@ -3,8 +3,7 @@ import "server-only";
 import Link from "next/link";
 import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
-import { getProperties } from "@/lib/get-properties";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 type Props = {
@@ -17,8 +16,30 @@ type Props = {
 export async function SociosPageContent({ searchParams }: Props) {
   const rawPage = Array.isArray(searchParams.page) ? searchParams.page[0] : searchParams.page;
   const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
-  const result = await getProperties();
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
+
+  let result;
+  let stable;
+  try {
+    const loaded = await loadSociosPageData({ featuredMax: 8 });
+    result = loaded.result;
+    stable = loaded.stable;
+  } catch {
+    return (
+      <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-10 text-center shadow-sm">
+        <p className="font-display text-lg font-semibold text-brand-navy">Directorio temporalmente no disponible</p>
+        <p className="mt-2 text-sm text-muted">
+          El servidor no alcanzó a preparar la lista. Recargá la página en unos segundos o explorá el catálogo.
+        </p>
+        <Link
+          href="/propiedades"
+          className="mt-6 inline-flex rounded-full bg-brand-navy px-6 py-3 text-sm font-semibold text-white"
+        >
+          Ver propiedades
+        </Link>
+      </div>
+    );
+  }
+
   const snapshot = stable.snapshot;
   const entries = snapshot?.entries ?? [];
   const SOCIOS_PAGE_SIZE = getSociosPageSize();
