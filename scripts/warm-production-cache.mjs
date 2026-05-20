@@ -49,6 +49,9 @@ async function main() {
   console.log("socios", socios.status, `${socios.ms}ms`, JSON.stringify(socios.body));
   if (socios.status !== 200) process.exit(1);
 
+  console.log("Esperando 120s para sync de socios en background…");
+  await new Promise((r) => setTimeout(r, 120_000));
+
   console.log("Precalentamiento solicitado OK.");
 }
 

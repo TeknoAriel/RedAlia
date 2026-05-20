@@ -1,16 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
 import { runPartnerDirectoryIncrementalSync } from "@/lib/public-data/partner-directory-incremental-sync";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Cron de **directorio de socios** (independiente del catálogo de propiedades).
- * Sincronización incremental por ids: altas/bajas acotadas; si hay >50 bajas o >2%,
- * difiere por posible corte de red y reintenta en la próxima corrida (48 h en vercel.json).
- *
- * Requiere snapshot de catálogo ya precalentado por `GET /api/cron/catalog`.
+ * Responde de inmediato y ejecuta sync incremental en background (evita 504 en Vercel).
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -19,7 +16,7 @@ export async function GET(request: Request) {
       {
         ok: false,
         error: "misconfigured",
-        message: "Definí CRON_SECRET en el entorno para habilitar el cron de socios.",
+        message: "Definí CRON_SECRET o REDALIA_SYNC_SECRET en el entorno.",
       },
       { status: 503 },
     );
@@ -29,16 +26,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  try {
-    const sync = await runPartnerDirectoryIncrementalSync();
-    return NextResponse.json({
-      ok: sync.status !== "aborted",
-      route: "cron/socios",
-      finishedAt: new Date().toISOString(),
-      sync,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "sync_failed";
-    return NextResponse.json({ ok: false, route: "cron/socios", error: message }, { status: 500 });
-  }
+  const startedAt = new Date().toISOString();
+
+  after(async () => {
+    try {
+      await runPartnerDirectoryIncrementalSync();
+    } catch {
+      /* noop: próxima corrida reintenta */
+    }
+  });
+
+  return NextResponse.json({
+    ok: true,
+    route: "cron/socios",
+    startedAt,
+    scheduled: true,
+    message:
+      "Sync incremental de socios programada en background (ids + umbral de bajas). Requiere catálogo precalentado.",
+  });
 }
