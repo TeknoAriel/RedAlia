@@ -7,6 +7,7 @@ import {
   resolveStablePublicDirectorySnapshot,
   type StablePartnerDirectoryResult,
 } from "@/lib/public-data/get-stable-partner-directory";
+import { loadCachedPartnerDirectorySnapshot } from "@/lib/public-data/cached-partner-directory-snapshot";
 import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 
 function stableFromPersistedDirectory(
@@ -39,7 +40,7 @@ export async function loadSociosPageData(options?: {
 }): Promise<{
   result: GetPropertiesResult;
   stable: StablePartnerDirectoryResult;
-  dataSource: "persisted" | "live";
+  dataSource: "persisted" | "data_cache" | "live";
 }> {
   const featuredMax = options?.featuredMax ?? 8;
 
@@ -48,15 +49,29 @@ export async function loadSociosPageData(options?: {
     readPersistedCatalogSnapshot(),
   ]);
 
+  const catalogResult: GetPropertiesResult = persistedCat?.snapshot.ok
+    ? persistedCat.snapshot
+    : { ok: true, properties: [], source: "empty" };
+
   if (persistedDir?.entries.length) {
-    const result: GetPropertiesResult = persistedCat?.snapshot.ok
-      ? persistedCat.snapshot
-      : { ok: true, properties: [], source: "empty" };
     return {
-      result,
+      result: catalogResult,
       stable: stableFromPersistedDirectory(persistedDir, featuredMax),
       dataSource: "persisted",
     };
+  }
+
+  const dataCacheDir = await loadCachedPartnerDirectorySnapshot();
+  if (dataCacheDir?.entries.length) {
+    const stable: StablePartnerDirectoryResult = {
+      snapshot: {
+        entries: dataCacheDir.entries,
+        featured: dataCacheDir.featured,
+        stats: dataCacheDir.stats,
+      },
+      source: "live",
+    };
+    return { result: catalogResult, stable, dataSource: "data_cache" };
   }
 
   const result = await getProperties();

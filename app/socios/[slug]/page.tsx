@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { PartnerProfileView } from "@/components/public-directory/PartnerProfileView";
-import { getProperties } from "@/lib/get-properties";
+import { loadPartnerProfilePage } from "@/lib/public-data/load-partner-profile-page";
+import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
-import { buildPublicPartnerDetail } from "@/lib/public-data/partner-detail";
-import {
-  filterPropertiesForDirectoryEntry,
-  partnerRefFromDirectoryEntry,
-  selectPartnerPropertiesPreview,
-} from "@/lib/public-data/partner-properties";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -20,13 +13,8 @@ type PageProps = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getProperties();
-  if (!result.ok) {
-    return { title: "Socio | Redalia" };
-  }
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-  const entries = stable.snapshot?.entries ?? [];
-  const entry = findPartnerEntryByPublicSlug(entries, slug);
+  const { stable } = await loadSociosPageData({ featuredMax: 8 });
+  const entry = findPartnerEntryByPublicSlug(stable.snapshot?.entries ?? [], slug);
   if (!entry) {
     return { title: "Socio | Redalia" };
   }
@@ -38,26 +26,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function SocioProfilePage({ params }: PageProps) {
   const { slug } = await params;
-  const result = await getProperties();
-  if (!result.ok) {
-    notFound();
-  }
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-  const entries = stable.snapshot?.entries ?? [];
-  const entry = findPartnerEntryByPublicSlug(entries, slug);
-  if (!entry) {
-    notFound();
-  }
-  const detail = buildPublicPartnerDetail(entry);
-  const partnerRef = partnerRefFromDirectoryEntry(entry);
-  const allForPartner = filterPropertiesForDirectoryEntry(result.properties, entry);
-  const preview = selectPartnerPropertiesPreview(result.properties, partnerRef, PREVIEW_LIMIT);
+  const { detail, preview, totalPropertyCount } = await loadPartnerProfilePage(slug, {
+    previewLimit: PREVIEW_LIMIT,
+  });
 
   return (
     <PartnerProfileView
       detail={detail}
       propertiesPreview={preview}
-      totalPropertyCount={allForPartner.length}
+      totalPropertyCount={totalPropertyCount}
     />
   );
 }

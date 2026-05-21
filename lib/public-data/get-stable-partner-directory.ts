@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
+import { loadCachedPartnerDirectorySnapshot } from "@/lib/public-data/cached-partner-directory-snapshot";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data/from-properties-feed";
 import {
   partnerDirectoryIngestHadNetworkErrors,
@@ -37,7 +38,7 @@ export type StablePartnerDirectoryResult = {
  * `completedAtMs` no estuviera disponible.
  */
 /** Bump al cambiar reglas de armado del directorio (invalida entradas en memoria por proceso). */
-const DIRECTORY_LOGIC_VERSION = 4;
+const DIRECTORY_LOGIC_VERSION = 5;
 
 const DIRECTORY_MEMORY_CACHE_TTL_MS = 60 * 60 * 1000;
 type DirectoryMemoryEntry = { key: string; value: StablePartnerDirectoryResult; expiresAt: number };
@@ -84,7 +85,10 @@ function persistedMatchesCatalog(
   if (!result.ok || result.properties.length === 0) return false;
   const want = result.properties.length;
   const got = persisted.stats.totalListings;
-  return got === want || Math.abs(got - want) <= 5;
+  if (got === want) return true;
+  const delta = Math.abs(got - want);
+  const threshold = Math.max(50, Math.ceil(want * 0.02));
+  return delta <= threshold;
 }
 
 /**
@@ -180,6 +184,13 @@ export async function resolveStablePublicDirectorySnapshot(
   if (persistedFast) {
     if (memKey) writeDirectoryMemoryCache(memKey, persistedFast);
     return persistedFast;
+  }
+
+  const dataCached = await loadCachedPartnerDirectorySnapshot();
+  if (dataCached?.entries.length) {
+    const fromDataCache: StablePartnerDirectoryResult = { snapshot: dataCached, source: "live" };
+    if (memKey) writeDirectoryMemoryCache(memKey, fromDataCache);
+    return fromDataCache;
   }
 
   const buildOptions = getPartnerDirectoryBuildOptions(result);
