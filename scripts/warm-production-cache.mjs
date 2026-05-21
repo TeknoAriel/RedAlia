@@ -52,6 +52,11 @@ async function main() {
   console.log("Esperando 120s para sync de socios en background…");
   await new Promise((r) => setTimeout(r, 120_000));
 
+  for (const path of ["/socios", "/propiedades"]) {
+    const page = await fetch(`${BASE}${path}`, { signal: AbortSignal.timeout(300_000) });
+    console.log("page", path, page.status);
+  }
+
   console.log("Precalentamiento solicitado OK.");
 }
 

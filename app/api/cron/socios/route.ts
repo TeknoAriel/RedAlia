@@ -1,5 +1,8 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse, after } from "next/server";
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
+import { loadCachedPartnerDirectorySnapshot } from "@/lib/public-data/cached-partner-directory-snapshot";
+import { REDALIA_DIRECTORY_CACHE_TAG } from "@/lib/public-data/directory-cache-tag";
 import { runPartnerDirectoryIncrementalSync } from "@/lib/public-data/partner-directory-incremental-sync";
 
 export const runtime = "nodejs";
@@ -31,6 +34,8 @@ export async function GET(request: Request) {
   after(async () => {
     try {
       await runPartnerDirectoryIncrementalSync();
+      revalidateTag(REDALIA_DIRECTORY_CACHE_TAG, "max");
+      await loadCachedPartnerDirectorySnapshot();
     } catch {
       /* noop: próxima corrida reintenta */
     }

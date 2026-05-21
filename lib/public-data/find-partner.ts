@@ -2,7 +2,18 @@ import { fingerprintPartnerKey } from "@/lib/public-data/public-slug";
 import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 
 function normalizeSlugFromUrl(slugFromUrl: string): string {
-  return decodeURIComponent(slugFromUrl.trim()).replace(/\/+$/, "");
+  let s = slugFromUrl.trim();
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    /* segmento ya decodificado */
+  }
+  return s.replace(/\/+$/, "");
+}
+
+function slugMatchesFingerprint(slug: string, fp: string): boolean {
+  if (!fp) return false;
+  return slug === fp || slug.endsWith(`-${fp}`);
 }
 
 /**
@@ -14,12 +25,17 @@ export function findPartnerEntryByPublicSlug(
   slugFromUrl: string,
 ): PublicPartnerDirectoryEntry | null {
   const normalized = normalizeSlugFromUrl(slugFromUrl);
-  const exact = entries.find((e) => e.publicSlug === normalized || e.publicSlug === slugFromUrl.trim());
+  const exact = entries.find(
+    (e) =>
+      e.publicSlug === normalized ||
+      e.publicSlug === slugFromUrl.trim() ||
+      (e.catalogSocioKey?.trim() && e.catalogSocioKey.trim() === normalized),
+  );
   if (exact) return exact;
 
   const byFingerprint = entries.find((e) => {
     const fp = fingerprintPartnerKey(e.partnerKey);
-    return fp.length > 0 && (normalized.endsWith(`-${fp}`) || normalized.endsWith(fp));
+    return slugMatchesFingerprint(normalized, fp);
   });
   if (byFingerprint) return byFingerprint;
 
