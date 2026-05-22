@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PropertyConsultForm } from "@/components/properties/PropertyConsultForm";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
 import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties, getPropertyById } from "@/lib/get-properties";
@@ -18,7 +19,7 @@ import {
 import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
 import type { NormalizedProperty, PropertyPartner } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
-import { siteConfig } from "@/lib/site-config";
+import { propertyKitepropMessageTarget } from "@/lib/property-kiteprop-dispatch";
 
 export const dynamic = "force-dynamic";
 
@@ -106,11 +107,7 @@ export default async function PropertyDetailPage({ params }: Props) {
     showConsultarBlock ||
     Boolean(p.associatedAgentsLabel) ||
     showPublisherEmpty;
-  const consultMailto =
-    consultar?.email?.trim() ??
-    (inmob ? inmob.email?.trim() : undefined) ??
-    (publica ? publica.row.email?.trim() : undefined) ??
-    siteConfig.contact.email;
+  const kpDispatch = propertyKitepropMessageTarget(p);
 
   return (
     <div className="pb-16">
@@ -340,12 +337,16 @@ export default async function PropertyDetailPage({ params }: Props) {
               </div>
             </dl>
             <div className="mt-8 space-y-3">
-              <a
-                href={`mailto:${encodeURIComponent(consultMailto)}?subject=Consulta%20${encodeURIComponent(p.referenceCode)}`}
-                className="flex w-full items-center justify-center rounded-full bg-brand-navy px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-navy-mid"
-              >
-                Consultar por esta propiedad
-              </a>
+              <PropertyConsultForm
+                propertyId={kpDispatch.propertyId}
+                propertyCode={p.referenceCode}
+                propertyTitle={p.title}
+                assignedUserId={kpDispatch.assignedUserId}
+                organizationId={kpDispatch.organizationId}
+                assignedUserName={kpDispatch.assignedUserName}
+                organizationName={kpDispatch.organizationName}
+                pagePath={`/propiedades/${p.id}`}
+              />
               {p.sourceUrl && (
                 <a
                   href={p.sourceUrl}

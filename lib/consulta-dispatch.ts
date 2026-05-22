@@ -1,23 +1,12 @@
 import "server-only";
 
+import type { ConsultaPayload } from "@/lib/consulta-dispatch-types";
+import { getKitePropApiBaseUrl } from "@/lib/kiteprop/client";
 import { resolveProfileXApiKeyOrNull } from "@/lib/kiteprop/env-credentials";
+import { buildKitepropMessagesBody } from "@/lib/kiteprop-messages-body";
 import { siteConfig } from "@/lib/site-config";
 
-type ConsultaPayload = {
-  property_id: number | null;
-  property_code: string | null;
-  property_title: string | null;
-  site: string | null;
-  page_url: string | null;
-  leadIntentId: string | null;
-  name: string;
-  email: string;
-  phone: string | null;
-  message: string;
-  assigned_user_id: number | null;
-  user_id: number | null;
-  assigned_user_name: string | null;
-};
+export type { ConsultaPayload } from "@/lib/consulta-dispatch-types";
 
 type DispatchConsultaResult =
   | { ok: true; via: "kiteprop_messages" | "kiteprop_contacts" | "legacy_consulta" }
@@ -51,6 +40,7 @@ function toLegacySource(p: ConsultaPayload): string {
     p.site || siteConfig.url,
     p.page_url ? `page:${p.page_url}` : null,
     p.leadIntentId ? `intent:${p.leadIntentId}` : null,
+    p.organization_name ? `org:${p.organization_name}` : null,
     p.assigned_user_name ? `assigned:${p.assigned_user_name}` : null,
   ].filter(Boolean);
   return chunks.join(" | ");
@@ -61,7 +51,8 @@ function appendContextMessage(p: ConsultaPayload): string {
     p.property_code ? `Código: ${p.property_code}` : null,
     p.property_title ? `Propiedad: ${p.property_title}` : null,
     p.page_url ? `Página: ${p.page_url}` : null,
-    p.assigned_user_name ? `Asignado: ${p.assigned_user_name}` : null,
+    p.organization_name ? `Inmobiliaria: ${p.organization_name}` : null,
+    p.assigned_user_name ? `Asesor: ${p.assigned_user_name}` : null,
     p.leadIntentId ? `Intent: ${p.leadIntentId}` : null,
   ].filter(Boolean);
   if (!context.length) return p.message;
@@ -122,7 +113,7 @@ async function postJsonWithApiKey(url: string, body: Record<string, unknown>): P
 }
 
 async function postLegacyConsulta(url: string, p: ConsultaPayload): Promise<DispatchConsultaResult> {
-  const legacy = {
+  const legacy: Record<string, unknown> = {
     full_name: p.name,
     email: p.email,
     phone: p.phone,
@@ -130,6 +121,9 @@ async function postLegacyConsulta(url: string, p: ConsultaPayload): Promise<Disp
     property_id: p.property_id,
     source: toLegacySource(p),
   };
+  if (p.assigned_user_id) legacy.assigned_user_id = p.assigned_user_id;
+  if (p.organization_id) legacy.organization_id = p.organization_id;
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -163,13 +157,15 @@ export function parseConsultaFromJson(body: unknown): ConsultaPayload | { error:
   const name = trimText(o.name, 200);
   const email = trimText(o.email, 320);
   const message = trimText(o.message, 8000);
+  const property_id = toNumberOrNull(o.property_id);
 
   if (!name) return { error: "name es obligatorio" };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "email inválido" };
   if (!message) return { error: "message es obligatorio" };
+  if (property_id != null && property_id <= 0) return { error: "property_id inválido" };
 
   return {
-    property_id: toNumberOrNull(o.property_id),
+    property_id,
     property_code: trimText(o.property_code, 120) || null,
     property_title: trimText(o.property_title, 240) || null,
     site: trimText(o.site, 180) || null,
@@ -182,6 +178,8 @@ export function parseConsultaFromJson(body: unknown): ConsultaPayload | { error:
     assigned_user_id: toNumberOrNull(o.assigned_user_id),
     user_id: toNumberOrNull(o.user_id),
     assigned_user_name: trimText(o.assigned_user_name, 200) || null,
+    organization_id: toNumberOrNull(o.organization_id),
+    organization_name: trimText(o.organization_name, 200) || null,
   };
 }
 
@@ -191,14 +189,15 @@ export async function dispatchConsulta(payload: ConsultaPayload): Promise<Dispat
     return postLegacyConsulta(legacyUrl, payload);
   }
 
-  if (payload.property_id) {
-    const msgBody: Record<string, unknown> = {
-      body: appendContextMessage(payload),
-      phone: payload.phone,
-      property_id: payload.property_id,
-      email: payload.email,
-    };
-    return postJsonWithApiKey("https://www.kiteprop.com/api/v1/messages", msgBody);
+  if (payload.property_id != null && payload.property_id > 0) {
+    let msgBody: Record<string, unknown>;
+    try {
+      msgBody = buildKitepropMessagesBody(payload);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Payload inválido" };
+    }
+    const url = `${getKitePropApiBaseUrl()}/messages`;
+    return postJsonWithApiKey(url, msgBody);
   }
 
   const { first_name, last_name } = parseNameParts(payload.name);
@@ -210,8 +209,8 @@ export async function dispatchConsulta(payload: ConsultaPayload): Promise<Dispat
     source: payload.site || siteConfig.url,
     summary: appendContextMessage(payload),
   };
-  const sent = await postJsonWithApiKey("https://www.kiteprop.com/api/v1/contacts", contactBody);
+  const url = `${getKitePropApiBaseUrl()}/contacts`;
+  const sent = await postJsonWithApiKey(url, contactBody);
   if (!sent.ok) return sent;
   return { ok: true, via: "kiteprop_contacts" };
 }
-
