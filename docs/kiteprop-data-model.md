@@ -116,6 +116,7 @@ En muchos tenants de KiteProp la **misma** credencial (`kp_…`) sirve para el C
 | **`GET /profile`** | `KITEPROP_API_KEY` **o** `KITEPROP_API_SECRET` en `.env` / Vercel | Header **`X-API-Key`**: `lib/kiteprop/env-credentials.ts` + `client.ts`. |
 | **`GET /properties`**, **`GET /users`**, etc. | `KITEPROP_ACCESS_TOKEN` **o** `KITEPROP_API_SECRET` | **`Authorization: Bearer …`**. |
 | **POST leads** (`KITEPROP_LEAD_POST_URL`) | `KITEPROP_API_TOKEN` **o** `KITEPROP_API_SECRET` | **`Authorization: Bearer …`** en `lib/lead-dispatch.ts`. |
+| **POST consultas de propiedad** (`/api/consultas` → `/messages`) | `KITEPROP_API_KEY` **o** `KITEPROP_API_SECRET` | **`X-API-Key`**; cuerpo con `property_id`, `organization_id`, `assigned_user_id` (`lib/consulta-dispatch.ts`). |
 
 Si tu instancia usa **un solo** `kp_…` para todo, lo más simple es definir **`KITEPROP_API_SECRET`** una vez en Vercel/`.env.local` (y el mismo valor en MCP como `KITEPROP_API_TOKEN`); las variables específicas son opcionales.
 
