@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildLeadMailtoUrl } from "@/lib/lead-mailto-fallback";
 import { dispatchRedaliaInbox } from "@/lib/redalia-inbox-dispatch";
 
 export const runtime = "nodejs";
@@ -80,6 +81,18 @@ Email: ${email}${telefono ? ` · Teléfono: ${telefono}` : ""}${empresa ? ` · E
   });
 
   if (!result.ok) {
+    if (process.env.NODE_ENV === "production") {
+      const mailtoUrl = buildLeadMailtoUrl({
+        kind: "contact",
+        nombre,
+        apellido,
+        email,
+        telefono: telefono || undefined,
+        empresa: partnerName,
+        mensaje: msg,
+      });
+      return NextResponse.json({ ok: true, via: "mailto", mailtoUrl });
+    }
     return NextResponse.json({ ok: false, error: result.error }, { status: 502 });
   }
 

@@ -24,10 +24,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const message =
+    result.via === "kiteprop_contact_fallback"
+      ? "Consulta registrada en KiteProp (contacto asignado al asesor)."
+      : "Consulta recibida y reenviada correctamente.";
+
   return NextResponse.json({
     ok: true,
     via: result.via,
-    message: "Consulta recibida y reenviada correctamente.",
+    message,
   });
 }
 

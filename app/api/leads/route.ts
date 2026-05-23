@@ -34,6 +34,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 502 });
   }
 
+  if (result.via === "mailto") {
+    return NextResponse.json({
+      ok: true,
+      via: result.via,
+      mailtoUrl: result.mailtoUrl,
+      message: "Abrí tu cliente de correo para completar el envío a Redalia.",
+    });
+  }
+
   return NextResponse.json({
     ok: true,
     via: result.via,

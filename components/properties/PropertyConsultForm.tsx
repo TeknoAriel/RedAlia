@@ -27,6 +27,7 @@ export function PropertyConsultForm({
 }: PropertyConsultFormProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [via, setVia] = useState<string | null>(null);
 
   const pageUrl = `${siteConfig.url.replace(/\/$/, "")}${pagePath.startsWith("/") ? pagePath : `/${pagePath}`}`;
 
@@ -64,7 +65,7 @@ export function PropertyConsultForm({
           message,
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string; via?: string };
 
       if (!res.ok || !data.ok) {
         setErrorMessage(data.error ?? "No se pudo enviar la consulta. Intenta de nuevo.");
@@ -73,6 +74,7 @@ export function PropertyConsultForm({
       }
 
       setStatus("sent");
+      setVia(data.via ?? "kiteprop_messages");
       form.reset();
     } catch {
       setErrorMessage("Error de conexión. Revisa tu red e intenta de nuevo.");
@@ -88,8 +90,9 @@ export function PropertyConsultForm({
       >
         <p className="text-sm font-semibold text-brand-navy">Consulta enviada</p>
         <p className="mt-2 text-xs leading-relaxed text-muted">
-          Tu mensaje fue registrado en KiteProp y será atendido por la inmobiliaria y el asesor asignado a esta
-          publicación.
+          {via === "kiteprop_contact_fallback"
+            ? "Tu consulta quedó registrada en KiteProp y fue asignada al asesor de esta publicación."
+            : "Tu mensaje fue registrado en KiteProp y será atendido por la inmobiliaria y el asesor asignado a esta publicación."}
         </p>
       </div>
     );

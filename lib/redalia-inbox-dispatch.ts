@@ -51,6 +51,33 @@ async function sendViaWebhook(envelope: Record<string, unknown>): Promise<Redali
   }
 }
 
+async function sendViaWeb3Forms(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
+  const accessKey = process.env.WEB3FORMS_ACCESS_KEY?.trim();
+  if (!accessKey) return { ok: false, error: "WEB3FORMS_ACCESS_KEY no configurada" };
+
+  try {
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: accessKey,
+        subject: payload.subject,
+        from_name: "Redalia Web",
+        email: resolveInboxEmail(),
+        replyto: payload.replyTo?.trim() || undefined,
+        message: payload.textBody,
+      }),
+    });
+    const data = (await res.json()) as { success?: boolean; message?: string };
+    if (!res.ok || !data.success) {
+      return { ok: false, error: data.message ?? `Web3Forms respondió ${res.status}` };
+    }
+    return { ok: true, via: "email" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error de red con Web3Forms" };
+  }
+}
+
 async function sendViaResend(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY no configurada" };
@@ -104,6 +131,9 @@ export async function dispatchRedaliaInbox(payload: RedaliaInboxPayload): Promis
     return sendViaWebhook(envelope);
   }
 
+  const web3Result = await sendViaWeb3Forms(payload);
+  if (web3Result.ok) return web3Result;
+
   const emailResult = await sendViaResend(payload);
   if (emailResult.ok) return emailResult;
 
@@ -115,6 +145,6 @@ export async function dispatchRedaliaInbox(payload: RedaliaInboxPayload): Promis
   return {
     ok: false,
     error:
-      "No hay canal de recepción configurado. Definí LEADS_WEBHOOK_URL o RESEND_API_KEY + REDALIA_LEADS_EMAIL.",
+      "No hay canal de recepción configurado. Definí LEADS_WEBHOOK_URL, WEB3FORMS_ACCESS_KEY o RESEND_API_KEY.",
   };
 }

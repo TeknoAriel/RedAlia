@@ -31,11 +31,17 @@ export function LeadForm({ kind, submitLabel, children }: LeadFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind, ...raw }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string; mailtoUrl?: string; via?: string };
 
       if (!res.ok || !data.ok) {
         setErrorMessage(data.error ?? "No se pudo enviar. Intenta de nuevo.");
         setStatus("error");
+        return;
+      }
+
+      if (data.via === "mailto" && data.mailtoUrl) {
+        window.location.href = data.mailtoUrl;
+        setStatus("sent");
         return;
       }
 
