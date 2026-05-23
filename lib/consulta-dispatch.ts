@@ -3,13 +3,17 @@ import "server-only";
 import type { ConsultaPayload } from "@/lib/consulta-dispatch-types";
 import { getKitePropApiBaseUrl } from "@/lib/kiteprop/client";
 import { resolveProfileXApiKeyOrNull } from "@/lib/kiteprop/env-credentials";
+import {
+  buildKitepropContactFallbackBody,
+  isKitepropMessagesServerError,
+} from "@/lib/kiteprop-contact-fallback";
 import { buildKitepropMessagesBody } from "@/lib/kiteprop-messages-body";
 import { siteConfig } from "@/lib/site-config";
 
 export type { ConsultaPayload } from "@/lib/consulta-dispatch-types";
 
 type DispatchConsultaResult =
-  | { ok: true; via: "kiteprop_messages" | "legacy_consulta" }
+  | { ok: true; via: "kiteprop_messages" | "kiteprop_contact_fallback" | "legacy_consulta" }
   | { ok: false; error: string; upstreamStatus?: number };
 
 function trimText(v: unknown, max = 8000): string {
@@ -98,7 +102,7 @@ async function postJsonWithApiKey(url: string, body: Record<string, unknown>): P
     if (parsed && !isSuccessEnvelope(parsed)) {
       return { ok: false, error: pickErrorMessage(parsed, res.status), upstreamStatus: res.status };
     }
-    return { ok: true, via: "kiteprop_messages" };
+    return { ok: true, via: url.includes("/contacts") ? "kiteprop_contact_fallback" : "kiteprop_messages" };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Error de red al conectar con KiteProp" };
   }
@@ -193,6 +197,20 @@ export async function dispatchConsulta(payload: ConsultaPayload): Promise<Dispat
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Payload inválido" };
   }
-  const url = `${getKitePropApiBaseUrl()}/messages`;
-  return postJsonWithApiKey(url, msgBody);
+  const messagesUrl = `${getKitePropApiBaseUrl()}/messages`;
+  const messagesResult = await postJsonWithApiKey(messagesUrl, msgBody);
+  if (messagesResult.ok) return messagesResult;
+
+  if (
+    isKitepropMessagesServerError(messagesResult.error, messagesResult.upstreamStatus) &&
+    (payload.assigned_user_id ?? payload.user_id)
+  ) {
+    const contactUrl = `${getKitePropApiBaseUrl()}/contacts`;
+    const contactBody = buildKitepropContactFallbackBody(payload);
+    const contactResult = await postJsonWithApiKey(contactUrl, contactBody);
+    if (contactResult.ok) return contactResult;
+    return contactResult;
+  }
+
+  return messagesResult;
 }

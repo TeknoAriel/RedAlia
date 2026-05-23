@@ -12,37 +12,38 @@ function appendContextMessage(p: ConsultaPayload): string {
   const context = [
     p.property_code ? `Código: ${p.property_code}` : null,
     p.property_title ? `Propiedad: ${p.property_title}` : null,
+    `property_id (KP): ${p.property_id}`,
     p.page_url ? `Página: ${p.page_url}` : null,
     p.organization_name ? `Inmobiliaria: ${p.organization_name}` : null,
     p.assigned_user_name ? `Asesor: ${p.assigned_user_name}` : null,
-    p.leadIntentId ? `Intent: ${p.leadIntentId}` : null,
   ].filter(Boolean);
-  if (!context.length) return p.message;
-  return `${p.message}\n\n${context.join(" · ")}`;
+  const base = p.message.trim();
+  if (!context.length) return base;
+  return `${base}\n\n${context.join(" · ")}`;
 }
 
-/** Cuerpo para `POST /api/v1/messages` (doc KiteProp Messages). */
-export function buildKitepropMessagesBody(p: ConsultaPayload): Record<string, unknown> {
-  if (!p.property_id || p.property_id <= 0) {
-    throw new Error("property_id es obligatorio para mensajes de propiedad");
-  }
-
+/** Fallback cuando `/messages` falla: contacto CRM asignado al asesor con contexto de la propiedad. */
+export function buildKitepropContactFallbackBody(p: ConsultaPayload): Record<string, unknown> {
   const { first_name, last_name } = parseNameParts(p.name);
   const body: Record<string, unknown> = {
-    body: appendContextMessage(p),
-    email: p.email,
-    property_id: p.property_id,
     first_name,
+    last_name,
+    email: p.email,
+    phone: p.phone,
+    source: "redalia_web",
+    summary: appendContextMessage(p),
   };
-
-  if (last_name) body.last_name = last_name;
-  if (p.phone) body.phone = p.phone;
 
   const assignedId = p.assigned_user_id ?? p.user_id;
   if (assignedId != null && assignedId > 0) {
     body.assigned_user_id = assignedId;
-    body.user_id = assignedId;
   }
 
   return body;
+}
+
+export function isKitepropMessagesServerError(error: string, upstreamStatus?: number): boolean {
+  if (upstreamStatus != null && upstreamStatus >= 500) return true;
+  const e = error.toLowerCase();
+  return e.includes("sqlstate") || e.includes("integrity constraint") || e.includes("respondió 5");
 }

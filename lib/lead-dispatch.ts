@@ -1,3 +1,4 @@
+import { buildLeadMailtoUrl } from "@/lib/lead-mailto-fallback";
 import { dispatchRedaliaInbox } from "@/lib/redalia-inbox-dispatch";
 
 /**
@@ -49,6 +50,7 @@ function leadSubject(p: LeadPayload): string {
 
 export type DispatchResult =
   | { ok: true; via: "webhook" | "email" | "noop" }
+  | { ok: true; via: "mailto"; mailtoUrl: string }
   | { ok: false; error: string };
 
 export async function dispatchLead(payload: LeadPayload): Promise<DispatchResult> {
@@ -59,6 +61,12 @@ export async function dispatchLead(payload: LeadPayload): Promise<DispatchResult
     replyTo: payload.email,
     meta: { kind: payload.kind },
   });
+  if (result.ok) return result;
+
+  if (process.env.NODE_ENV === "production") {
+    return { ok: true, via: "mailto", mailtoUrl: buildLeadMailtoUrl(payload) };
+  }
+
   return result;
 }
 
