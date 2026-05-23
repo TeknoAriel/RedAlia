@@ -54,6 +54,25 @@ export function isKitepropContactDuplicateEmailError(error: string): boolean {
   return e.includes("email ya existe") || e.includes("already exists");
 }
 
+/** Mismo criterio para teléfono duplicado (KP responde 500 con validation en `details`). */
+export function isKitepropContactDuplicateFieldError(error: string): boolean {
+  const e = error.toLowerCase();
+  return (
+    isKitepropContactDuplicateEmailError(error) ||
+    e.includes("teléfono ya existe") ||
+    e.includes("telefono ya existe") ||
+    e.includes("phone already")
+  );
+}
+
+/** KP suele devolver `errorMessage` genérico y el detalle en `details.attributes`. */
+export function isKitepropContactDuplicateResponse(parsed: unknown, error: string): boolean {
+  if (isKitepropContactDuplicateFieldError(error)) return true;
+  if (!parsed || typeof parsed !== "object") return false;
+  const blob = JSON.stringify(parsed).toLowerCase();
+  return blob.includes("ya existe") && (blob.includes("email") || blob.includes("phone") || blob.includes("tel"));
+}
+
 /** Si `/messages` falla y hay asesor, intentar `/contacts` (bug SQL, validación, etc.). */
 export function shouldTryKitepropContactFallback(
   messagesOk: boolean,

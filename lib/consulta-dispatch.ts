@@ -5,7 +5,7 @@ import { getKitePropApiBaseUrl } from "@/lib/kiteprop/client";
 import { resolveProfileXApiKeyOrNull } from "@/lib/kiteprop/env-credentials";
 import {
   buildKitepropContactFallbackBody,
-  isKitepropContactDuplicateEmailError,
+  isKitepropContactDuplicateResponse,
   shouldTryKitepropContactFallback,
 } from "@/lib/kiteprop-contact-fallback";
 import { buildKitepropMessagesBody } from "@/lib/kiteprop-messages-body";
@@ -99,7 +99,7 @@ async function postJsonWithApiKey(url: string, body: Record<string, unknown>): P
 
     if (!res.ok) {
       const error = pickErrorMessage(parsed, res.status);
-      if (url.includes("/contacts") && isKitepropContactDuplicateEmailError(error)) {
+      if (url.includes("/contacts") && isKitepropContactDuplicateResponse(parsed, error)) {
         return { ok: true, via: "kiteprop_contact_fallback" };
       }
       return { ok: false, error, upstreamStatus: res.status };
