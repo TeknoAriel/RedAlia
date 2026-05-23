@@ -4,12 +4,17 @@
  */
 
 function baseUrl(): string | null {
-  const u = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const u =
+    process.env.UPSTASH_REDIS_REST_URL?.trim() ||
+    process.env.KV_REST_API_URL?.trim() ||
+    process.env.KV_URL?.trim();
   return u || null;
 }
 
 function token(): string | null {
-  const t = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  const t =
+    process.env.UPSTASH_REDIS_REST_TOKEN?.trim() ||
+    process.env.KV_REST_API_TOKEN?.trim();
   return t || null;
 }
 
