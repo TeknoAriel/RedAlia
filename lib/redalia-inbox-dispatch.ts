@@ -78,6 +78,39 @@ async function sendViaWeb3Forms(payload: RedaliaInboxPayload): Promise<RedaliaIn
   }
 }
 
+async function sendViaFormSubmit(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
+  const to = resolveInboxEmail();
+  const endpoint = `https://formsubmit.co/ajax/${encodeURIComponent(to)}`;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Origin: siteConfig.url,
+        Referer: `${siteConfig.url.replace(/\/$/, "")}/contacto`,
+      },
+      body: JSON.stringify({
+        _subject: payload.subject,
+        _template: "table",
+        _captcha: "false",
+        message: payload.textBody,
+        replyto: payload.replyTo?.trim() || undefined,
+        from_name: "Redalia Web",
+      }),
+    });
+    const data = (await res.json()) as { success?: string | boolean; message?: string };
+    const ok = data.success === true || data.success === "true";
+    if (!res.ok || !ok) {
+      return { ok: false, error: data.message ?? `FormSubmit respondió ${res.status}` };
+    }
+    return { ok: true, via: "email" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error de red con FormSubmit" };
+  }
+}
+
 async function sendViaResend(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY no configurada" };
@@ -137,6 +170,9 @@ export async function dispatchRedaliaInbox(payload: RedaliaInboxPayload): Promis
   const emailResult = await sendViaResend(payload);
   if (emailResult.ok) return emailResult;
 
+  const formSubmitResult = await sendViaFormSubmit(payload);
+  if (formSubmitResult.ok) return formSubmitResult;
+
   if (process.env.NODE_ENV === "development") {
     console.info("[redalia inbox noop]", envelope);
     return { ok: true, via: "noop" };
@@ -145,6 +181,6 @@ export async function dispatchRedaliaInbox(payload: RedaliaInboxPayload): Promis
   return {
     ok: false,
     error:
-      "No hay canal de recepción configurado. Definí LEADS_WEBHOOK_URL, WEB3FORMS_ACCESS_KEY o RESEND_API_KEY.",
+      "No hay canal de recepción configurado. Definí LEADS_WEBHOOK_URL, WEB3FORMS_ACCESS_KEY, RESEND_API_KEY o activá FormSubmit en contacto@redalia.cl.",
   };
 }

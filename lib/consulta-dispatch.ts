@@ -5,7 +5,8 @@ import { getKitePropApiBaseUrl } from "@/lib/kiteprop/client";
 import { resolveProfileXApiKeyOrNull } from "@/lib/kiteprop/env-credentials";
 import {
   buildKitepropContactFallbackBody,
-  isKitepropMessagesServerError,
+  isKitepropContactDuplicateResponse,
+  shouldTryKitepropContactFallback,
 } from "@/lib/kiteprop-contact-fallback";
 import { buildKitepropMessagesBody } from "@/lib/kiteprop-messages-body";
 import { siteConfig } from "@/lib/site-config";
@@ -97,7 +98,11 @@ async function postJsonWithApiKey(url: string, body: Record<string, unknown>): P
     }
 
     if (!res.ok) {
-      return { ok: false, error: pickErrorMessage(parsed, res.status), upstreamStatus: res.status };
+      const error = pickErrorMessage(parsed, res.status);
+      if (url.includes("/contacts") && isKitepropContactDuplicateResponse(parsed, error)) {
+        return { ok: true, via: "kiteprop_contact_fallback" };
+      }
+      return { ok: false, error, upstreamStatus: res.status };
     }
     if (parsed && !isSuccessEnvelope(parsed)) {
       return { ok: false, error: pickErrorMessage(parsed, res.status), upstreamStatus: res.status };
@@ -201,10 +206,7 @@ export async function dispatchConsulta(payload: ConsultaPayload): Promise<Dispat
   const messagesResult = await postJsonWithApiKey(messagesUrl, msgBody);
   if (messagesResult.ok) return messagesResult;
 
-  if (
-    isKitepropMessagesServerError(messagesResult.error, messagesResult.upstreamStatus) &&
-    (payload.assigned_user_id ?? payload.user_id)
-  ) {
+  if (shouldTryKitepropContactFallback(messagesResult.ok, payload)) {
     const contactUrl = `${getKitePropApiBaseUrl()}/contacts`;
     const contactBody = buildKitepropContactFallbackBody(payload);
     const contactResult = await postJsonWithApiKey(contactUrl, contactBody);
