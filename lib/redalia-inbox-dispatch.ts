@@ -13,7 +13,7 @@ export type RedaliaInboxPayload = {
 };
 
 export type RedaliaInboxDispatchResult =
-  | { ok: true; via: "webhook" | "email" | "noop" }
+  | { ok: true; via: "webhook" | "email" | "noop" | "github" }
   | { ok: false; error: string };
 
 function resolveInboxEmail(): string {
@@ -111,6 +111,47 @@ async function sendViaFormSubmit(payload: RedaliaInboxPayload): Promise<RedaliaI
   }
 }
 
+async function sendViaGitHubIssue(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
+  const token = process.env.GITHUB_LEADS_TOKEN?.trim();
+  const repo = process.env.GITHUB_LEADS_REPO?.trim() || "TeknoAriel/RedAlia";
+  if (!token) return { ok: false, error: "GITHUB_LEADS_TOKEN no configurado" };
+
+  const slash = repo.indexOf("/");
+  if (slash <= 0) return { ok: false, error: "GITHUB_LEADS_REPO inválido" };
+  const owner = repo.slice(0, slash);
+  const name = repo.slice(slash + 1);
+
+  const body = [
+    payload.textBody,
+    "",
+    payload.replyTo ? `Reply-To: ${payload.replyTo}` : null,
+    `Origen: ${siteConfig.url}`,
+    `Tipo: ${payload.kind}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${name}/issues`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ title: payload.subject, body }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, error: text.trim().slice(0, 280) || `GitHub respondió ${res.status}` };
+    }
+    return { ok: true, via: "github" };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Error de red con GitHub" };
+  }
+}
+
 async function sendViaResend(payload: RedaliaInboxPayload): Promise<RedaliaInboxDispatchResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY no configurada" };
@@ -172,6 +213,9 @@ export async function dispatchRedaliaInbox(payload: RedaliaInboxPayload): Promis
 
   const formSubmitResult = await sendViaFormSubmit(payload);
   if (formSubmitResult.ok) return formSubmitResult;
+
+  const githubResult = await sendViaGitHubIssue(payload);
+  if (githubResult.ok) return githubResult;
 
   if (process.env.NODE_ENV === "development") {
     console.info("[redalia inbox noop]", envelope);

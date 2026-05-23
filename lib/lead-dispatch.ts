@@ -49,7 +49,7 @@ function leadSubject(p: LeadPayload): string {
 }
 
 export type DispatchResult =
-  | { ok: true; via: "webhook" | "email" | "noop" }
+  | { ok: true; via: "webhook" | "email" | "noop" | "github" }
   | { ok: true; via: "mailto"; mailtoUrl: string }
   | { ok: false; error: string };
 
