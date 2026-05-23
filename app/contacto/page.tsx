@@ -110,7 +110,8 @@ export default function ContactoPage() {
               </LeadForm>
             </div>
             <p className="mt-4 text-xs text-muted">
-              Al enviar, aceptas que usemos estos datos solo para contactarte en relación con Redalia.
+              Al enviar, aceptas que usemos estos datos solo para contactarte en relación con Redalia. El mensaje llega
+              al equipo por correo ({siteConfig.contact.email}).
             </p>
           </div>
         </div>

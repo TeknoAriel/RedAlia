@@ -7,6 +7,8 @@ type Props = {
   whatsapp: string | null;
   webUrl: string | null;
   className?: string;
+  /** En ficha de propiedad la consulta va al formulario → KiteProp Messages. */
+  hideEmail?: boolean;
 };
 
 const linkClass =
@@ -19,15 +21,16 @@ export function PartnerContactLinks({
   whatsapp,
   webUrl,
   className = "",
+  hideEmail = false,
 }: Props) {
   const tel = telHref(mobile) ?? telHref(phone);
   const wa = whatsappHrefFromRaw(whatsapp ?? mobile ?? phone);
-  const hasAny = email || tel || wa || webUrl;
+  const hasAny = (!hideEmail && email) || tel || wa || webUrl;
   if (!hasAny) return null;
 
   return (
     <ul className={`space-y-1.5 text-left text-xs ${className}`}>
-      {email && (
+      {!hideEmail && email && (
         <li>
           <a href={`mailto:${email}`} className={linkClass}>
             {email}

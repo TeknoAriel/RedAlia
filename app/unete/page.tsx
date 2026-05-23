@@ -4,6 +4,7 @@ import { SectionLogoMark } from "@/components/brand/SectionLogoMark";
 import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { Field, LeadForm } from "@/components/forms/LeadForm";
+import { siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "Únete",
@@ -96,7 +97,8 @@ export default function UnetePage() {
               </LeadForm>
             </div>
             <p className="mt-4 text-xs text-muted">
-              Si necesitas urgencia o tema sensible, complementa con un correo directo desde la página de{" "}
+              La postulación llega al equipo Redalia por correo ({siteConfig.contact.email}). Si necesitas urgencia o
+              un tema sensible, también puedes escribir desde la página de{" "}
               <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
                 contacto
               </Link>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { dispatchLead } from "@/lib/lead-dispatch";
+import { dispatchRedaliaInbox } from "@/lib/redalia-inbox-dispatch";
 
 export const runtime = "nodejs";
 
@@ -71,15 +71,12 @@ Socio: ${partnerName} (${partnerKey}).
 Canales consultados: ${fieldsText}.
 Email: ${email}${telefono ? ` · Teléfono: ${telefono}` : ""}${empresa ? ` · Empresa: ${empresa}` : ""}${ciudad ? ` · Ciudad: ${ciudad}` : ""}.`;
 
-  const result = await dispatchLead({
-    kind: "contact",
-    nombre,
-    apellido,
-    email,
-    telefono: telefono || undefined,
-    empresa: empresa || undefined,
-    ciudad: ciudad || undefined,
-    mensaje: msg,
+  const result = await dispatchRedaliaInbox({
+    kind: "socios_contact",
+    subject: `[Redalia] Consulta de contacto de socio — ${partnerName}`,
+    textBody: msg,
+    replyTo: email,
+    meta: { partnerKey, partnerName, consultedFields: consulted },
   });
 
   if (!result.ok) {

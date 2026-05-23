@@ -9,7 +9,7 @@ import { siteConfig } from "@/lib/site-config";
 export type { ConsultaPayload } from "@/lib/consulta-dispatch-types";
 
 type DispatchConsultaResult =
-  | { ok: true; via: "kiteprop_messages" | "kiteprop_contacts" | "legacy_consulta" }
+  | { ok: true; via: "kiteprop_messages" | "legacy_consulta" }
   | { ok: false; error: string; upstreamStatus?: number };
 
 function trimText(v: unknown, max = 8000): string {
@@ -25,14 +25,6 @@ function toNumberOrNull(v: unknown): number | null {
     if (Number.isFinite(n)) return Math.floor(n);
   }
   return null;
-}
-
-function parseNameParts(fullName: string): { first_name: string; last_name: string | null } {
-  const safe = fullName.trim();
-  if (!safe) return { first_name: "Contacto", last_name: null };
-  const parts = safe.split(/\s+/).filter(Boolean);
-  if (parts.length <= 1) return { first_name: safe, last_name: null };
-  return { first_name: parts[0]!, last_name: parts.slice(1).join(" ") || null };
 }
 
 function toLegacySource(p: ConsultaPayload): string {
@@ -162,7 +154,9 @@ export function parseConsultaFromJson(body: unknown): ConsultaPayload | { error:
   if (!name) return { error: "name es obligatorio" };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "email inválido" };
   if (!message) return { error: "message es obligatorio" };
-  if (property_id != null && property_id <= 0) return { error: "property_id inválido" };
+  if (property_id == null || property_id <= 0) {
+    return { error: "property_id es obligatorio para consultas de propiedad" };
+  }
 
   return {
     property_id,
@@ -189,28 +183,16 @@ export async function dispatchConsulta(payload: ConsultaPayload): Promise<Dispat
     return postLegacyConsulta(legacyUrl, payload);
   }
 
-  if (payload.property_id != null && payload.property_id > 0) {
-    let msgBody: Record<string, unknown>;
-    try {
-      msgBody = buildKitepropMessagesBody(payload);
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Payload inválido" };
-    }
-    const url = `${getKitePropApiBaseUrl()}/messages`;
-    return postJsonWithApiKey(url, msgBody);
+  if (!payload.property_id || payload.property_id <= 0) {
+    return { ok: false, error: "property_id es obligatorio para consultas de propiedad" };
   }
 
-  const { first_name, last_name } = parseNameParts(payload.name);
-  const contactBody: Record<string, unknown> = {
-    first_name,
-    last_name,
-    email: payload.email,
-    phone: payload.phone,
-    source: payload.site || siteConfig.url,
-    summary: appendContextMessage(payload),
-  };
-  const url = `${getKitePropApiBaseUrl()}/contacts`;
-  const sent = await postJsonWithApiKey(url, contactBody);
-  if (!sent.ok) return sent;
-  return { ok: true, via: "kiteprop_contacts" };
+  let msgBody: Record<string, unknown>;
+  try {
+    msgBody = buildKitepropMessagesBody(payload);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Payload inválido" };
+  }
+  const url = `${getKitePropApiBaseUrl()}/messages`;
+  return postJsonWithApiKey(url, msgBody);
 }
