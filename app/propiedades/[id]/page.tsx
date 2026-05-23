@@ -193,6 +193,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                           whatsapp={inmob.whatsapp}
                           webUrl={inmob.webUrl}
                           className="mt-3"
+                          hideEmail
                         />
                       </div>
                     </div>
@@ -238,6 +239,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                           whatsapp={publica.row.whatsapp}
                           webUrl={publica.row.webUrl}
                           className="mt-3"
+                          hideEmail
                         />
                       </div>
                     </div>
@@ -278,6 +280,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                           whatsapp={consultar.whatsapp}
                           webUrl={consultar.webUrl}
                           className="mt-2"
+                          hideEmail
                         />
                         <Link
                           href={`/propiedades?socio=${encodeURIComponent(consultar.key)}`}
@@ -300,7 +303,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                 {showPublisherEmpty && (
                   <p className="text-sm leading-relaxed text-muted">
                     Los datos de contacto de la publicación se centralizan en Redalia para esta ficha. Para consultas
-                    específicas sobre la operación o la contraparte, usa el botón de consulta o{" "}
+                    sobre la operación, usa el formulario de consulta más abajo o{" "}
                     <Link href="/contacto" className="font-medium text-brand-gold-deep underline-offset-2 hover:underline">
                       escríbenos
                     </Link>
@@ -337,6 +340,13 @@ export default async function PropertyDetailPage({ params }: Props) {
               </div>
             </dl>
             <div className="mt-8 space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-gold-deep">
+                Consulta sobre esta propiedad
+              </h2>
+              <p className="text-xs leading-relaxed text-muted">
+                Tu mensaje se registra en KiteProp con el ID de la publicación y se despacha a la inmobiliaria y al
+                asesor asignado.
+              </p>
               <PropertyConsultForm
                 propertyId={kpDispatch.propertyId}
                 propertyCode={p.referenceCode}

@@ -1,13 +1,8 @@
-import { resolveLeadBearerTokenOrNull } from "@/lib/kiteprop/env-credentials";
-import { siteConfig } from "@/lib/site-config";
+import { dispatchRedaliaInbox } from "@/lib/redalia-inbox-dispatch";
 
 /**
- * Envío de leads desde formularios web.
- *
- * Prioridad:
- * 1) LEADS_WEBHOOK_URL — POST JSON (Make, Zapier, función serverless propia, etc.)
- * 2) KITEPROP_LEAD_POST_URL + bearer (`KITEPROP_API_TOKEN` o `KITEPROP_API_SECRET`) — POST a KiteProp
- * 3) Sin configuración: acepta el lead (modo noop) para no bloquear UX en desarrollo
+ * Postulaciones y contacto institucional → bandeja Redalia (correo / webhook).
+ * Las consultas sobre una propiedad van por `/api/consultas` → KiteProp Messages.
  */
 
 export type LeadKind = "contact" | "join";
@@ -30,82 +25,41 @@ function trim(s: unknown, max = 8000): string {
   return t.length > max ? t.slice(0, max) : t;
 }
 
-/** Cuerpo orientado a CRMs tipo KiteProp (ajustar según doc oficial del endpoint elegido). */
-export function toKitepropContactShape(p: LeadPayload): Record<string, unknown> {
-  return {
-    first_name: p.nombre,
-    last_name: p.apellido,
-    email: p.email,
-    phone: p.telefono || null,
-    company: p.empresa || null,
-    charge: p.cargo || null,
-    source: p.kind === "join" ? "redalia_unete" : "redalia_contacto",
-    summary: p.mensaje || null,
-    address: p.ciudad ? `Ciudad: ${p.ciudad}` : null,
-  };
+function formatLeadTextBody(p: LeadPayload): string {
+  const lines = [
+    `Origen: ${p.kind === "join" ? "Postulación / Únete" : "Formulario de contacto"}`,
+    `Nombre: ${p.nombre} ${p.apellido}`,
+    `Email: ${p.email}`,
+    p.telefono ? `Teléfono: ${p.telefono}` : null,
+    p.empresa ? `Empresa / corredora: ${p.empresa}` : null,
+    p.cargo ? `Cargo: ${p.cargo}` : null,
+    p.ciudad ? `Ciudad: ${p.ciudad}` : null,
+    p.mensaje ? `\nMensaje:\n${p.mensaje}` : null,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function leadSubject(p: LeadPayload): string {
+  if (p.kind === "join") {
+    const org = p.empresa?.trim() || "corredora";
+    return `[Redalia] Postulación de socio — ${org}`;
+  }
+  return `[Redalia] Contacto — ${p.nombre} ${p.apellido}`.trim();
 }
 
 export type DispatchResult =
-  | { ok: true; via: "webhook" | "kiteprop" | "noop" }
+  | { ok: true; via: "webhook" | "email" | "noop" }
   | { ok: false; error: string };
 
 export async function dispatchLead(payload: LeadPayload): Promise<DispatchResult> {
-  const envelope = {
-    ...payload,
-    submitted_at: new Date().toISOString(),
-    site: siteConfig.url,
-  };
-
-  const webhook = process.env.LEADS_WEBHOOK_URL?.trim();
-  if (webhook) {
-    try {
-      const res = await fetch(webhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(envelope),
-      });
-      if (!res.ok) {
-        return { ok: false, error: `Webhook respondió ${res.status}` };
-      }
-      return { ok: true, via: "webhook" };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error de red";
-      return { ok: false, error: msg };
-    }
-  }
-
-  const kpUrl = process.env.KITEPROP_LEAD_POST_URL?.trim();
-  const kpToken = resolveLeadBearerTokenOrNull();
-  if (kpUrl && kpToken) {
-    try {
-      const body = toKitepropContactShape(payload);
-      const res = await fetch(kpUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${kpToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        return {
-          ok: false,
-          error: text ? text.slice(0, 280) : `KiteProp respondió ${res.status}`,
-        };
-      }
-      return { ok: true, via: "kiteprop" };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error de red";
-      return { ok: false, error: msg };
-    }
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.info("[lead dispatch noop]", envelope);
-  }
-  return { ok: true, via: "noop" };
+  const result = await dispatchRedaliaInbox({
+    kind: payload.kind,
+    subject: leadSubject(payload),
+    textBody: formatLeadTextBody(payload),
+    replyTo: payload.email,
+    meta: { kind: payload.kind },
+  });
+  return result;
 }
 
 export function parseLeadFromJson(body: unknown, kind: LeadKind): LeadPayload | { error: string } {

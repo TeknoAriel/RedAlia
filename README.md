@@ -21,7 +21,7 @@ Abrir [http://localhost:3000](http://localhost:3000).
 | `REDALIA_PARTNER_DIRECTORY_SOURCE` | **`vercel.json` → `env`:** `network`** (directorio desde API de red cuando hay credenciales `KITEPROP_NETWORK_*` + login; si no, fallback al feed). |
 | `KITEPROP_PUBLIC_ORIGIN` | **`vercel.json` → `env`:** `https://www.kiteprop.com`** para absolutizar logos/media de la API. |
 | `KITEPROP_API_SECRET` | Opcional: **una** secret `kp_…` para API REST + mismo valor que usa el MCP (fallback de key/Bearer/leads). Ver **`docs/kiteprop-credentials.md`**. |
-| `LEADS_WEBHOOK_URL` | Opcional: POST de formularios Contacto / Únete |
+| `LEADS_WEBHOOK_URL` / `RESEND_API_KEY` | Opcional: postulaciones Únete, contacto y socios → `contacto@redalia.cl` |
 
 Copiá `.env.example` como referencia. Credenciales KiteProp / MCP: **`docs/kiteprop-credentials.md`**.
 
