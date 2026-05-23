@@ -27,12 +27,12 @@ export function buildKitepropContactFallbackBody(p: ConsultaPayload): Record<str
   const { first_name, last_name } = parseNameParts(p.name);
   const body: Record<string, unknown> = {
     first_name,
-    last_name,
+    last_name: last_name ?? ".",
     email: p.email,
-    phone: p.phone,
     source: "redalia_web",
     summary: appendContextMessage(p),
   };
+  if (p.phone?.trim()) body.phone = p.phone.trim();
 
   const assignedId = p.assigned_user_id ?? p.user_id;
   if (assignedId != null && assignedId > 0) {
@@ -46,4 +46,20 @@ export function isKitepropMessagesServerError(error: string, upstreamStatus?: nu
   if (upstreamStatus != null && upstreamStatus >= 500) return true;
   const e = error.toLowerCase();
   return e.includes("sqlstate") || e.includes("integrity constraint") || e.includes("respondió 5");
+}
+
+/** KP devuelve 422 cuando el email ya está en el CRM; la consulta igual quedó registrada. */
+export function isKitepropContactDuplicateEmailError(error: string): boolean {
+  const e = error.toLowerCase();
+  return e.includes("email ya existe") || e.includes("already exists");
+}
+
+/** Si `/messages` falla y hay asesor, intentar `/contacts` (bug SQL, validación, etc.). */
+export function shouldTryKitepropContactFallback(
+  messagesOk: boolean,
+  payload: ConsultaPayload,
+): boolean {
+  if (messagesOk) return false;
+  const assignedId = payload.assigned_user_id ?? payload.user_id;
+  return assignedId != null && assignedId > 0;
 }

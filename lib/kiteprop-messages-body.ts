@@ -35,8 +35,8 @@ export function buildKitepropMessagesBody(p: ConsultaPayload): Record<string, un
     first_name,
   };
 
-  if (last_name) body.last_name = last_name;
-  if (p.phone) body.phone = p.phone;
+  body.last_name = last_name ?? ".";
+  if (p.phone?.trim()) body.phone = p.phone.trim();
 
   const assignedId = p.assigned_user_id ?? p.user_id;
   if (assignedId != null && assignedId > 0) {
