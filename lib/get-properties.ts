@@ -33,7 +33,7 @@ function catalogRevalidateSeconds(): number {
 }
 
 /** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron (deploys con cambio de shape). */
-const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v7-json-no-sample";
+const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v8-cron-await-ingest";
 
 const loadCatalogCached = unstable_cache(
   async () => loadCatalogSnapshotUncached(),
