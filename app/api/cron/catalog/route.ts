@@ -1,7 +1,12 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
-import { writePersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
+import { catalogSnapshotFingerprint } from "@/lib/catalog-ingest/catalog-fingerprint";
+import {
+  readPersistedCatalogMeta,
+  touchPersistedCatalogSnapshotTtl,
+  writePersistedCatalogSnapshot,
+} from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
 
@@ -9,8 +14,8 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Cron de **propiedades** (feed JSON / red): invalida caché y precalienta solo el catálogo en Upstash.
- * El directorio de socios va en `GET /api/cron/socios` (24–48 h, sync incremental por ids).
+ * Cron de **propiedades**: reingesta el feed y solo invalida caché / reescribe snapshot
+ * si el fingerprint cambió. Si no hay cambios, renueva TTL en Redis y deja la caché caliente.
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -29,43 +34,66 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
-
-  const revalidatedAt = new Date().toISOString();
-  let prepopulated: "catalog_ok" | "catalog_empty" | "catalog_error" = "catalog_error";
+  const startedAt = new Date().toISOString();
+  let prepopulated: "catalog_ok" | "catalog_unchanged" | "catalog_empty" | "catalog_error" =
+    "catalog_error";
   let propertyCount = 0;
+  let changed = false;
+  let fingerprint: string | null = null;
+  let previousFingerprint: string | null = null;
   let ingestError: string | null = null;
 
   try {
+    const previous = await readPersistedCatalogMeta();
+    previousFingerprint = previous?.fingerprint ?? null;
+
     const snapshot = await loadCatalogSnapshotUncached();
-    if (snapshot.ok && snapshot.properties.length > 0) {
-      propertyCount = snapshot.properties.length;
-      await writePersistedCatalogSnapshot(snapshot);
-      prepopulated = "catalog_ok";
-    } else {
+    if (!snapshot.ok || snapshot.properties.length === 0) {
       prepopulated = "catalog_empty";
       ingestError =
         !snapshot.ok && "error" in snapshot
           ? snapshot.error
           : "Ingesta sin propiedades (revisá KITEPROP_PROPERTIES_SOURCE y feed).";
+    } else {
+      propertyCount = snapshot.properties.length;
+      fingerprint = catalogSnapshotFingerprint(snapshot);
+      const sameAsPrevious =
+        Boolean(previousFingerprint) && previousFingerprint === fingerprint;
+
+      if (sameAsPrevious) {
+        await touchPersistedCatalogSnapshotTtl();
+        prepopulated = "catalog_unchanged";
+        changed = false;
+      } else {
+        await writePersistedCatalogSnapshot(snapshot);
+        revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
+        prepopulated = "catalog_ok";
+        changed = true;
+      }
     }
   } catch (e) {
     ingestError = e instanceof Error ? e.message : "Error en ingesta de catálogo";
   }
 
-  const ok = prepopulated === "catalog_ok";
+  const ok = prepopulated === "catalog_ok" || prepopulated === "catalog_unchanged";
   return NextResponse.json(
     {
       ok,
       route: "cron/catalog",
       tag: REDALIA_CATALOG_CACHE_TAG,
-      revalidatedAt,
+      startedAt,
+      finishedAt: new Date().toISOString(),
       prepopulated,
+      changed,
       propertyCount,
+      fingerprint,
+      previousFingerprint,
       error: ingestError,
-      message: ok
-        ? `Catálogo precalentado (${propertyCount} propiedades).`
-        : "Cron autorizado pero la ingesta no dejó snapshot usable.",
+      message: !ok
+        ? "Cron autorizado pero la ingesta no dejó snapshot usable."
+        : changed
+          ? `Catálogo actualizado (${propertyCount} propiedades); caché invalidada.`
+          : `Sin cambios detectados (${propertyCount} propiedades); caché caliente conservada.`,
     },
     { status: ok ? 200 : 502 },
   );

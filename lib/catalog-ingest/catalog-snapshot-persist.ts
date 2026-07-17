@@ -2,6 +2,7 @@ import "server-only";
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { catalogSnapshotFingerprint } from "@/lib/catalog-ingest/catalog-fingerprint";
 import { isUpstashRedisConfigured, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
 import type { CatalogSnapshotSuccess } from "@/lib/catalog-ingest/catalog-result";
 
@@ -26,12 +27,23 @@ import type { CatalogSnapshotSuccess } from "@/lib/catalog-ingest/catalog-result
 
 const REDIS_KEY = "redalia:catalog:snapshot:v1";
 const TTL_SECONDS = 60 * 60 * 12;
+/** Metadatos livianos (sin snapshot completo) para comparar en el cron sin leer ~MB de Redis. */
+const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v1";
 
 export type PersistedCatalogSnapshotV1 = {
   version: 1;
   generatedAtMs: number;
   propertyCount: number;
+  /** sha256 truncado; opcional en snapshots viejos (se recalcula al leer si falta). */
+  fingerprint?: string;
   snapshot: CatalogSnapshotSuccess;
+};
+
+export type PersistedCatalogMetaV1 = {
+  version: 1;
+  generatedAtMs: number;
+  propertyCount: number;
+  fingerprint: string;
 };
 
 function devSnapshotPath(): string {
@@ -76,23 +88,73 @@ export async function readPersistedCatalogSnapshot(): Promise<PersistedCatalogSn
   return readDevFile();
 }
 
+export async function readPersistedCatalogMeta(): Promise<PersistedCatalogMetaV1 | null> {
+  if (isUpstashRedisConfigured()) {
+    try {
+      const raw = await upstashGet(REDIS_META_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as PersistedCatalogMetaV1;
+        if (parsed?.version === 1 && parsed.fingerprint && parsed.propertyCount > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* fallback abajo */
+    }
+  }
+  const full = await readPersistedCatalogSnapshot();
+  if (!full?.snapshot.ok) return null;
+  const fingerprint = full.fingerprint || catalogSnapshotFingerprint(full.snapshot);
+  return {
+    version: 1,
+    generatedAtMs: full.generatedAtMs,
+    propertyCount: full.propertyCount,
+    fingerprint,
+  };
+}
+
 export async function writePersistedCatalogSnapshot(snapshot: CatalogSnapshotSuccess): Promise<void> {
   if (!snapshot.ok || snapshot.properties.length === 0) return;
+  const fingerprint = catalogSnapshotFingerprint(snapshot);
   const payload: PersistedCatalogSnapshotV1 = {
     version: 1,
     generatedAtMs: Date.now(),
     propertyCount: snapshot.properties.length,
+    fingerprint,
     snapshot,
   };
+  const meta: PersistedCatalogMetaV1 = {
+    version: 1,
+    generatedAtMs: payload.generatedAtMs,
+    propertyCount: payload.propertyCount,
+    fingerprint,
+  };
   const json = JSON.stringify(payload);
+  const metaJson = JSON.stringify(meta);
   if (isUpstashRedisConfigured()) {
     try {
       await upstashSet(REDIS_KEY, json, TTL_SECONDS);
+      await upstashSet(REDIS_META_KEY, metaJson, TTL_SECONDS);
     } catch {
       /* noop: cache best-effort */
     }
   }
   await writeDevFile(payload);
+}
+
+/** Renueva TTL del snapshot existente sin reescribir el catálogo completo. */
+export async function touchPersistedCatalogSnapshotTtl(): Promise<boolean> {
+  if (!isUpstashRedisConfigured()) return false;
+  try {
+    const raw = await upstashGet(REDIS_KEY);
+    const metaRaw = await upstashGet(REDIS_META_KEY);
+    if (!raw) return false;
+    await upstashSet(REDIS_KEY, raw, TTL_SECONDS);
+    if (metaRaw) await upstashSet(REDIS_META_KEY, metaRaw, TTL_SECONDS);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** TTL del snapshot persistido (segundos). Útil para tests / observabilidad. */
