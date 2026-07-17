@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
 import { writePersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
@@ -31,25 +31,42 @@ export async function GET(request: Request) {
 
   revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
 
-  after(async () => {
-    try {
-      const snapshot = await loadCatalogSnapshotUncached();
-      if (snapshot.ok && snapshot.properties.length > 0) {
-        await writePersistedCatalogSnapshot(snapshot);
-      }
-    } catch {
-      /* noop: el siguiente request del usuario reintentará la ingesta */
-    }
-  });
-
   const revalidatedAt = new Date().toISOString();
-  return NextResponse.json({
-    ok: true,
-    route: "cron/catalog",
-    tag: REDALIA_CATALOG_CACHE_TAG,
-    revalidatedAt,
-    prepopulated: "catalog_only",
-    message:
-      "Tag de catálogo invalidado y precalentamiento de propiedades en background. Socios: /api/cron/socios.",
-  });
+  let prepopulated: "catalog_ok" | "catalog_empty" | "catalog_error" = "catalog_error";
+  let propertyCount = 0;
+  let ingestError: string | null = null;
+
+  try {
+    const snapshot = await loadCatalogSnapshotUncached();
+    if (snapshot.ok && snapshot.properties.length > 0) {
+      propertyCount = snapshot.properties.length;
+      await writePersistedCatalogSnapshot(snapshot);
+      prepopulated = "catalog_ok";
+    } else {
+      prepopulated = "catalog_empty";
+      ingestError =
+        !snapshot.ok && "error" in snapshot
+          ? snapshot.error
+          : "Ingesta sin propiedades (revisá KITEPROP_PROPERTIES_SOURCE y feed).";
+    }
+  } catch (e) {
+    ingestError = e instanceof Error ? e.message : "Error en ingesta de catálogo";
+  }
+
+  const ok = prepopulated === "catalog_ok";
+  return NextResponse.json(
+    {
+      ok,
+      route: "cron/catalog",
+      tag: REDALIA_CATALOG_CACHE_TAG,
+      revalidatedAt,
+      prepopulated,
+      propertyCount,
+      error: ingestError,
+      message: ok
+        ? `Catálogo precalentado (${propertyCount} propiedades).`
+        : "Cron autorizado pero la ingesta no dejó snapshot usable.",
+    },
+    { status: ok ? 200 : 502 },
+  );
 }
