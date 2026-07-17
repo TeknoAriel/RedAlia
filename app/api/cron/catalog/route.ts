@@ -7,6 +7,7 @@ import {
   touchPersistedCatalogSnapshotTtl,
   writePersistedCatalogSnapshot,
 } from "@/lib/catalog-ingest/catalog-snapshot-persist";
+import { probeJsonFeedUnchanged } from "@/lib/catalog-ingest/json-feed";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
 
@@ -14,8 +15,9 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Cron de **propiedades**: reingesta el feed y solo invalida caché / reescribe snapshot
- * si el fingerprint cambió. Si no hay cambios, renueva TTL en Redis y deja la caché caliente.
+ * Cron de **propiedades**:
+ * 1) HEAD condicional al feed (ETag) → si 304, renueva TTL y sale sin descarga.
+ * 2) Si hay cuerpo nuevo, compara fingerprint y solo invalida caché si cambió.
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -35,47 +37,66 @@ export async function GET(request: Request) {
   }
 
   const startedAt = new Date().toISOString();
-  let prepopulated: "catalog_ok" | "catalog_unchanged" | "catalog_empty" | "catalog_error" =
-    "catalog_error";
+  let prepopulated:
+    | "catalog_ok"
+    | "catalog_unchanged"
+    | "catalog_feed_not_modified"
+    | "catalog_empty"
+    | "catalog_error" = "catalog_error";
   let propertyCount = 0;
   let changed = false;
   let fingerprint: string | null = null;
   let previousFingerprint: string | null = null;
+  let feedNotModified = false;
   let ingestError: string | null = null;
 
   try {
     const previous = await readPersistedCatalogMeta();
     previousFingerprint = previous?.fingerprint ?? null;
+    propertyCount = previous?.propertyCount ?? 0;
+    fingerprint = previousFingerprint;
 
-    const snapshot = await loadCatalogSnapshotUncached();
-    if (!snapshot.ok || snapshot.properties.length === 0) {
-      prepopulated = "catalog_empty";
-      ingestError =
-        !snapshot.ok && "error" in snapshot
-          ? snapshot.error
-          : "Ingesta sin propiedades (revisá KITEPROP_PROPERTIES_SOURCE y feed).";
+    const feedUnchanged = await probeJsonFeedUnchanged();
+    if (feedUnchanged && previous?.propertyCount) {
+      await touchPersistedCatalogSnapshotTtl();
+      prepopulated = "catalog_feed_not_modified";
+      changed = false;
+      feedNotModified = true;
     } else {
-      propertyCount = snapshot.properties.length;
-      fingerprint = catalogSnapshotFingerprint(snapshot);
-      const sameAsPrevious =
-        Boolean(previousFingerprint) && previousFingerprint === fingerprint;
-
-      if (sameAsPrevious) {
-        await touchPersistedCatalogSnapshotTtl();
-        prepopulated = "catalog_unchanged";
-        changed = false;
+      const snapshot = await loadCatalogSnapshotUncached();
+      if (!snapshot.ok || snapshot.properties.length === 0) {
+        prepopulated = "catalog_empty";
+        ingestError =
+          !snapshot.ok && "error" in snapshot
+            ? snapshot.error
+            : "Ingesta sin propiedades (revisá KITEPROP_PROPERTIES_SOURCE y feed).";
       } else {
-        await writePersistedCatalogSnapshot(snapshot);
-        revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
-        prepopulated = "catalog_ok";
-        changed = true;
+        propertyCount = snapshot.properties.length;
+        fingerprint = catalogSnapshotFingerprint(snapshot);
+        const sameAsPrevious =
+          Boolean(previousFingerprint) && previousFingerprint === fingerprint;
+
+        if (sameAsPrevious) {
+          await touchPersistedCatalogSnapshotTtl();
+          prepopulated = "catalog_unchanged";
+          changed = false;
+        } else {
+          await writePersistedCatalogSnapshot(snapshot);
+          revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
+          prepopulated = "catalog_ok";
+          changed = true;
+        }
       }
     }
   } catch (e) {
     ingestError = e instanceof Error ? e.message : "Error en ingesta de catálogo";
   }
 
-  const ok = prepopulated === "catalog_ok" || prepopulated === "catalog_unchanged";
+  const ok =
+    prepopulated === "catalog_ok" ||
+    prepopulated === "catalog_unchanged" ||
+    prepopulated === "catalog_feed_not_modified";
+
   return NextResponse.json(
     {
       ok,
@@ -85,15 +106,18 @@ export async function GET(request: Request) {
       finishedAt: new Date().toISOString(),
       prepopulated,
       changed,
+      feedNotModified,
       propertyCount,
       fingerprint,
       previousFingerprint,
       error: ingestError,
       message: !ok
         ? "Cron autorizado pero la ingesta no dejó snapshot usable."
-        : changed
-          ? `Catálogo actualizado (${propertyCount} propiedades); caché invalidada.`
-          : `Sin cambios detectados (${propertyCount} propiedades); caché caliente conservada.`,
+        : feedNotModified
+          ? `Feed sin cambios (HTTP 304); caché caliente conservada (${propertyCount} propiedades).`
+          : changed
+            ? `Catálogo actualizado (${propertyCount} propiedades); caché invalidada.`
+            : `Sin cambios detectados (${propertyCount} propiedades); caché caliente conservada.`,
     },
     { status: ok ? 200 : 502 },
   );
