@@ -42,3 +42,13 @@ export async function writeJsonFeedValidators(input: {
     /* noop */
   }
 }
+
+/** Borra validators para forzar descarga completa del feed (recuperación). */
+export async function clearJsonFeedValidators(): Promise<void> {
+  if (!isUpstashRedisConfigured()) return;
+  try {
+    await upstashSet(REDIS_KEY, JSON.stringify({ version: 1, etag: null, lastModified: null, savedAtMs: 0 }), 1);
+  } catch {
+    /* noop */
+  }
+}

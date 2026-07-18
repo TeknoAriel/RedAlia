@@ -87,6 +87,35 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
     }
   } else {
     errors.push("catalog_snapshot_missing");
+    // Fallback: ingest live (o 304→chunks) para no abortar el sync de socios.
+    try {
+      const { loadCatalogSnapshotUncached } = await import(
+        "@/lib/catalog-ingest/load-catalog-snapshot"
+      );
+      const { writePersistedCatalogSnapshot } = await import(
+        "@/lib/catalog-ingest/catalog-snapshot-persist"
+      );
+      const { clearJsonFeedValidators } = await import(
+        "@/lib/catalog-ingest/json-feed-validators"
+      );
+      await clearJsonFeedValidators();
+      const live = await loadCatalogSnapshotUncached();
+      if (live.ok && live.properties.length > 0) {
+        properties = live.properties;
+        catalogListings = properties.length;
+        for (const row of extractSociosGridCatalog(properties)) {
+          keys.add(row.key);
+        }
+        await writePersistedCatalogSnapshot(live);
+        errors.push("catalog_snapshot_rebuilt_from_live");
+      } else {
+        errors.push("catalog_live_empty");
+      }
+    } catch (e) {
+      errors.push(
+        `catalog_live_failed:${e instanceof Error ? e.message : "unknown"}`,
+      );
+    }
   }
 
   let orgDrafts: PublicPartnerDirectoryRowDraft[] = [];
