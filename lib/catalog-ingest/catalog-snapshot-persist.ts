@@ -3,48 +3,47 @@ import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { catalogSnapshotFingerprint } from "@/lib/catalog-ingest/catalog-fingerprint";
-import { isUpstashRedisConfigured, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
 import type { CatalogSnapshotSuccess } from "@/lib/catalog-ingest/catalog-result";
+import { isUpstashRedisConfigured, upstashGet, upstashSet } from "@/lib/kv/upstash-string";
+import type { NormalizedProperty } from "@/types/property";
+import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 
 /**
  * Cache persistente del catálogo público (mirror del último ingest exitoso).
  *
- * Reglas de diseño:
- * - **No es source of truth**: la fuente sigue siendo el feed JSON / red. Esto solo guarda el
- *   último resultado válido para servir respuestas rápidas en lambdas cold (donde
- *   `unstable_cache` está vacío).
- * - **Solo persiste éxitos** con `ok: true` y al menos una propiedad. Errores y resultados
- *   vacíos no sobrescriben el snapshot guardado.
- * - **TTL** generoso (12 h) y bump manual de la clave si cambia el shape (igual que
- *   `CATALOG_UNSTABLE_CACHE_KEY`).
- *
- * Storage:
- * - Producción: Upstash Redis REST si `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`
- *   están configurados.
- * - Desarrollo: archivo JSON bajo `.redalia-cache/catalog-snapshot.json` (mismo patrón que
- *   `partner-directory-snapshot-persist.ts`).
+ * Upstash free/pay-as-you-go limita requests a ~10 MB: el snapshot completo (~15–20 MB)
+ * se guarda en **chunks** (`v2`) para no fallar en silencio.
  */
 
-const REDIS_KEY = "redalia:catalog:snapshot:v1";
+const REDIS_LEGACY_KEY = "redalia:catalog:snapshot:v1";
+const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v2";
+const REDIS_CHUNK_PREFIX = "redalia:catalog:snapshot:v2:chunk:";
+/** Props por chunk: deja cada SET bajo el límite de 10 MB del plan Upstash. */
+const PROPS_PER_CHUNK = 60;
 const TTL_SECONDS = 60 * 60 * 12;
-/** Metadatos livianos (sin snapshot completo) para comparar en el cron sin leer ~MB de Redis. */
-const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v1";
 
 export type PersistedCatalogSnapshotV1 = {
   version: 1;
   generatedAtMs: number;
   propertyCount: number;
-  /** sha256 truncado; opcional en snapshots viejos (se recalcula al leer si falta). */
   fingerprint?: string;
   snapshot: CatalogSnapshotSuccess;
 };
 
 export type PersistedCatalogMetaV1 = {
-  version: 1;
+  version: 1 | 2;
   generatedAtMs: number;
   propertyCount: number;
   fingerprint: string;
+  chunkCount?: number;
+  source?: CatalogSnapshotSuccess["source"];
+  partnerDirectoryExtraDrafts?: PublicPartnerDirectoryRowDraft[];
+  partnerDirectoryNetworkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[];
 };
+
+function chunkKey(i: number): string {
+  return `${REDIS_CHUNK_PREFIX}${i}`;
+}
 
 function devSnapshotPath(): string {
   return path.join(process.cwd(), ".redalia-cache", "catalog-snapshot.json");
@@ -69,18 +68,75 @@ async function writeDevFile(payload: PersistedCatalogSnapshotV1): Promise<void> 
     await mkdir(dir, { recursive: true });
     await writeFile(devSnapshotPath(), JSON.stringify(payload), "utf8");
   } catch {
-    /* noop: cache best-effort */
+    /* noop */
+  }
+}
+
+function chunkProperties(properties: NormalizedProperty[]): NormalizedProperty[][] {
+  const chunks: NormalizedProperty[][] = [];
+  for (let i = 0; i < properties.length; i += PROPS_PER_CHUNK) {
+    chunks.push(properties.slice(i, i + PROPS_PER_CHUNK));
+  }
+  return chunks.length ? chunks : [[]];
+}
+
+async function readChunkedFromRedis(): Promise<PersistedCatalogSnapshotV1 | null> {
+  const metaRaw = await upstashGet(REDIS_META_KEY);
+  if (!metaRaw) return null;
+  const meta = JSON.parse(metaRaw) as PersistedCatalogMetaV1;
+  if (!meta?.fingerprint || !meta.propertyCount || !meta.chunkCount || meta.chunkCount < 1) {
+    return null;
+  }
+
+  const chunkRaws = await Promise.all(
+    Array.from({ length: meta.chunkCount }, (_, i) => upstashGet(chunkKey(i))),
+  );
+  if (chunkRaws.some((c) => !c)) return null;
+
+  const properties: NormalizedProperty[] = [];
+  for (const raw of chunkRaws) {
+    const part = JSON.parse(raw!) as NormalizedProperty[];
+    if (!Array.isArray(part)) return null;
+    properties.push(...part);
+  }
+
+  if (properties.length !== meta.propertyCount) return null;
+
+  const snapshot: CatalogSnapshotSuccess = {
+    ok: true,
+    properties,
+    source: meta.source ?? "remote",
+    partnerDirectoryExtraDrafts: meta.partnerDirectoryExtraDrafts,
+    partnerDirectoryNetworkAdvertiserDrafts: meta.partnerDirectoryNetworkAdvertiserDrafts,
+  };
+
+  return {
+    version: 1,
+    generatedAtMs: meta.generatedAtMs,
+    propertyCount: meta.propertyCount,
+    fingerprint: meta.fingerprint,
+    snapshot,
+  };
+}
+
+async function readLegacyFromRedis(): Promise<PersistedCatalogSnapshotV1 | null> {
+  try {
+    const raw = await upstashGet(REDIS_LEGACY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedCatalogSnapshotV1;
+    if (parsed?.version !== 1 || !parsed.snapshot?.ok) return null;
+    return parsed;
+  } catch {
+    return null;
   }
 }
 
 export async function readPersistedCatalogSnapshot(): Promise<PersistedCatalogSnapshotV1 | null> {
   if (isUpstashRedisConfigured()) {
     try {
-      const raw = await upstashGet(REDIS_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as PersistedCatalogSnapshotV1;
-      if (parsed?.version !== 1 || !parsed.snapshot?.ok) return null;
-      return parsed;
+      const chunked = await readChunkedFromRedis();
+      if (chunked) return chunked;
+      return await readLegacyFromRedis();
     } catch {
       return null;
     }
@@ -94,70 +150,137 @@ export async function readPersistedCatalogMeta(): Promise<PersistedCatalogMetaV1
       const raw = await upstashGet(REDIS_META_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as PersistedCatalogMetaV1;
-        if (parsed?.version === 1 && parsed.fingerprint && parsed.propertyCount > 0) {
-          return parsed;
-        }
+        if (parsed?.fingerprint && parsed.propertyCount > 0) return parsed;
+      }
+      // meta v1 legacy (sin chunks)
+      const legacyMeta = await upstashGet("redalia:catalog:snapshot:meta:v1");
+      if (legacyMeta) {
+        const parsed = JSON.parse(legacyMeta) as PersistedCatalogMetaV1;
+        if (parsed?.fingerprint && parsed.propertyCount > 0) return parsed;
       }
     } catch {
-      /* fallback abajo */
+      /* fallback */
     }
   }
   const full = await readPersistedCatalogSnapshot();
   if (!full?.snapshot.ok) return null;
   const fingerprint = full.fingerprint || catalogSnapshotFingerprint(full.snapshot);
   return {
-    version: 1,
+    version: 2,
     generatedAtMs: full.generatedAtMs,
     propertyCount: full.propertyCount,
     fingerprint,
+    chunkCount: Math.ceil(full.propertyCount / PROPS_PER_CHUNK) || 1,
+    source: full.snapshot.source,
   };
 }
 
-export async function writePersistedCatalogSnapshot(snapshot: CatalogSnapshotSuccess): Promise<void> {
-  if (!snapshot.ok || snapshot.properties.length === 0) return;
+export type WritePersistedCatalogResult = {
+  ok: boolean;
+  chunkCount: number;
+  bytesApprox: number;
+  error?: string;
+};
+
+export async function writePersistedCatalogSnapshot(
+  snapshot: CatalogSnapshotSuccess,
+): Promise<WritePersistedCatalogResult> {
+  if (!snapshot.ok || snapshot.properties.length === 0) {
+    return { ok: false, chunkCount: 0, bytesApprox: 0, error: "empty_snapshot" };
+  }
+
   const fingerprint = catalogSnapshotFingerprint(snapshot);
-  const payload: PersistedCatalogSnapshotV1 = {
+  const chunks = chunkProperties(snapshot.properties);
+  const generatedAtMs = Date.now();
+  const meta: PersistedCatalogMetaV1 = {
+    version: 2,
+    generatedAtMs,
+    propertyCount: snapshot.properties.length,
+    fingerprint,
+    chunkCount: chunks.length,
+    source: snapshot.source,
+    partnerDirectoryExtraDrafts: snapshot.partnerDirectoryExtraDrafts,
+    partnerDirectoryNetworkAdvertiserDrafts: snapshot.partnerDirectoryNetworkAdvertiserDrafts,
+  };
+
+  const payloadForDev: PersistedCatalogSnapshotV1 = {
     version: 1,
-    generatedAtMs: Date.now(),
+    generatedAtMs,
     propertyCount: snapshot.properties.length,
     fingerprint,
     snapshot,
   };
-  const meta: PersistedCatalogMetaV1 = {
-    version: 1,
-    generatedAtMs: payload.generatedAtMs,
-    propertyCount: payload.propertyCount,
-    fingerprint,
-  };
-  const json = JSON.stringify(payload);
-  const metaJson = JSON.stringify(meta);
+
+  let bytesApprox = Buffer.byteLength(JSON.stringify(meta), "utf8");
+
   if (isUpstashRedisConfigured()) {
     try {
-      await upstashSet(REDIS_KEY, json, TTL_SECONDS);
-      await upstashSet(REDIS_META_KEY, metaJson, TTL_SECONDS);
-    } catch {
-      /* noop: cache best-effort */
+      for (let i = 0; i < chunks.length; i++) {
+        const body = JSON.stringify(chunks[i]);
+        bytesApprox += Buffer.byteLength(body, "utf8");
+        const ok = await upstashSet(chunkKey(i), body, TTL_SECONDS);
+        if (!ok) {
+          return {
+            ok: false,
+            chunkCount: chunks.length,
+            bytesApprox,
+            error: `chunk_write_failed:${i}`,
+          };
+        }
+      }
+      const metaOk = await upstashSet(REDIS_META_KEY, JSON.stringify(meta), TTL_SECONDS);
+      if (!metaOk) {
+        return { ok: false, chunkCount: chunks.length, bytesApprox, error: "meta_write_failed" };
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        chunkCount: chunks.length,
+        bytesApprox,
+        error: e instanceof Error ? e.message : "redis_write_error",
+      };
     }
   }
-  await writeDevFile(payload);
+
+  await writeDevFile(payloadForDev);
+  return { ok: true, chunkCount: chunks.length, bytesApprox };
 }
 
-/** Renueva TTL del snapshot existente sin reescribir el catálogo completo. */
+/** Renueva TTL del snapshot chunked (o legacy) sin reescribir el catálogo. */
 export async function touchPersistedCatalogSnapshotTtl(): Promise<boolean> {
   if (!isUpstashRedisConfigured()) return false;
   try {
-    const raw = await upstashGet(REDIS_KEY);
     const metaRaw = await upstashGet(REDIS_META_KEY);
-    if (!raw) return false;
-    await upstashSet(REDIS_KEY, raw, TTL_SECONDS);
-    if (metaRaw) await upstashSet(REDIS_META_KEY, metaRaw, TTL_SECONDS);
+    if (metaRaw) {
+      const meta = JSON.parse(metaRaw) as PersistedCatalogMetaV1;
+      const n = meta.chunkCount ?? 0;
+      if (n > 0) {
+        const chunkRaws = await Promise.all(
+          Array.from({ length: n }, (_, i) => upstashGet(chunkKey(i))),
+        );
+        if (chunkRaws.some((c) => !c)) return false;
+        await upstashSet(REDIS_META_KEY, metaRaw, TTL_SECONDS);
+        await Promise.all(
+          chunkRaws.map((raw, i) => upstashSet(chunkKey(i), raw!, TTL_SECONDS)),
+        );
+        return true;
+      }
+    }
+    const legacy = await upstashGet(REDIS_LEGACY_KEY);
+    if (!legacy) return false;
+    await upstashSet(REDIS_LEGACY_KEY, legacy, TTL_SECONDS);
     return true;
   } catch {
     return false;
   }
 }
 
-/** TTL del snapshot persistido (segundos). Útil para tests / observabilidad. */
+/** true si hay snapshot usable en Redis (chunks o legacy). */
+export async function hasPersistedCatalogSnapshot(): Promise<boolean> {
+  const snap = await readPersistedCatalogSnapshot();
+  return Boolean(snap?.snapshot.ok && snap.snapshot.properties.length > 0);
+}
+
 export function getPersistedCatalogSnapshotTtlSeconds(): number {
   return TTL_SECONDS;
 }
