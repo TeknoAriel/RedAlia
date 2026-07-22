@@ -18,6 +18,8 @@ import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 const REDIS_LEGACY_KEY = "redalia:catalog:snapshot:v1";
 const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v2";
 const REDIS_CHUNK_PREFIX = "redalia:catalog:snapshot:v2:chunk:";
+const REDIS_ORG_DRAFTS_KEY = "redalia:catalog:snapshot:v2:org-drafts";
+const REDIS_ADV_DRAFTS_KEY = "redalia:catalog:snapshot:v2:adv-drafts";
 /** Props por chunk: deja cada SET bajo el límite de 10 MB del plan Upstash. */
 const PROPS_PER_CHUNK = 60;
 const TTL_SECONDS = 60 * 60 * 12;
@@ -30,6 +32,7 @@ export type PersistedCatalogSnapshotV1 = {
   snapshot: CatalogSnapshotSuccess;
 };
 
+/** Meta liviana: sin drafts (van en claves aparte para no hinchar ~200 KB+). */
 export type PersistedCatalogMetaV1 = {
   version: 1 | 2;
   generatedAtMs: number;
@@ -37,7 +40,9 @@ export type PersistedCatalogMetaV1 = {
   fingerprint: string;
   chunkCount?: number;
   source?: CatalogSnapshotSuccess["source"];
+  /** @deprecated solo snapshots viejos; preferir claves org/adv-drafts. */
   partnerDirectoryExtraDrafts?: PublicPartnerDirectoryRowDraft[];
+  /** @deprecated solo snapshots viejos. */
   partnerDirectoryNetworkAdvertiserDrafts?: PublicPartnerDirectoryRowDraft[];
 };
 
@@ -88,9 +93,11 @@ async function readChunkedFromRedis(): Promise<PersistedCatalogSnapshotV1 | null
     return null;
   }
 
-  const chunkRaws = await Promise.all(
-    Array.from({ length: meta.chunkCount }, (_, i) => upstashGet(chunkKey(i))),
-  );
+  const [chunkRaws, orgRaw, advRaw] = await Promise.all([
+    Promise.all(Array.from({ length: meta.chunkCount }, (_, i) => upstashGet(chunkKey(i)))),
+    upstashGet(REDIS_ORG_DRAFTS_KEY),
+    upstashGet(REDIS_ADV_DRAFTS_KEY),
+  ]);
   if (chunkRaws.some((c) => !c)) return null;
 
   const properties: NormalizedProperty[] = [];
@@ -102,12 +109,31 @@ async function readChunkedFromRedis(): Promise<PersistedCatalogSnapshotV1 | null
 
   if (properties.length !== meta.propertyCount) return null;
 
+  let orgDrafts = meta.partnerDirectoryExtraDrafts;
+  let advDrafts = meta.partnerDirectoryNetworkAdvertiserDrafts;
+  if (orgRaw) {
+    try {
+      const parsed = JSON.parse(orgRaw) as PublicPartnerDirectoryRowDraft[];
+      if (Array.isArray(parsed)) orgDrafts = parsed;
+    } catch {
+      /* keep meta fallback */
+    }
+  }
+  if (advRaw) {
+    try {
+      const parsed = JSON.parse(advRaw) as PublicPartnerDirectoryRowDraft[];
+      if (Array.isArray(parsed)) advDrafts = parsed;
+    } catch {
+      /* keep meta fallback */
+    }
+  }
+
   const snapshot: CatalogSnapshotSuccess = {
     ok: true,
     properties,
     source: meta.source ?? "remote",
-    partnerDirectoryExtraDrafts: meta.partnerDirectoryExtraDrafts,
-    partnerDirectoryNetworkAdvertiserDrafts: meta.partnerDirectoryNetworkAdvertiserDrafts,
+    partnerDirectoryExtraDrafts: orgDrafts,
+    partnerDirectoryNetworkAdvertiserDrafts: advDrafts,
   };
 
   return {
@@ -199,8 +225,6 @@ export async function writePersistedCatalogSnapshot(
     fingerprint,
     chunkCount: chunks.length,
     source: snapshot.source,
-    partnerDirectoryExtraDrafts: snapshot.partnerDirectoryExtraDrafts,
-    partnerDirectoryNetworkAdvertiserDrafts: snapshot.partnerDirectoryNetworkAdvertiserDrafts,
   };
 
   const payloadForDev: PersistedCatalogSnapshotV1 = {
@@ -227,6 +251,16 @@ export async function writePersistedCatalogSnapshot(
             error: `chunk_write_failed:${i}`,
           };
         }
+      }
+      const orgDrafts = snapshot.partnerDirectoryExtraDrafts ?? [];
+      const advDrafts = snapshot.partnerDirectoryNetworkAdvertiserDrafts ?? [];
+      const orgBody = JSON.stringify(orgDrafts);
+      const advBody = JSON.stringify(advDrafts);
+      bytesApprox += Buffer.byteLength(orgBody, "utf8") + Buffer.byteLength(advBody, "utf8");
+      const orgOk = await upstashSet(REDIS_ORG_DRAFTS_KEY, orgBody, TTL_SECONDS);
+      const advOk = await upstashSet(REDIS_ADV_DRAFTS_KEY, advBody, TTL_SECONDS);
+      if (!orgOk || !advOk) {
+        return { ok: false, chunkCount: chunks.length, bytesApprox, error: "drafts_write_failed" };
       }
       const metaOk = await upstashSet(REDIS_META_KEY, JSON.stringify(meta), TTL_SECONDS);
       if (!metaOk) {
@@ -260,9 +294,15 @@ export async function touchPersistedCatalogSnapshotTtl(): Promise<boolean> {
         );
         if (chunkRaws.some((c) => !c)) return false;
         await upstashSet(REDIS_META_KEY, metaRaw, TTL_SECONDS);
-        await Promise.all(
-          chunkRaws.map((raw, i) => upstashSet(chunkKey(i), raw!, TTL_SECONDS)),
-        );
+        await Promise.all([
+          ...chunkRaws.map((raw, i) => upstashSet(chunkKey(i), raw!, TTL_SECONDS)),
+          (async () => {
+            const org = await upstashGet(REDIS_ORG_DRAFTS_KEY);
+            if (org) await upstashSet(REDIS_ORG_DRAFTS_KEY, org, TTL_SECONDS);
+            const adv = await upstashGet(REDIS_ADV_DRAFTS_KEY);
+            if (adv) await upstashSet(REDIS_ADV_DRAFTS_KEY, adv, TTL_SECONDS);
+          })(),
+        ]);
         return true;
       }
     }
