@@ -93,7 +93,10 @@ export async function GET(request: Request) {
         propertyCount = snapshot.properties.length;
         fingerprint = catalogSnapshotFingerprint(snapshot);
         const sameAsPrevious =
-          Boolean(previousFingerprint) && previousFingerprint === fingerprint && hasSnapshot;
+          !force &&
+          Boolean(previousFingerprint) &&
+          previousFingerprint === fingerprint &&
+          hasSnapshot;
 
         if (sameAsPrevious) {
           await touchPersistedCatalogSnapshotTtl();
