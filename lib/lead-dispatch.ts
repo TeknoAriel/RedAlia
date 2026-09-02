@@ -19,6 +19,7 @@ export type LeadPayload = {
   ciudad?: string;
   mensaje?: string;
   plan?: string;
+  origen?: string;
 };
 
 function trim(s: unknown, max = 8000): string {
@@ -29,7 +30,7 @@ function trim(s: unknown, max = 8000): string {
 
 function formatLeadTextBody(p: LeadPayload): string {
   const lines = [
-    `Origen: ${p.kind === "join" ? "Postulación / Únete" : "Formulario de contacto"}`,
+    `Origen: ${p.kind === "join" ? "Postulación / Únete" : "Formulario de contacto"}${p.origen ? ` · ${p.origen}` : ""}`,
     `Nombre: ${p.nombre} ${p.apellido}`,
     `Email: ${p.email}`,
     p.telefono ? `Teléfono: ${p.telefono}` : null,
@@ -86,6 +87,7 @@ export function parseLeadFromJson(body: unknown, kind: LeadKind): LeadPayload | 
   const ciudad = trim(o.ciudad, 120) || undefined;
   const mensaje = trim(o.mensaje, 8000) || undefined;
   const plan = trim(o.plan, 80) || undefined;
+  const origen = trim(o.origen, 80) || undefined;
 
   if (!nombre || !apellido) return { error: "Nombre y apellido son obligatorios" };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -113,5 +115,6 @@ export function parseLeadFromJson(body: unknown, kind: LeadKind): LeadPayload | 
     ciudad,
     mensaje,
     plan,
+    origen,
   };
 }
