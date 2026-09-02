@@ -15,6 +15,7 @@ export function buildLeadMailtoUrl(payload: LeadPayload): string {
     payload.cargo ? `Cargo: ${payload.cargo}` : null,
     payload.ciudad ? `Ciudad: ${payload.ciudad}` : null,
     payload.plan ? `Plan de interés: ${payload.plan}` : null,
+    payload.origen ? `Origen: ${payload.origen}` : null,
     payload.mensaje ? `\n${payload.mensaje}` : null,
   ].filter(Boolean);
 

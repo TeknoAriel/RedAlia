@@ -52,6 +52,8 @@ export function Navbar() {
   const [mobileCatalogo, setMobileCatalogo] = useState(false);
   const [mobileServicios, setMobileServicios] = useState(false);
 
+  if (pathname === "/folleto") return null;
+
   const catalogoActive = catalogoSectionActive(pathname);
   const serviciosActive = serviciosSectionActive(pathname);
 

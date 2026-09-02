@@ -32,7 +32,9 @@ export default async function UnetePage({
 }) {
   const sp = (await searchParams) ?? {};
   const planRaw = Array.isArray(sp.plan) ? sp.plan[0] : sp.plan;
+  const fromRaw = Array.isArray(sp.from) ? sp.from[0] : sp.from;
   const selectedPlan = getMembershipPlan(planRaw);
+  const origen = fromRaw?.trim() || undefined;
   return (
     <div className="bg-background">
       <PageHero
@@ -99,6 +101,7 @@ export default async function UnetePage({
             <div className="mt-6">
               <LeadForm kind="join" submitLabel="Enviar postulación">
                 {selectedPlan ? <input type="hidden" name="plan" value={selectedPlan.name} /> : null}
+                {origen ? <input type="hidden" name="origen" value={origen} /> : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Nombre" name="nombre" required />
                   <Field label="Apellido" name="apellido" required />
