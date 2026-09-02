@@ -8,16 +8,19 @@ import { siteConfig } from "@/lib/site-config";
 import { getWhatsappContact } from "@/lib/public-contact";
 import {
   formatMembershipUf,
-  membershipIncludedFeatures,
   membershipJoinHref,
   membershipPlans,
 } from "@/lib/membership-plans";
-import { seminarioPromo } from "@/lib/campaign-seminario";
+import {
+  redaliaBenefits,
+  redaliaFeatures,
+  seminarioPromo,
+} from "@/lib/campaign-seminario";
 
 export const metadata: Metadata = {
-  title: "Invitación seminario",
+  title: "Sumate a Redalia · 20% de descuento",
   description:
-    "Invitación Redalia para oficinas y corredoras: prueba 7 días, planes en UF y mesa de incorporación preferente.",
+    "Registrate en Redalia con 20% de descuento en tu primer trimestre. Red de alianzas para corredoras e inmobiliarias en Chile.",
 };
 
 export default function SeminarioPage() {
@@ -31,10 +34,14 @@ export default function SeminarioPage() {
         eyebrow={seminarioPromo.badge}
         title={seminarioPromo.hook}
         lead={seminarioPromo.lead}
-        footnote={seminarioPromo.offerBody}
+        footnote={seminarioPromo.offerFinePrint}
         contentClassName="py-20 sm:py-24"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+        <p className="font-display text-2xl font-bold text-brand-gold sm:text-3xl">{seminarioPromo.offerTitle}</p>
+        <p className="mt-2 text-sm text-white/80">
+          Código <span className="font-semibold tracking-wide">{seminarioPromo.offerCode}</span>
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
           {wa ? (
             <a
               href={wa.href}
@@ -46,73 +53,88 @@ export default function SeminarioPage() {
             </a>
           ) : null}
           <Link href="/unete?from=seminario" className="btn-redalia-outline-on-navy px-8 py-3.5">
-            Activar prueba 7 días
+            Registrarme ahora
           </Link>
         </div>
       </PageHero>
 
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <SectionHeader
-          eyebrow="Por qué Redalia"
-          title="Una red para oficinas que ya operan en grande"
-          description="Canje con reglas, catálogo compartido, CRM KiteProp, publicación en portales y 100% de comisión para el agente. Tu marca permanece al frente."
+          eyebrow="La red"
+          title="Características de Redalia"
+          description="Todo lo que entra a tu operación al sumarte: canje, tecnología, difusión y respaldo institucional."
           titleVariant="display"
         />
         <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-          {membershipIncludedFeatures.map((item) => (
+          {redaliaFeatures.map((item) => (
             <li key={item} className="flex gap-2 text-sm text-brand-navy">
               <span className="text-brand-gold">✓</span>
               {item}
             </li>
           ))}
         </ul>
-        <p className="mt-8 text-sm text-muted">
-          Hoy el catálogo público supera las 3.000 propiedades y las 600 corredoras y anunciantes. Los equipos mayores
-          conversan un plan a medida; la grilla publicada cubre desde operación individual hasta oficinas de 50
-          propiedades.
-        </p>
       </section>
 
-      <section className="border-y border-brand-navy/10 bg-white py-14 sm:py-16">
+      <section className="border-y border-brand-navy/10 bg-brand-navy-soft/40 py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Beneficios"
+            title="Qué gana tu oficina"
+            titleVariant="display"
+          />
+          <ul className="mt-8 grid gap-6 sm:grid-cols-2">
+            {redaliaBenefits.map((item) => (
+              <li key={item.title} className="rounded-2xl border border-brand-navy/10 bg-white p-6">
+                <h3 className="font-display text-lg font-bold text-brand-navy">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{item.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="bg-white py-14 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <SectionHeader
             align="center"
-            eyebrow="Membresía"
+            eyebrow="Referencia"
             title="Planes en UF"
-            description="Misma base en todos los niveles. Cambia usuarios y propiedades."
+            description="A título informativo. Al registrarte con REDALIA20 aplica 20% el primer trimestre."
             titleVariant="display"
           />
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            {membershipPlans.map((plan) => (
-              <article
-                key={plan.key}
-                className={`rounded-2xl border p-6 ${
-                  plan.featured ? "border-brand-gold/60 bg-brand-navy text-white" : "border-brand-navy/10 bg-white"
-                }`}
-              >
-                {plan.featured ? (
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-brand-gold">Más popular</p>
-                ) : null}
-                <h3 className="font-display text-lg font-bold">{plan.name}</h3>
-                <p className="mt-2 font-display text-2xl font-bold">
-                  {formatMembershipUf(plan.priceUf)}
-                  <span className={`ml-1 font-sans text-sm font-medium ${plan.featured ? "text-white/70" : "text-muted"}`}>
-                    / mes
-                  </span>
-                </p>
-                <p className={`mt-2 text-sm ${plan.featured ? "text-white/80" : "text-muted"}`}>
-                  {plan.users === 1 ? "1 usuario" : `${plan.users} usuarios`} · {plan.properties} propiedades
-                </p>
-                <Link
-                  href={`${membershipJoinHref(plan)}&from=seminario`}
-                  className={`mt-5 inline-flex text-sm font-semibold ${
-                    plan.featured ? "text-brand-gold" : "text-brand-gold-deep"
-                  } hover:underline`}
-                >
-                  Probar 7 días →
-                </Link>
-              </article>
-            ))}
+          <div className="mx-auto mt-8 max-w-3xl overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-brand-navy/15 text-xs uppercase tracking-wide text-muted">
+                  <th className="py-2 font-semibold">Plan</th>
+                  <th className="py-2 font-semibold">UF / mes</th>
+                  <th className="py-2 font-semibold">Cupo</th>
+                  <th className="py-2 font-semibold" />
+                </tr>
+              </thead>
+              <tbody>
+                {membershipPlans.map((plan) => (
+                  <tr key={plan.key} className="border-b border-brand-navy/10">
+                    <td className="py-3 font-semibold text-brand-navy">
+                      {plan.name}
+                      {plan.featured ? " · popular" : ""}
+                    </td>
+                    <td className="py-3">{formatMembershipUf(plan.priceUf)}</td>
+                    <td className="py-3 text-muted">
+                      {plan.users === 1 ? "1 usuario" : `${plan.users} usuarios`} · {plan.properties} prop.
+                    </td>
+                    <td className="py-3 text-right">
+                      <Link
+                        href={`${membershipJoinHref(plan)}&from=seminario`}
+                        className="text-sm font-semibold text-brand-gold-deep hover:underline"
+                      >
+                        Elegir
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -121,15 +143,15 @@ export default function SeminarioPage() {
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
             <SectionHeader
-              eyebrow="Incorporación"
-              title="Deja tus datos y activamos la prueba"
-              description="Mesa preferente para quienes vienen del seminario. Respuesta en días hábiles."
+              eyebrow="Registro"
+              title="Sumate ahora con 20% de descuento"
+              description="Completá el formulario con el código REDALIA20. Coordinamos la activación en días hábiles."
               titleVariant="display"
             />
           </div>
           <div className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-6 sm:p-8">
-            <LeadForm kind="join" submitLabel="Solicitar prueba de 7 días">
-              <input type="hidden" name="origen" value="seminario" />
+            <LeadForm kind="join" submitLabel="Quiero el 20% y sumarme">
+              <input type="hidden" name="origen" value="seminario REDALIA20" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Nombre" name="nombre" required />
                 <Field label="Apellido" name="apellido" required />
@@ -141,8 +163,8 @@ export default function SeminarioPage() {
               <Field label="Mensaje" name="mensaje" rows={3} placeholder="Tamaño del equipo, zonas y plan de interés" />
             </LeadForm>
             <p className="mt-4 text-xs text-muted">
-              También puedes escribir a {siteConfig.contact.email}
-              {wa ? ` o por WhatsApp ${wa.display}` : ""}.
+              {seminarioPromo.offerFinePrint} También {siteConfig.contact.email}
+              {wa ? ` o WhatsApp ${wa.display}` : ""}.
             </p>
           </div>
         </div>

@@ -4,8 +4,8 @@ import { FolletoToolbar } from "@/components/print/FolletoToolbar";
 import "./folleto.css";
 
 export const metadata: Metadata = {
-  title: "Folleto 20×20",
-  description: "Arte de impresión Redalia: folleto cuadrado 20×20 cm plegado al medio.",
+  title: "Folleto 10×20",
+  description: "Arte de impresión Redalia: folleto 10×20 cm plegado, 20×20 cm abierto.",
   robots: { index: false, follow: false },
 };
 

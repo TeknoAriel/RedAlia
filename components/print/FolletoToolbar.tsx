@@ -16,8 +16,8 @@ export function FolletoToolbar() {
   return (
     <div className="brochure-toolbar no-print">
       <p>
-        Folleto 20×20 cm cerrado (40×20 cm abierto). Frente: dorso + portada. Dorso de hoja: interior perfil + planes.
-        En el diálogo de impresión: tamaño 400×200 mm, márgenes 0, dos caras, voltear por el lado corto.
+        Folleto cerrado 10×20 cm, abierto 20×20 cm (cuatro caras de 10×20). Frente: retiración + tapa. Dorso:
+        características + beneficios y planes. Impresión: 200×200 mm, márgenes 0, dos caras, voltear por el lado corto.
       </p>
       <div style={{ display: "flex", gap: 8 }}>
         <Link href="/seminario" className="print-btn" style={{ background: "#fff", color: "#0f265c" }}>
