@@ -5,6 +5,7 @@ import { PageHero } from "@/components/layout/PageHero";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { Field, LeadForm } from "@/components/forms/LeadForm";
 import { siteConfig } from "@/lib/site-config";
+import { getMembershipPlan } from "@/lib/membership-plans";
 
 export const metadata: Metadata = {
   title: "Únete",
@@ -24,7 +25,14 @@ const incentivos = [
   "Visibilidad institucional y capacitación acorde al nivel que corresponda a tu operación en Chile.",
 ];
 
-export default function UnetePage() {
+export default async function UnetePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const planRaw = Array.isArray(sp.plan) ? sp.plan[0] : sp.plan;
+  const selectedPlan = getMembershipPlan(planRaw);
   return (
     <div className="bg-background">
       <PageHero
@@ -82,8 +90,15 @@ export default function UnetePage() {
               Los datos nos permiten preparar la primera conversación con contexto. Incluye ciudad, tipo de operación y,
               si puedes, tamaño aproximado del equipo —misma exigencia de claridad que pedimos dentro de la comunidad.
             </p>
+            {selectedPlan && (
+              <p className="mt-4 rounded-lg border border-brand-gold/35 bg-brand-navy-soft/70 px-3 py-2 text-sm text-brand-navy">
+                Plan de interés: <strong>{selectedPlan.name}</strong>. Completa el formulario para activar la prueba de
+                7 días.
+              </p>
+            )}
             <div className="mt-6">
               <LeadForm kind="join" submitLabel="Enviar postulación">
+                {selectedPlan ? <input type="hidden" name="plan" value={selectedPlan.name} /> : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Nombre" name="nombre" required />
                   <Field label="Apellido" name="apellido" required />

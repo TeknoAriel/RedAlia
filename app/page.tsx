@@ -26,6 +26,7 @@ import {
   HomeDataSections,
   HomeDataSectionsFallback,
 } from "@/components/sections/HomeDataSections";
+import { formatMembershipUf, membershipJoinHref, membershipPlans } from "@/lib/membership-plans";
 
 const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
@@ -175,37 +176,46 @@ export default function HomePage() {
           <SectionLogoMark size="sm" className="mb-5" />
           <SectionHeader
             align="center"
-            eyebrow="Membresía Redalia"
+            eyebrow="Suscripciones y precios"
             title="Planes para integrarte a Redalia"
-            description="Elige la modalidad que mejor se adapte a tu corredora y comienza a participar de una red colaborativa con visibilidad, catálogo, tecnología y oportunidades reales de negocio."
+            description="Precios publicados en UF, prueba gratis de 7 días y el mismo stack en todos los niveles: CRM KiteProp, portales, canje y respaldo legal."
             titleVariant="display"
           />
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
-              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Base</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                Para corredoras que quieren integrarse a la red, tener presencia institucional y participar del
-                ecosistema colaborativo.
-              </p>
-            </article>
-            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
-              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Profesional</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                Para corredoras que buscan mayor visibilidad, publicación de propiedades y acceso más activo a
-                oportunidades de colaboración.
-              </p>
-            </article>
-            <article className="card-elevated rounded-2xl border border-brand-navy/10 bg-white p-7 shadow-sm ring-1 ring-brand-navy/[0.04]">
-              <h3 className="font-display text-xl font-bold text-brand-navy">Plan Red / Empresa</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                Para equipos, oficinas o grupos inmobiliarios que necesitan mayor alcance, soporte y presencia dentro
-                de la red.
-              </p>
-            </article>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {membershipPlans.map((plan) => (
+              <article
+                key={plan.key}
+                className={`card-elevated rounded-2xl border bg-white p-7 shadow-sm ${
+                  plan.featured
+                    ? "border-brand-gold/60 ring-1 ring-brand-gold/30"
+                    : "border-brand-navy/10 ring-1 ring-brand-navy/[0.04]"
+                }`}
+              >
+                {plan.featured && (
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-brand-gold-deep">
+                    Más popular
+                  </p>
+                )}
+                <h3 className="font-display text-xl font-bold text-brand-navy">{plan.name}</h3>
+                <p className="mt-2 font-display text-2xl font-bold text-brand-navy">
+                  {formatMembershipUf(plan.priceUf)}
+                  <span className="ml-1 font-sans text-sm font-medium text-muted">/ mes</span>
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {plan.users === 1 ? "1 usuario" : `${plan.users} usuarios`} · {plan.properties} propiedades.
+                </p>
+                <Link
+                  href={membershipJoinHref(plan)}
+                  className="mt-5 inline-flex text-sm font-semibold text-brand-gold-deep hover:underline"
+                >
+                  Probar 7 días →
+                </Link>
+              </article>
+            ))}
           </div>
           <div className="mt-8 flex justify-center">
             <Link href="/planes" className="btn-redalia-gold-solid px-8 py-3.5">
-              Ver planes
+              Ver precios
             </Link>
           </div>
         </div>

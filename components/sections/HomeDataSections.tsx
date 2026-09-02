@@ -15,33 +15,37 @@ import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stab
  * streamee cuando los datos estén listos.
  */
 export async function HomeDataSections() {
-  const [catalog, mcpOverlay] = await Promise.all([
-    getProperties(),
-    loadPublicMcpNetworkOverlay(),
-  ]);
+  try {
+    const [catalog, mcpOverlay] = await Promise.all([
+      getProperties(),
+      loadPublicMcpNetworkOverlay(),
+    ]);
 
-  const stable = catalog.ok
-    ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 })
-    : null;
-  const directorySnapshot = stable?.snapshot ?? null;
-  const carouselEntries = directorySnapshot?.featured ?? [];
-  const listingCount = catalog.ok ? catalog.properties.length : 0;
+    const stable = catalog.ok
+      ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 })
+      : null;
+    const directorySnapshot = stable?.snapshot ?? null;
+    const carouselEntries = directorySnapshot?.featured ?? [];
+    const listingCount = catalog.ok ? catalog.properties.length : 0;
 
-  return (
-    <>
-      <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
+    return (
+      <>
+        <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
 
-      {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
+        {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
 
-      <HomePartnersCarousel entries={carouselEntries} />
+        <HomePartnersCarousel entries={carouselEntries} />
 
-      <PartnerDirectoryPreview
-        feedOk={catalog.ok}
-        snapshot={directorySnapshot}
-        showFeaturedGrid={carouselEntries.length === 0}
-      />
-    </>
-  );
+        <PartnerDirectoryPreview
+          feedOk={catalog.ok}
+          snapshot={directorySnapshot}
+          showFeaturedGrid={carouselEntries.length === 0}
+        />
+      </>
+    );
+  } catch {
+    return <HomeDataSectionsFallback />;
+  }
 }
 
 /**
