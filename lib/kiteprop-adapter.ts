@@ -194,14 +194,19 @@ function resolvePartnerLogoUrl(
   kind: "user" | "organization" | "generic",
 ): string | null {
   const avatarUrl =
-    pickString(raw, ["avatar_url_md", "avatar_url_lg", "avatarUrl", "avatar_url"]) ?? null;
+    pickPreferredMediaString(raw, [
+      "avatar_url_lg",
+      "avatar_url_md",
+      "avatarUrl",
+      "avatar_url",
+      "logo_url",
+      "logoUrl",
+    ]) ?? null;
   if (avatarUrl) return absolutizeKitepropMediaUrl(avatarUrl);
 
   const avatarFile = pickString(raw, [
     "avatar",
     "logo",
-    "logo_url",
-    "logoUrl",
     "image",
     "url_logo",
     "brand_image",
