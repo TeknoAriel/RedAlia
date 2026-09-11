@@ -45,6 +45,20 @@ const loadCatalogCached = unstable_cache(
 );
 
 /**
+ * Si cambió `KITEPROP_PROPERTIES_SOURCE`, el snapshot Redis de la fuente anterior
+ * no debe servirse (p. ej. feed JSON “remote” cuando ahora pedimos “network”).
+ */
+function persistedSnapshotMatchesSourceMode(
+  snapshot: CatalogSnapshotSuccess,
+  mode: ReturnType<typeof getKitepropPropertiesSourceMode>,
+): boolean {
+  if (mode === "network") return snapshot.source === "network";
+  if (mode === "json") return snapshot.source === "remote" || snapshot.source === "sample";
+  // network_fallback_json: acepta network o remote
+  return snapshot.source === "network" || snapshot.source === "remote" || snapshot.source === "sample";
+}
+
+/**
  * In-memory cache global del catálogo público (TTL 1 h).
  *
  * Vive por proceso lambda: una vez poblado, sucesivas requests al MISMO lambda warm
@@ -54,7 +68,7 @@ const loadCatalogCached = unstable_cache(
  * Diseño: nada de keys complejas. Solo un slot. El primer hit OK del proceso lo puebla.
  * Bumpeá `MEMORY_CACHE_VERSION` si el shape de `GetPropertiesResult` cambia.
  */
-const MEMORY_CACHE_VERSION = 1;
+const MEMORY_CACHE_VERSION = 2;
 const IN_MEMORY_TTL_MS = 60 * 60 * 1000;
 type CatalogMemoryCacheEntry = { v: number; value: CatalogSnapshotSuccess; expiresAt: number };
 const memoryCacheGlobal = globalThis as unknown as {
@@ -151,8 +165,13 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   // Capa cross-lambda primero: si hay snapshot persistido vigente, lo servimos
   // sin tocar `unstable_cache` ni el feed. Esto es lo que evita el cold ingest
   // en lambdas nuevos.
+  const sourceMode = getKitepropPropertiesSourceMode();
   const persistedFastPath = await readPersistedCatalogSnapshot();
-  if (persistedFastPath?.snapshot.ok && persistedFastPath.snapshot.properties.length > 0) {
+  if (
+    persistedFastPath?.snapshot.ok &&
+    persistedFastPath.snapshot.properties.length > 0 &&
+    persistedSnapshotMatchesSourceMode(persistedFastPath.snapshot, sourceMode)
+  ) {
     writeMemoryCache(persistedFastPath.snapshot);
     return persistedFastPath.snapshot;
   }
@@ -163,7 +182,6 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     return cached;
   }
 
-  const sourceMode = getKitepropPropertiesSourceMode();
   const shouldRetryNetworkNow =
     sourceMode !== "json" &&
     (cached.source === "sample" || cached.source === "empty") &&

@@ -12,6 +12,7 @@ import { probeJsonFeedUnchanged } from "@/lib/catalog-ingest/json-feed";
 import { clearJsonFeedValidators } from "@/lib/catalog-ingest/json-feed-validators";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import { getCronSecretOrNull, isAuthorizedCronRequest } from "@/lib/cron/authorize-cron-request";
+import { getKitepropPropertiesSourceMode } from "@/lib/kiteprop-network/network-env";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -65,8 +66,21 @@ export async function GET(request: Request) {
     propertyCount = previous?.propertyCount ?? 0;
     fingerprint = previousFingerprint;
 
+    const sourceMode = getKitepropPropertiesSourceMode();
+    const snapshotSourceMismatch =
+      sourceMode === "network"
+        ? previous?.source != null && previous.source !== "network"
+        : sourceMode === "json"
+          ? previous?.source === "network"
+          : false;
+
     const hasSnapshot = await hasPersistedCatalogSnapshot();
-    const feedUnchanged = !force && (await probeJsonFeedUnchanged());
+    // ETag del feed JSON solo aplica en modo json; con network hay que reingestar si la meta es de otra fuente.
+    const feedUnchanged =
+      !force &&
+      !snapshotSourceMismatch &&
+      sourceMode === "json" &&
+      (await probeJsonFeedUnchanged());
 
     if (feedUnchanged && previous?.propertyCount && hasSnapshot) {
       const touched = await touchPersistedCatalogSnapshotTtl();
@@ -78,8 +92,8 @@ export async function GET(request: Request) {
     }
 
     if (prepopulated === "catalog_error") {
-      // Sin snapshot usable hay que bajar el feed completo (ignorar ETag 304).
-      if (force || !hasSnapshot) {
+      // Sin snapshot usable / cambio de fuente: bajar catálogo completo.
+      if (force || !hasSnapshot || snapshotSourceMismatch) {
         await clearJsonFeedValidators();
       }
       const snapshot = await loadCatalogSnapshotUncached();
@@ -94,6 +108,7 @@ export async function GET(request: Request) {
         fingerprint = catalogSnapshotFingerprint(snapshot);
         const sameAsPrevious =
           !force &&
+          !snapshotSourceMismatch &&
           Boolean(previousFingerprint) &&
           previousFingerprint === fingerprint &&
           hasSnapshot;
