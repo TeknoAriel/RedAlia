@@ -22,7 +22,8 @@ const REDIS_ORG_DRAFTS_KEY = "redalia:catalog:snapshot:v2:org-drafts";
 const REDIS_ADV_DRAFTS_KEY = "redalia:catalog:snapshot:v2:adv-drafts";
 /** Props por chunk: deja cada SET bajo el límite de 10 MB del plan Upstash. */
 const PROPS_PER_CHUNK = 60;
-const TTL_SECONDS = 60 * 60 * 12;
+/** 48 h: el cron diario (06:00 UTC) renueva TTL; con 12 h el snapshot caducaba ~6 h antes del próximo cron y un 304 sin Redis tiraba 500 en fichas. */
+const TTL_SECONDS = 60 * 60 * 48;
 
 export type PersistedCatalogSnapshotV1 = {
   version: 1;

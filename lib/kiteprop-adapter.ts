@@ -1,11 +1,16 @@
 import type {
   NormalizedProperty,
   PropertyAdvertiser,
+  PropertyAmenity,
   PropertyCurrency,
   PropertyOperation,
   PropertyPartner,
 } from "@/types/property";
-import { absolutizeKitepropMediaUrl } from "@/lib/kiteprop-media-url";
+import {
+  absolutizeKitepropMediaUrl,
+  kitepropOrganizationAvatarUrl,
+  kitepropUserAvatarUrl,
+} from "@/lib/kiteprop-media-url";
 import { nullIfMatrizFeedLayerPartner } from "@/lib/master-agency";
 import { labelForPropertyType } from "@/lib/property-labels";
 
@@ -82,6 +87,9 @@ function normalizeImages(raw: unknown): string[] {
     if (isRecord(item)) {
       const u = absolutizeKitepropMediaUrl(
         pickPreferredMediaString(item, [
+          "lg",
+          "md",
+          "sm",
           "url",
           "src",
           "href",
@@ -157,7 +165,15 @@ function pickPartnerContacts(obj: UnknownRecord): Pick<
     email: pickString(obj, ["email", "mail", "correo", "e_mail", "e-mail", "contact_email"]),
     phone: pickString(obj, ["phone", "telefono", "tel", "telefono_fijo", "phone_number", "fono"]),
     mobile: pickString(obj, ["mobile", "celular", "movil", "cellphone", "phone_mobile", "telefono_movil"]),
-    whatsapp: pickString(obj, ["whatsapp", "whats_app", "wa", "whatsapp_number", "whats"]),
+    whatsapp: pickString(obj, [
+      "phone_whatsapp",
+      "phone_wp",
+      "whatsapp",
+      "whats_app",
+      "wa",
+      "whatsapp_number",
+      "whats",
+    ]),
     webUrl: pickString(obj, ["web", "website", "url", "site", "sitio", "web_url", "homepage"]),
   };
 }
@@ -173,24 +189,44 @@ const nullContacts: Pick<
   webUrl: null,
 };
 
-function normalizePartnerRecord(raw: unknown): PropertyPartner | null {
+function resolvePartnerLogoUrl(
+  raw: UnknownRecord,
+  kind: "user" | "organization" | "generic",
+): string | null {
+  const avatarUrl =
+    pickString(raw, ["avatar_url_md", "avatar_url_lg", "avatarUrl", "avatar_url"]) ?? null;
+  if (avatarUrl) return absolutizeKitepropMediaUrl(avatarUrl);
+
+  const avatarFile = pickString(raw, [
+    "avatar",
+    "logo",
+    "logo_url",
+    "logoUrl",
+    "image",
+    "url_logo",
+    "brand_image",
+    "picture",
+    "photo",
+    "foto",
+  ]);
+  if (!avatarFile) return null;
+  if (kind === "user") return kitepropUserAvatarUrl(avatarFile);
+  if (kind === "organization") return kitepropOrganizationAvatarUrl(avatarFile);
+  return (
+    kitepropOrganizationAvatarUrl(avatarFile) ??
+    kitepropUserAvatarUrl(avatarFile) ??
+    absolutizeKitepropMediaUrl(avatarFile)
+  );
+}
+
+function normalizePartnerRecord(
+  raw: unknown,
+  kind: "user" | "organization" | "generic" = "generic",
+): PropertyPartner | null {
   if (!isRecord(raw)) return null;
   const name = pickString(raw, ["name", "nombre", "title", "razon_social", "full_name", "fullName"]);
-  const id = pickNumber(raw, ["id", "ID", "agency_id", "agent_id", "user_id"]);
-  const logoUrl = absolutizeKitepropMediaUrl(
-    pickString(raw, [
-      "logo",
-      "logo_url",
-      "logoUrl",
-      "image",
-      "avatar",
-      "url_logo",
-      "brand_image",
-      "picture",
-      "photo",
-      "foto",
-    ]),
-  );
+  const id = pickNumber(raw, ["id", "ID", "agency_id", "agent_id", "user_id", "organization_id"]);
+  const logoUrl = resolvePartnerLogoUrl(raw, kind);
   const contacts = pickPartnerContacts(raw);
   if (!name && id === null) return null;
   return {
@@ -211,19 +247,25 @@ function getPath(obj: UnknownRecord, dotted: string): unknown {
   return cur;
 }
 
-function tryLoosePartner(candidate: unknown): PropertyPartner | null {
+function tryLoosePartner(
+  candidate: unknown,
+  kind: "user" | "organization" | "generic" = "generic",
+): PropertyPartner | null {
   if (candidate === undefined || candidate === null) return null;
   if (typeof candidate === "string") {
     const s = candidate.trim();
     if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
   }
-  if (isRecord(candidate)) return normalizePartnerRecord(candidate);
+  if (isRecord(candidate)) return normalizePartnerRecord(candidate, kind);
   return null;
 }
 
-function firstPartnerFromCandidates(candidates: unknown[]): PropertyPartner | null {
+function firstPartnerFromCandidates(
+  candidates: unknown[],
+  kind: "user" | "organization" | "generic" = "generic",
+): PropertyPartner | null {
   for (const c of candidates) {
-    const p = tryLoosePartner(c);
+    const p = tryLoosePartner(c, kind);
     if (p) return p;
   }
   return null;
@@ -248,33 +290,37 @@ function normalizeMasterAgency(raw: UnknownRecord): PropertyPartner | null {
 
 /** Corredora u oficina que opera la publicación (un escalón bajo la matriz, si existe). */
 function normalizeOperatingAgency(raw: UnknownRecord): PropertyPartner | null {
-  const fromObjects = firstPartnerFromCandidates([
-    raw.agency,
-    raw.corredora,
-    raw.inmobiliaria,
-    raw.operating_agency,
-    raw.operatingAgency,
-    raw.agencia_operativa,
-    raw.office,
-    raw.branch_agency,
-    raw.branchAgency,
-    raw.local_agency,
-    raw.localAgency,
-    raw.listing_agency,
-    raw.listingAgency,
-    raw.real_estate_agency,
-    raw.broker,
-    raw.brokerage,
-    raw.company,
-    raw.empresa,
-    raw.dealer,
-    getPath(raw, "listing.agency"),
-    getPath(raw, "listing.office"),
-    getPath(raw, "property.agency"),
-    getPath(raw, "data.agency"),
-    getPath(raw, "publication.agency"),
-    getPath(raw, "item.agency"),
-  ]);
+  const fromObjects = firstPartnerFromCandidates(
+    [
+      raw.organization,
+      raw.agency,
+      raw.corredora,
+      raw.inmobiliaria,
+      raw.operating_agency,
+      raw.operatingAgency,
+      raw.agencia_operativa,
+      raw.office,
+      raw.branch_agency,
+      raw.branchAgency,
+      raw.local_agency,
+      raw.localAgency,
+      raw.listing_agency,
+      raw.listingAgency,
+      raw.real_estate_agency,
+      raw.broker,
+      raw.brokerage,
+      raw.company,
+      raw.empresa,
+      raw.dealer,
+      getPath(raw, "listing.agency"),
+      getPath(raw, "listing.office"),
+      getPath(raw, "property.agency"),
+      getPath(raw, "data.agency"),
+      getPath(raw, "publication.agency"),
+      getPath(raw, "item.agency"),
+    ],
+    "organization",
+  );
   if (fromObjects) return fromObjects;
 
   const orgName = pickString(raw, [
@@ -299,8 +345,12 @@ function normalizeOperatingAgency(raw: UnknownRecord): PropertyPartner | null {
   };
 }
 
-/** `agent` / `sub_agent` como corredora (objeto o nombre); no mezclar con la lista `agents` de nombres sueltos. */
-function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyPartner | null {
+/** `agent` / `sub_agent` / `user` como corredora o asesor (objeto o nombre). */
+function normalizeAgentOffice(
+  raw: UnknownRecord,
+  keys: string[],
+  kind: "user" | "organization" | "generic" = "generic",
+): PropertyPartner | null {
   for (const k of keys) {
     const v = raw[k];
     if (v === undefined || v === null) continue;
@@ -309,7 +359,7 @@ function normalizeAgentOffice(raw: UnknownRecord, keys: string[]): PropertyPartn
       if (s) return { id: null, name: s, logoUrl: null, ...nullContacts };
     }
     if (isRecord(v)) {
-      const a = normalizePartnerRecord(v);
+      const a = normalizePartnerRecord(v, kind);
       if (a) return a;
     }
   }
@@ -337,7 +387,6 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     raw.seller,
     raw.vendor,
     getPath(raw, "user.profile"),
-    raw.user,
     raw.contact,
   ]);
   if (fromNested) {
@@ -376,6 +425,28 @@ function normalizeAdvertiser(raw: UnknownRecord): PropertyAdvertiser | null {
     whatsapp: flatContacts.whatsapp,
     webUrl: flatContacts.webUrl,
   };
+}
+
+function normalizeAmenitiesResolved(raw: UnknownRecord): PropertyAmenity[] {
+  const list = raw.amenities_resolved ?? raw.amenitiesResolved;
+  if (!Array.isArray(list)) return [];
+  const out: PropertyAmenity[] = [];
+  const seen = new Set<string>();
+  for (const item of list) {
+    if (!isRecord(item)) continue;
+    const key = pickString(item, ["key", "code", "id"]) ?? "";
+    const label = pickString(item, ["label", "name", "nombre", "title"]);
+    if (!label) continue;
+    const dedupe = key || label;
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+    out.push({
+      key: key || label,
+      label,
+      icon: pickString(item, ["icon", "icon_class", "iconClass"]),
+    });
+  }
+  return out;
 }
 
 function normalizeAssociatedAgentsLabel(raw: UnknownRecord): string | null {
@@ -507,9 +578,9 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
   const priceDisplay = formatPriceDisplay(priceNumeric, currency, hidePrices);
 
   const city = pickString(raw, ["city", "ciudad", "comuna"]);
-  const zone = pickString(raw, ["zone", "zona", "barrio"]);
+  const zone = pickString(raw, ["zone", "zona", "barrio", "neighborhood", "neighbourhood"]);
   const zone2 = pickString(raw, ["zone_2", "zone2", "sublocalidad"]);
-  const region = pickString(raw, ["region", "estado"]);
+  const region = pickString(raw, ["region", "estado", "state"]);
   const address = pickString(raw, ["address", "direccion", "calle"]);
   const country = pickString(raw, ["country", "pais"]);
 
@@ -545,18 +616,18 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
 
   const sourceUrl = pickString(raw, ["url", "link", "permalink"]);
 
-  const ref = pickString(raw, ["reference", "referencia", "codigo_ref"]) ?? `KP${idNum}`;
+  const ref =
+    pickString(raw, ["code", "reference", "referencia", "codigo_ref"]) ?? `KP${idNum}`;
 
   const masterAgency = normalizeMasterAgency(raw);
   const agency = normalizeOperatingAgency(raw);
   let advertiser = normalizeAdvertiser(raw);
-  let agentAgency = normalizeAgentOffice(raw, [
-    "agent",
-    "main_agent",
-    "mainAgent",
-    "listing_agent",
-    "listingAgent",
-  ]);
+  let agentAgency =
+    normalizeAgentOffice(
+      raw,
+      ["user", "agent", "main_agent", "mainAgent", "listing_agent", "listingAgent"],
+      "user",
+    ) ?? null;
   advertiser = nullIfMatrizFeedLayerPartner(advertiser);
   agentAgency = nullIfMatrizFeedLayerPartner(agentAgency);
   const subAgentAgency = normalizeAgentOffice(raw, [
@@ -566,6 +637,7 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     "subagent",
   ]);
   const associatedAgentsLabel = normalizeAssociatedAgentsLabel(raw);
+  const amenities = normalizeAmenitiesResolved(raw);
 
   const { iso: lastUpdate, ms: lastUpdateMs } = parseLastUpdate(raw);
 
@@ -600,6 +672,7 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     subAgentAgency?.email,
     subAgentAgency?.phone,
     associatedAgentsLabel,
+    ...amenities.map((a) => a.label),
   ]
     .filter(Boolean)
     .join(" ")
@@ -645,6 +718,7 @@ export function normalizeKitePropProperty(raw: unknown): NormalizedProperty | nu
     fitForCredit,
     acceptBarter,
     isNewConstruction,
+    amenities,
     searchBlob,
   };
 }

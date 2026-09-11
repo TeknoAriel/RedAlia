@@ -132,8 +132,10 @@ export function bundledSampleWithFallbackFlag(): CatalogSnapshotSuccess {
   return r;
 }
 
-async function fetchRemotePayload(url: string): Promise<unknown> {
-  const validators = await readJsonFeedValidators();
+async function fetchRemotePayloadOnce(
+  url: string,
+  validators: Awaited<ReturnType<typeof readJsonFeedValidators>> | null,
+): Promise<Response> {
   const headers: Record<string, string> = {
     Accept: "application/json",
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -143,11 +145,25 @@ async function fetchRemotePayload(url: string): Promise<unknown> {
   if (validators?.etag) headers["If-None-Match"] = validators.etag;
   if (validators?.lastModified) headers["If-Modified-Since"] = validators.lastModified;
 
-  const res = await fetch(url, {
+  return fetch(url, {
     cache: "no-store",
     next: { revalidate: 0 },
     headers,
   });
+}
+
+async function fetchRemotePayload(url: string): Promise<unknown> {
+  const validators = await readJsonFeedValidators();
+  let res = await fetchRemotePayloadOnce(url, validators);
+
+  // 304 sin snapshot Redis: no hay cuerpo que reusar → reintentar sin validadores.
+  if (res.status === 304) {
+    const persisted = await readPersistedCatalogSnapshot();
+    if (persisted?.snapshot.ok && persisted.snapshot.properties.length > 0) {
+      throw new JsonFeedNotModifiedError();
+    }
+    res = await fetchRemotePayloadOnce(url, null);
+  }
 
   if (res.status === 304) {
     throw new JsonFeedNotModifiedError();

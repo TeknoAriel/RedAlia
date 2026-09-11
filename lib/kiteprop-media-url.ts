@@ -16,3 +16,26 @@ export function absolutizeKitepropMediaUrl(url: string | null | undefined): stri
   if (raw.startsWith("/")) return `${base}${raw}`;
   return `${base}/${raw}`;
 }
+
+const STATIC_KP = "https://static.kiteprop.com";
+
+function isBareAvatarFilename(raw: string): boolean {
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("//") || raw.startsWith("/")) return false;
+  return /\.(png|jpe?g|webp|gif)$/i.test(raw) || /^[\w-]+\.[\w]+$/i.test(raw);
+}
+
+/** Avatares de usuarios CRM: `…/users/md/{filename}`. */
+export function kitepropUserAvatarUrl(avatar: string | null | undefined): string | null {
+  const raw = avatar?.trim();
+  if (!raw) return null;
+  if (!isBareAvatarFilename(raw)) return absolutizeKitepropMediaUrl(raw);
+  return `${STATIC_KP}/kp/crm/images/users/md/${raw.replace(/^\/+/, "")}`;
+}
+
+/** Avatares de organizaciones CRM: `…/organizations/md/{filename}`. */
+export function kitepropOrganizationAvatarUrl(avatar: string | null | undefined): string | null {
+  const raw = avatar?.trim();
+  if (!raw) return null;
+  if (!isBareAvatarFilename(raw)) return absolutizeKitepropMediaUrl(raw);
+  return `${STATIC_KP}/kp/crm/images/organizations/md/${raw.replace(/^\/+/, "")}`;
+}
