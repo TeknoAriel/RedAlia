@@ -1,6 +1,6 @@
 import "server-only";
 
-import { absolutizeKitepropMediaUrl } from "@/lib/kiteprop-media-url";
+import { absolutizeKitepropMediaUrl, kitepropOrganizationAvatarUrl } from "@/lib/kiteprop-media-url";
 import { canonicalNetworkOrganizationPartnerKey } from "@/lib/kiteprop-network/socio-canonical-keys";
 import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/public-data/labels";
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
@@ -100,11 +100,14 @@ export function mapUnknownNetworkOrganizationToPublicDraft(raw: unknown): Public
   if (!logoUrl) {
     logoUrl = pickNestedLogo(o, ["avatar", "image", "logo", "photo", "picture"]);
   }
-  logoUrl = absolutizeKitepropMediaUrl(logoUrl);
+  const avatarFile = pickString(o, ["avatar"]);
+  logoUrl =
+    absolutizeKitepropMediaUrl(logoUrl) ??
+    (avatarFile ? kitepropOrganizationAvatarUrl(avatarFile) : null);
   const email = pickString(o, ["email", "contact_email", "contactEmail"]);
   const phone = pickString(o, ["phone", "telephone", "phone_number", "phoneNumber"]);
   const mobile = pickString(o, ["mobile", "cellphone", "celular"]);
-  const whatsapp = pickString(o, ["whatsapp", "whatsapp_number", "whatsappNumber"]);
+  const whatsapp = pickString(o, ["phone_wp", "phone_whatsapp", "whatsapp", "whatsapp_number", "whatsappNumber"]);
   const webUrl = pickString(o, ["web_url", "webUrl", "website", "url"]);
 
   return {

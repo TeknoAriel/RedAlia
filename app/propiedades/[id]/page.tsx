@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PropertyAmenities } from "@/components/properties/PropertyAmenities";
 import { PropertyConsultForm } from "@/components/properties/PropertyConsultForm";
+import { PropertyContactReveal } from "@/components/properties/PropertyContactReveal";
 import { PropertyGallery } from "@/components/properties/PropertyGallery";
-import { PartnerContactLinks } from "@/components/socios/PartnerContactLinks";
 import { getProperties, getPropertyById } from "@/lib/get-properties";
 import { pickRelatedProperties } from "@/lib/properties/pick-related-properties";
 import { RelatedPropertyCard } from "@/components/properties/RelatedPropertyCard";
@@ -45,6 +46,35 @@ function consultarLinkLabel(scope: string): string {
   if (scope === "advertiser") return "Ver publicaciones del anunciante";
   if (scope === "agency") return "Ver propiedades de esta agencia";
   return "Ver publicaciones de este contacto";
+}
+
+function ContactRevealForPartner({
+  partner,
+  kpDispatch,
+  property,
+}: {
+  partner: PropertyPartner;
+  kpDispatch: ReturnType<typeof propertyKitepropMessageTarget>;
+  property: NormalizedProperty;
+}) {
+  return (
+    <PropertyContactReveal
+      propertyId={kpDispatch.propertyId}
+      propertyCode={property.referenceCode}
+      propertyTitle={property.title}
+      assignedUserId={kpDispatch.assignedUserId}
+      organizationId={kpDispatch.organizationId}
+      assignedUserName={kpDispatch.assignedUserName}
+      organizationName={kpDispatch.organizationName}
+      pagePath={`/propiedades/${property.id}`}
+      email={partner.email}
+      phone={partner.phone}
+      mobile={partner.mobile}
+      whatsapp={partner.whatsapp}
+      webUrl={partner.webUrl}
+      className="mt-3"
+    />
+  );
 }
 
 /** Anunciante del JSON o, si no viene, agente de la publicación (`listing_agent` / `agent`). */
@@ -150,6 +180,7 @@ export default async function PropertyDetailPage({ params }: Props) {
             <div className="prose prose-slate mt-3 max-w-none whitespace-pre-wrap text-sm leading-relaxed text-brand-navy/90">
               {p.description || p.summary}
             </div>
+            <PropertyAmenities amenities={p.amenities ?? []} />
           </div>
           <aside className="tech-panel-glow rounded-2xl border border-brand-navy/10 bg-white p-6 shadow-sm ring-1 ring-brand-navy/5">
             {hasPublisherSection && (
@@ -186,15 +217,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                         >
                           {sociosGridLinkLabel(inmob.scope)}
                         </Link>
-                        <PartnerContactLinks
-                          email={inmob.email}
-                          phone={inmob.phone}
-                          mobile={inmob.mobile}
-                          whatsapp={inmob.whatsapp}
-                          webUrl={inmob.webUrl}
-                          className="mt-3"
-                          hideEmail
-                        />
+                        <ContactRevealForPartner partner={inmob} kpDispatch={kpDispatch} property={p} />
                       </div>
                     </div>
                   </div>
@@ -232,15 +255,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                             ? "Ver publicaciones de este anunciante"
                             : "Ver publicaciones de este agente"}
                         </Link>
-                        <PartnerContactLinks
-                          email={publica.row.email}
-                          phone={publica.row.phone}
-                          mobile={publica.row.mobile}
-                          whatsapp={publica.row.whatsapp}
-                          webUrl={publica.row.webUrl}
-                          className="mt-3"
-                          hideEmail
-                        />
+                        <ContactRevealForPartner partner={publica.row} kpDispatch={kpDispatch} property={p} />
                       </div>
                     </div>
                   </div>
@@ -273,15 +288,7 @@ export default async function PropertyDetailPage({ params }: Props) {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-brand-navy">{consultar.name}</p>
-                        <PartnerContactLinks
-                          email={consultar.email}
-                          phone={consultar.phone}
-                          mobile={consultar.mobile}
-                          whatsapp={consultar.whatsapp}
-                          webUrl={consultar.webUrl}
-                          className="mt-2"
-                          hideEmail
-                        />
+                        <ContactRevealForPartner partner={consultar} kpDispatch={kpDispatch} property={p} />
                         <Link
                           href={`/propiedades?socio=${encodeURIComponent(consultar.key)}`}
                           className="mt-2 inline-block text-xs font-semibold text-brand-gold-deep underline-offset-2 hover:underline"

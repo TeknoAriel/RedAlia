@@ -32,6 +32,13 @@ export type PropertyAgency = PropertyPartner;
  */
 export type PropertyAdvertiser = PropertyPartner;
 
+/** Amenity pública desde `amenities_resolved` (API de red). */
+export type PropertyAmenity = {
+  key: string;
+  label: string;
+  icon: string | null;
+};
+
 export interface NormalizedProperty {
   id: string;
   externalNumericId: number;
@@ -83,6 +90,8 @@ export interface NormalizedProperty {
   fitForCredit: boolean | null;
   acceptBarter: boolean | null;
   isNewConstruction: boolean | null;
+  /** Amenities públicas (`amenities_resolved` de la API de red). */
+  amenities: PropertyAmenity[];
   /** Texto plano para búsqueda en cliente/servidor */
   searchBlob: string;
 }

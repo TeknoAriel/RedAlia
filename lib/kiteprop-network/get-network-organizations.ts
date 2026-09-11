@@ -31,16 +31,15 @@ function shouldRetry(status: number | null, errorCode: string): boolean {
 
 async function fetchNetworkOrganizationsPage(
   path: string,
-  bearer: string,
-  extraHeaders: Record<string, string>,
+  ctx: { auth: "bearer" | "api_key"; bearer: string | null; extraHeaders: Record<string, string> },
   query: Record<string, string | undefined>,
 ): Promise<{ ok: true; status: number; data: unknown } | { ok: false; error: string; status: number | null }> {
   const maxAttempts = getNetworkRequestRetryAttempts();
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const res = await kitepropGetJson<unknown>(path.startsWith("/") ? path : `/${path}`, {
-      auth: "bearer",
-      bearerOverride: bearer,
-      extraHeaders,
+      auth: ctx.auth,
+      bearerOverride: ctx.bearer,
+      extraHeaders: ctx.extraHeaders,
       query,
     });
     if (res.ok) {
@@ -69,7 +68,7 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
   }
 
   if (!isNetworkOrganizationsPagedFetchEnabled()) {
-    const res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, {});
+    const res = await fetchNetworkOrganizationsPage(path, ctx, {});
     if (!res.ok) {
       return { ok: false, error: res.error, status: res.status };
     }
@@ -93,11 +92,11 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
       per_page: String(pageLimit),
       offset,
     } as const;
-    let res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, q);
+    let res = await fetchNetworkOrganizationsPage(path, ctx, q);
     if (!res.ok && page > 1) {
       for (let outer = 0; outer < PAGE_FAILURE_OUTER_RETRIES && !res.ok; outer += 1) {
         await sleep(2000 * (outer + 1));
-        res = await fetchNetworkOrganizationsPage(path, ctx.bearer, ctx.extraHeaders, q);
+        res = await fetchNetworkOrganizationsPage(path, ctx, q);
       }
     }
     if (!res.ok) {
