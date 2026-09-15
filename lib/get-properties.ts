@@ -33,7 +33,7 @@ function catalogRevalidateSeconds(): number {
 }
 
 /** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron (deploys con cambio de shape). */
-const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v9-network-org-agent";
+const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v10-json-enrich-network";
 
 const loadCatalogCached = unstable_cache(
   async () => loadCatalogSnapshotUncached(),
@@ -68,7 +68,7 @@ function persistedSnapshotMatchesSourceMode(
  * Diseño: nada de keys complejas. Solo un slot. El primer hit OK del proceso lo puebla.
  * Bumpeá `MEMORY_CACHE_VERSION` si el shape de `GetPropertiesResult` cambia.
  */
-const MEMORY_CACHE_VERSION = 2;
+const MEMORY_CACHE_VERSION = 3;
 const IN_MEMORY_TTL_MS = 60 * 60 * 1000;
 type CatalogMemoryCacheEntry = { v: number; value: CatalogSnapshotSuccess; expiresAt: number };
 const memoryCacheGlobal = globalThis as unknown as {

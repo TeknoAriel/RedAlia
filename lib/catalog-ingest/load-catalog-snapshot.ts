@@ -4,6 +4,11 @@ import { attachIngestMeta, newCatalogIngestRunId } from "@/lib/catalog-ingest/in
 import type { CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { createEmptyIngestTrace, type CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
 import { loadJsonFeedSnapshot } from "@/lib/catalog-ingest/json-feed";
+import { buildNetworkDirectoryDraftsFromPropertyPayloads } from "@/lib/kiteprop-network/build-network-advertiser-directory-drafts";
+import {
+  enrichJsonPropertiesFromNetwork,
+  loadNetworkPropertiesNormalized,
+} from "@/lib/kiteprop-network/enrich-json-properties-from-network";
 import { loadNetworkPartnerDirectoryAdvertiserOverlayDrafts } from "@/lib/kiteprop-network/load-network-partner-directory-advertiser-overlay";
 import { loadNetworkPartnerDirectoryDraftsOnly } from "@/lib/kiteprop-network/load-network-partner-directory-drafts";
 import { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public-catalog-from-network";
@@ -201,24 +206,22 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     return runNetworkFallbackJsonFlow(trace, runId);
   }
 
-  // Modo "json" (default de producto). Las tres llamadas son independientes:
-  //   1. feed JSON (propiedades),
+  // Modo "json" (default de producto):
+  //   1. feed JSON → volumen de propiedades,
   //   2. network organizations overlay (si está habilitado),
-  //   3. advertiser overlay (si el directorio no es 'feed' puro).
-  // En cold start (sin unstable_cache), ejecutarlas en serie agrega latencia
-  // innecesaria. Las disparamos en paralelo y luego aplicamos la misma
-  // semántica de merge / trace que la versión secuencial.
+  //   3. una sola pasada a propiedades de red → enrich user/org/amenities + drafts advertiser.
   const wantsOrganizations = isNetworkOrganizationsMergedWithJsonCatalog();
-  const wantsAdvertiserOverlay = getRedaliaPartnerDirectorySourceMode() !== "feed";
+  const wantsNetworkPropertyPass = getRedaliaPartnerDirectorySourceMode() !== "feed";
   if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
-  if (wantsAdvertiserOverlay) trace.partnerDirectoryOverlayAttempted = true;
+  if (wantsNetworkPropertyPass) {
+    trace.partnerDirectoryOverlayAttempted = true;
+    trace.networkApiAttempted = true;
+  }
 
-  const [jsonOnly, orgLoadResult, advertiserOverlayResult] = await Promise.all([
+  const [jsonOnly, orgLoadResult, networkPropsResult] = await Promise.all([
     loadJsonFeedSnapshot(trace),
     wantsOrganizations ? loadNetworkPartnerDirectoryDraftsOnly() : Promise.resolve(null),
-    wantsAdvertiserOverlay
-      ? loadNetworkPartnerDirectoryAdvertiserOverlayDrafts()
-      : Promise.resolve(null),
+    wantsNetworkPropertyPass ? loadNetworkPropertiesNormalized() : Promise.resolve(null),
   ]);
 
   let partnerDirectoryExtraDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
@@ -233,25 +236,36 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     }
   }
 
-  let base: CatalogSnapshotSuccess = partnerDirectoryExtraDrafts
-    ? { ...jsonOnly, partnerDirectoryExtraDrafts }
-    : jsonOnly;
+  let properties = jsonOnly.properties;
+  let partnerDirectoryNetworkAdvertiserDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
 
-  if (advertiserOverlayResult) {
-    if (base.partnerDirectoryNetworkAdvertiserDrafts?.length) {
-      // Ya venía poblado: respetamos la misma rama del helper original.
-    } else if (!advertiserOverlayResult.ok) {
-      trace.partnerDirectoryOverlayErrorCode = advertiserOverlayResult.error;
+  if (networkPropsResult) {
+    if (!networkPropsResult.ok) {
+      trace.networkErrorCode = networkPropsResult.error;
+      trace.partnerDirectoryOverlayErrorCode = networkPropsResult.error;
     } else {
+      trace.networkErrorCode = null;
       trace.partnerDirectoryOverlayErrorCode = null;
-      if (advertiserOverlayResult.drafts.length) {
-        base = {
-          ...base,
-          partnerDirectoryNetworkAdvertiserDrafts: advertiserOverlayResult.drafts,
-        };
+      const enriched = enrichJsonPropertiesFromNetwork(jsonOnly.properties, networkPropsResult.properties);
+      properties = enriched.properties;
+      if (networkPropsResult.properties.length > 0) {
+        const drafts = buildNetworkDirectoryDraftsFromPropertyPayloads(
+          networkPropsResult.rawItems,
+          networkPropsResult.properties,
+        );
+        if (drafts.length) partnerDirectoryNetworkAdvertiserDrafts = drafts;
       }
     }
   }
+
+  const base: CatalogSnapshotSuccess = {
+    ...jsonOnly,
+    properties,
+    ...(partnerDirectoryExtraDrafts ? { partnerDirectoryExtraDrafts } : {}),
+    ...(partnerDirectoryNetworkAdvertiserDrafts
+      ? { partnerDirectoryNetworkAdvertiserDrafts }
+      : {}),
+  };
 
   return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(base), trace, runId);
 }
