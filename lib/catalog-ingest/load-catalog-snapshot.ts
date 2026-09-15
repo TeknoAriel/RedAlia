@@ -258,7 +258,7 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     }
   }
 
-  let base: CatalogSnapshotSuccess = {
+  const base: CatalogSnapshotSuccess = {
     ...jsonOnly,
     properties,
     ...(partnerDirectoryExtraDrafts ? { partnerDirectoryExtraDrafts } : {}),
