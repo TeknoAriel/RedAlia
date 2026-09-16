@@ -19,6 +19,8 @@ export type CatalogIngestTrace = {
    */
   partnerDirectoryOverlayAttempted: boolean;
   partnerDirectoryOverlayErrorCode: string | null;
+  /** Ítems JSON cuyo agency/agent/amenities se sobreescribieron desde la red (mismo id). */
+  jsonNetworkEnrichCount: number;
 };
 
 export function createEmptyIngestTrace(): CatalogIngestTrace {
@@ -30,5 +32,6 @@ export function createEmptyIngestTrace(): CatalogIngestTrace {
     networkOrganizationsErrorCode: null,
     partnerDirectoryOverlayAttempted: false,
     partnerDirectoryOverlayErrorCode: null,
+    jsonNetworkEnrichCount: 0,
   };
 }
