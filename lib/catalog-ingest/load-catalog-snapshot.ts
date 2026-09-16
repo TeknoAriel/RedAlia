@@ -207,9 +207,9 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
   }
 
   // Modo "json" (default de producto):
-  //   1. feed JSON → volumen de propiedades,
-  //   2. network organizations overlay (si está habilitado),
-  //   3. una sola pasada a propiedades de red → enrich user/org/amenities + drafts advertiser.
+  //   1. feed JSON → volumen,
+  //   2. propiedades de red (enrich + drafts advertiser) — en paralelo con JSON,
+  //   3. organizaciones de red en serie (no en paralelo con props: satura upstream → HTTP_ERROR).
   const wantsOrganizations = isNetworkOrganizationsMergedWithJsonCatalog();
   const wantsNetworkPropertyPass = getRedaliaPartnerDirectorySourceMode() !== "feed";
   if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
@@ -218,11 +218,21 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     trace.networkApiAttempted = true;
   }
 
-  const [jsonOnly, orgLoadResult, networkPropsResult] = await Promise.all([
+  const [jsonOnly, networkPropsFirst] = await Promise.all([
     loadJsonFeedSnapshot(trace),
-    wantsOrganizations ? loadNetworkPartnerDirectoryDraftsOnly() : Promise.resolve(null),
     wantsNetworkPropertyPass ? loadNetworkPropertiesNormalized() : Promise.resolve(null),
   ]);
+
+  let networkPropsResult = networkPropsFirst;
+  if (networkPropsResult && !networkPropsResult.ok) {
+    await new Promise((r) => setTimeout(r, 3500));
+    networkPropsResult = await loadNetworkPropertiesNormalized();
+  }
+
+  let orgLoadResult: Awaited<ReturnType<typeof loadNetworkPartnerDirectoryDraftsOnly>> | null = null;
+  if (wantsOrganizations) {
+    orgLoadResult = await loadNetworkPartnerDirectoryDraftsOnly();
+  }
 
   let partnerDirectoryExtraDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
   if (orgLoadResult) {
