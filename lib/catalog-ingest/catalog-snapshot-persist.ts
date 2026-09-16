@@ -147,22 +147,10 @@ async function readChunkedFromRedis(): Promise<PersistedCatalogSnapshotV1 | null
   };
 }
 
-async function readLegacyFromRedis(): Promise<PersistedCatalogSnapshotV1 | null> {
-  try {
-    const raw = await upstashGet(REDIS_LEGACY_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedCatalogSnapshotV1;
-    if (parsed?.version !== 1 || !parsed.snapshot?.ok) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 export async function readPersistedCatalogSnapshot(): Promise<PersistedCatalogSnapshotV1 | null> {
   if (isUpstashRedisConfigured()) {
     try {
-      // No caer a REDIS_LEGACY_KEY: un snapshot viejo sin enrich user/org
+      // No caer a snapshot legacy monolítico: un snapshot viejo sin enrich user/org
       // saltaría el re-ingest y dejaría todo en REDALIA.
       return await readChunkedFromRedis();
     } catch {
