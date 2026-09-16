@@ -248,6 +248,7 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
       trace.partnerDirectoryOverlayErrorCode = null;
       const enriched = enrichJsonPropertiesFromNetwork(jsonOnly.properties, networkPropsResult.properties);
       properties = enriched.properties;
+      trace.jsonNetworkEnrichCount = enriched.enrichedCount;
       if (networkPropsResult.properties.length > 0) {
         const drafts = buildNetworkDirectoryDraftsFromPropertyPayloads(
           networkPropsResult.rawItems,

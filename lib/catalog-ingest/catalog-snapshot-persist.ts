@@ -16,10 +16,11 @@ import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
  */
 
 const REDIS_LEGACY_KEY = "redalia:catalog:snapshot:v1";
-const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v2";
-const REDIS_CHUNK_PREFIX = "redalia:catalog:snapshot:v2:chunk:";
-const REDIS_ORG_DRAFTS_KEY = "redalia:catalog:snapshot:v2:org-drafts";
-const REDIS_ADV_DRAFTS_KEY = "redalia:catalog:snapshot:v2:adv-drafts";
+/** v3: invalidar snapshots JSON previos al enrich user/org desde red. */
+const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v3";
+const REDIS_CHUNK_PREFIX = "redalia:catalog:snapshot:v3:chunk:";
+const REDIS_ORG_DRAFTS_KEY = "redalia:catalog:snapshot:v3:org-drafts";
+const REDIS_ADV_DRAFTS_KEY = "redalia:catalog:snapshot:v3:adv-drafts";
 /** Props por chunk: deja cada SET bajo el límite de 10 MB del plan Upstash. */
 const PROPS_PER_CHUNK = 60;
 /** 48 h: el cron diario (06:00 UTC) renueva TTL; con 12 h el snapshot caducaba ~6 h antes del próximo cron y un 304 sin Redis tiraba 500 en fichas. */
