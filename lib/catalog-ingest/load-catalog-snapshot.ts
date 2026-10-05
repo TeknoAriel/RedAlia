@@ -187,31 +187,55 @@ async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: stri
   return attachIngestMeta(await withPartnerDirectoryNetworkOverlayIfNeeded(trace, json), trace, runId);
 }
 
+export type LoadCatalogSnapshotOptions = {
+  /**
+   * Permite paginar la API de red (organizaciones + propiedades de enrich).
+   * **Solo cron / herramientas ops.** Default `false`: tráfico web = feed JSON (1 request),
+   * sin las ~50–250 llamadas paginadas que tumbaban el upstream (~300 req/min).
+   */
+  allowNetworkEnrichment?: boolean;
+};
+
 /**
  * Carga única del catálogo (sin caché Next).
- * Estrategia híbrida (default de producto): **propiedades = feed JSON** (`getKitepropPropertiesSourceMode` → `json` si la env no fuerza otra);
- * **directorio = red** (`getRedaliaPartnerDirectorySourceMode` default **`network`** + organizaciones/overlay según `network-env` y `docs/redalia-hybrid-catalog-architecture.md`).
- * Caché: `lib/get-properties.ts` y `app/api/cron/catalog/route.ts`.
+ * Estrategia híbrida (default de producto): **propiedades = feed JSON**;
+ * **directorio de red solo si `allowNetworkEnrichment`** (cron cada 2–4 h).
+ * Tráfico público debe usar `getProperties()` → snapshot Redis / memory, no esta ruta con red.
  */
-export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult> {
+export async function loadCatalogSnapshotUncached(
+  options: LoadCatalogSnapshotOptions = {},
+): Promise<GetPropertiesResult> {
   const trace = createEmptyIngestTrace();
   const runId = newCatalogIngestRunId();
   const mode = getKitepropPropertiesSourceMode();
+  const allowNetwork = options.allowNetworkEnrichment === true;
 
   if (mode === "network") {
+    if (!allowNetwork) {
+      // Sin red en request path: el cron debe haber dejado snapshot en Redis.
+      return attachIngestMeta(
+        { ok: true, properties: [], source: "empty" },
+        trace,
+        runId,
+      );
+    }
     return runNetworkOnlyFlow(trace, runId);
   }
 
   if (mode === "network_fallback_json") {
+    if (!allowNetwork) {
+      const json = await loadJsonFeedSnapshot(trace);
+      return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(json), trace, runId);
+    }
     return runNetworkFallbackJsonFlow(trace, runId);
   }
 
   // Modo "json" (default de producto):
-  //   1. feed JSON → volumen,
-  //   2. propiedades de red (enrich + drafts advertiser) — en paralelo con JSON,
-  //   3. organizaciones de red en serie (no en paralelo con props: satura upstream → HTTP_ERROR).
-  const wantsOrganizations = isNetworkOrganizationsMergedWithJsonCatalog();
-  const wantsNetworkPropertyPass = getRedaliaPartnerDirectorySourceMode() !== "feed";
+  //   1. feed JSON → volumen (siempre),
+  //   2–3. enrich/orgs de red → SOLO con allowNetworkEnrichment (cron).
+  const wantsOrganizations = allowNetwork && isNetworkOrganizationsMergedWithJsonCatalog();
+  const wantsNetworkPropertyPass =
+    allowNetwork && getRedaliaPartnerDirectorySourceMode() !== "feed";
   if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
   if (wantsNetworkPropertyPass) {
     trace.partnerDirectoryOverlayAttempted = true;

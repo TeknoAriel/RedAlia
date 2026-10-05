@@ -18,10 +18,11 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Cron de **propiedades**:
+ * Cron de **propiedades** (cada 4 h en `vercel.json`):
  * 1) HEAD condicional al feed (ETag) → si 304 y hay snapshot chunked, renueva TTL.
  * 2) Si 304 pero falta snapshot en Redis (límite 10 MB histórico), fuerza reingesta + write chunked.
  * 3) Si hay cuerpo nuevo, fingerprint decide invalidación.
+ * 4) La paginación a la API de red **solo** ocurre aquí (`allowNetworkEnrichment`), no en visitas.
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -96,7 +97,8 @@ export async function GET(request: Request) {
       if (force || !hasSnapshot || snapshotSourceMismatch) {
         await clearJsonFeedValidators();
       }
-      const snapshot = await loadCatalogSnapshotUncached();
+      // Único camino web→red paginada: el cron. Tráfico público no llama allowNetworkEnrichment.
+      const snapshot = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: true });
       if (!snapshot.ok || snapshot.properties.length === 0) {
         prepopulated = "catalog_empty";
         ingestError =

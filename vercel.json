@@ -13,11 +13,11 @@
   "crons": [
     {
       "path": "/api/cron/catalog",
-      "schedule": "0 6 * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/cron/socios",
-      "schedule": "0 7 */2 * *"
+      "schedule": "0 2,6,10,14,18,22 * * *"
     }
   ]
 }

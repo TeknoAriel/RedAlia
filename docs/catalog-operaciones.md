@@ -30,8 +30,10 @@ Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (l
 
 | Ruta | Frecuencia (ver `vercel.json`) | Qué hace |
 |------|-------------------------------|----------|
-| `GET /api/cron/catalog` | Diario 06:00 UTC | Invalida tag + precalienta **solo propiedades** en Upstash |
-| `GET /api/cron/socios` | Cada 48 h 07:00 UTC | Sync **incremental** del directorio por `partnerKey` (registro en Redis `redalia:partner-directory:registry:v1`) |
+| `GET /api/cron/catalog` | Cada **4 h** (`0 */4 * * *`) | Feed JSON + enrich/orgs de red (`allowNetworkEnrichment`); guarda snapshot Upstash |
+| `GET /api/cron/socios` | Cada **4 h** (02/06/10/14/18/22 UTC) | Sync **incremental** del directorio (paginación de red solo aquí) |
+
+**Importante:** las visitas a `/`, `/propiedades`, `/socios` **no** deben paginar la API de red. Eso se hace solo en cron (`loadCatalogSnapshotUncached({ allowNetworkEnrichment: true })`).
 
 Sync socios: id ya conocido → no toca la fila; id nuevo → alta; id ausente → baja. Si las bajas superan `max(50, 2% del registro)` se **diferen** (posible corte de red) y se reintenta en la próxima corrida; tras 3 diferidos seguidos, sync completo. Requiere `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` y catálogo precalentado.
 
