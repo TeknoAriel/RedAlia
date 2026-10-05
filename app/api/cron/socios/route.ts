@@ -9,8 +9,9 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Cron de **directorio de socios**: sync incremental por partnerKey.
+ * Cron de **directorio de socios** (cada 4 h en `vercel.json`): sync incremental por partnerKey.
  * Solo invalida el tag Data Cache y re-warms si hubo altas/bajas o full sync.
+ * Es el único job que debe paginar organizaciones/anunciantes de red de forma rutinaria.
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();

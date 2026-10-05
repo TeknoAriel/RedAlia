@@ -99,7 +99,7 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
         "@/lib/catalog-ingest/json-feed-validators"
       );
       await clearJsonFeedValidators();
-      const live = await loadCatalogSnapshotUncached();
+      const live = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: true });
       if (live.ok && live.properties.length > 0) {
         properties = live.properties;
         catalogListings = properties.length;

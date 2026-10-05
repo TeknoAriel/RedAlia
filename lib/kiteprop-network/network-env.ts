@@ -235,10 +235,10 @@ export function getNetworkOrganizationsMaxPages(): number {
   return Math.min(200, Math.max(1, Math.floor(n)));
 }
 
-/** Pausa entre páginas de red (evitar 429). */
+/** Pausa entre páginas de red (evitar 429 / saturar upstream). Default 400 ms. */
 export function getNetworkRequestDelayMs(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_REQUEST_DELAY_MS") || "140", 10);
-  if (!Number.isFinite(n)) return 140;
+  const n = parseInt(trim("KITEPROP_NETWORK_REQUEST_DELAY_MS") || "400", 10);
+  if (!Number.isFinite(n)) return 400;
   return Math.min(5000, Math.max(0, Math.floor(n)));
 }
 
