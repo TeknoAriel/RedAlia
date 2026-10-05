@@ -173,13 +173,16 @@ const NETWORK_PROPERTIES_MAX_PAGES_CEILING = 1000;
 const NETWORK_PROPERTIES_MAX_PAGES_DEFAULT = 220;
 
 /**
- * Si es `1`, se piden varias páginas con `page`/`limit` (misma convención que `GET /properties` en
- * `lib/kiteprop/get-properties-api.ts`) hasta vaciar o agotar `last_page` / heurística de fin.
- * Por defecto **desactivado**: un solo GET como hoy AINA.
+ * Si es `1` / true (o vacío): paginación `page`/`limit` en GET de propiedades de red.
+ * Default **ON** porque el cron necesita volumen completo; el tráfico web **no** llama esta API
+ * (`loadCatalogSnapshotUncached` sin `allowNetworkEnrichment`). Desactivar: `=0`.
  */
 export function isNetworkPropertiesPagedFetchEnabled(): boolean {
   const raw = trim("KITEPROP_NETWORK_PROPERTIES_PAGED_FETCH");
   if (!raw) return true;
+  if (raw === "0" || raw.toLowerCase() === "false" || raw.toLowerCase() === "no" || raw.toLowerCase() === "off") {
+    return false;
+  }
   return raw === "1" || raw.toLowerCase() === "true";
 }
 
@@ -210,9 +213,16 @@ export function getNetworkPropertiesStatusFilter(): string | null {
   return raw;
 }
 
+/**
+ * Paginación de organizaciones de red. Default **ON** (solo cron / allowNetworkEnrichment).
+ * Desactivar: `KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH=0`.
+ */
 export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
   const raw = trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGED_FETCH");
   if (!raw) return true;
+  if (raw === "0" || raw.toLowerCase() === "false" || raw.toLowerCase() === "no" || raw.toLowerCase() === "off") {
+    return false;
+  }
   return raw === "1" || raw.toLowerCase() === "true";
 }
 
