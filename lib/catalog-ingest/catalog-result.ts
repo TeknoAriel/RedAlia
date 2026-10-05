@@ -46,6 +46,8 @@ export type CatalogIngestRunMeta = {
   partnerDirectoryNetworkAdvertiserDraftsCount: number;
   partnerDirectoryOverlayAttempted: boolean;
   partnerDirectoryOverlayErrorCode: string | null;
+  /** Cuántas fichas JSON recibieron overlay de agency/agent/amenities desde red. */
+  jsonNetworkEnrichCount: number;
 };
 
 export type CatalogSnapshotSuccess = {

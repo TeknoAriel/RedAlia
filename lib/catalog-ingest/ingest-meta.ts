@@ -32,6 +32,7 @@ export function attachIngestMeta(
     partnerDirectoryNetworkAdvertiserDraftsCount: result.partnerDirectoryNetworkAdvertiserDrafts?.length ?? 0,
     partnerDirectoryOverlayAttempted: trace.partnerDirectoryOverlayAttempted,
     partnerDirectoryOverlayErrorCode: trace.partnerDirectoryOverlayErrorCode,
+    jsonNetworkEnrichCount: trace.jsonNetworkEnrichCount,
   };
   const out: GetPropertiesResult = { ...result, ingestMeta: meta };
   logCatalogIngestIfEnabled(meta);

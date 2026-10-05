@@ -1,11 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  fichaInmobiliariaOperativaChipEs,
-  propertyFichaConsultarRow,
-  propertyFichaInmobiliariaOperativa,
-} from "@/lib/agencies";
-import { partnerShouldHideFromPublicaBlock } from "@/lib/master-agency";
+import { PropertyOrgAgentCardLine } from "@/components/properties/PropertyOrgAgentBlock";
 import type { NormalizedProperty } from "@/types/property";
 import { labelForOperation } from "@/lib/operation-labels";
 import { displayPropertyTypeLabel } from "@/lib/properties/catalog-query";
@@ -30,15 +25,6 @@ export function PropertyCard({
   const opLabel = labelForOperation(property.operation);
   const typeLabel = displayPropertyTypeLabel(property.propertyTypeKey, property.propertyTypeLabel);
   const showCompare = Boolean(onToggleCompare);
-  const consultar = propertyFichaConsultarRow(property);
-  const inmobCard = propertyFichaInmobiliariaOperativa(property);
-  const showAgencyOnCard = Boolean(inmobCard?.name);
-  const publicaCard =
-    property.advertiser?.name?.trim() && !partnerShouldHideFromPublicaBlock(property.advertiser, property)
-      ? { label: "Anunciante" as const, name: property.advertiser.name.trim() }
-      : property.agentAgency?.name?.trim() && !partnerShouldHideFromPublicaBlock(property.agentAgency, property)
-        ? { label: "Agente" as const, name: property.agentAgency.name.trim() }
-        : null;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-card shadow-sm transition hover:border-brand-gold/40 hover:shadow-md">
@@ -109,36 +95,13 @@ export function PropertyCard({
             {property.summary}
           </p>
         )}
-        {(showAgencyOnCard || publicaCard || consultar?.name || property.associatedAgentsLabel) && (
-          <div className="mt-3 space-y-1 rounded-lg border border-brand-navy/10 bg-brand-navy-soft/40 px-3 py-2 text-xs tech-panel-glow">
-            {showAgencyOnCard && inmobCard && (
-              <p className="text-brand-navy">
-                <span className="font-medium text-brand-navy/60">
-                  {fichaInmobiliariaOperativaChipEs[inmobCard.scope]} ·{" "}
-                </span>
-                {inmobCard.name}
-              </p>
-            )}
-            {publicaCard && (
-              <p className="text-brand-navy/90">
-                <span className="font-medium text-brand-navy/60">{publicaCard.label} · </span>
-                {publicaCard.name}
-              </p>
-            )}
-            {consultar?.name && (
-              <p className="text-brand-navy/90">
-                <span className="font-medium text-brand-navy/60">Consultar · </span>
-                {consultar.name}
-              </p>
-            )}
-            {property.associatedAgentsLabel && (
-              <p className="line-clamp-2 text-[11px] leading-snug text-muted">
-                <span className="font-medium text-brand-navy/50">Agentes asociados · </span>
-                {property.associatedAgentsLabel}
-              </p>
-            )}
-          </div>
-        )}
+        <PropertyOrgAgentCardLine property={property} />
+        {property.associatedAgentsLabel ? (
+          <p className="mt-2 line-clamp-2 text-[11px] leading-snug text-muted">
+            <span className="font-medium text-brand-navy/50">Agentes asociados · </span>
+            {property.associatedAgentsLabel}
+          </p>
+        ) : null}
         <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-brand-navy/10 pt-4 text-xs text-muted">
           <div>
             <dt className="sr-only">Precio</dt>

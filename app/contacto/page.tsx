@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 const confianza = [
   "Respuesta por el canal que indiques, en días hábiles y con tono profesional.",
   "Conversación comercial sin compromiso de ingreso hasta alinear expectativas y encaje.",
-  "Propuesta clara de alcance y próximos pasos después de la primera reunión, sin cifras genéricas en el aire.",
+  "Propuesta clara de alcance, plan y próximos pasos después de la primera reunión.",
 ];
 
 export default function ContactoPage() {

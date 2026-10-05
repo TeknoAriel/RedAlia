@@ -73,7 +73,7 @@ export default function ServiciosPage() {
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <CTASection
           title="¿Necesitás una propuesta a medida?"
-          description="Evaluamos tu operación y te entregamos el alcance comercial claro, sin cifras genéricas."
+          description="Evaluamos tu operación y te entregamos el alcance comercial claro, con los precios de membresía publicados en UF."
           primaryHref="/planes"
           primaryLabel="Ver membresía"
           secondaryHref="/propiedades"

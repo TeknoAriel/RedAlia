@@ -1,6 +1,6 @@
 import "server-only";
 
-import { resolveRestBearerTokenOrNull } from "@/lib/kiteprop/env-credentials";
+import { resolveProfileXApiKeyOrNull, resolveRestBearerTokenOrNull } from "@/lib/kiteprop/env-credentials";
 import { kitepropLoginForNetworkBearer } from "@/lib/kiteprop-network/login";
 import {
   getKitepropNetworkIdHeaderName,
@@ -16,7 +16,9 @@ import {
 export type NetworkRequestContext =
   | {
       ok: true;
-      bearer: string;
+      /** `bearer`: JWT/login; `api_key`: solo `X-API-Key` (contrato documentado para listados de red). */
+      auth: "bearer" | "api_key";
+      bearer: string | null;
       extraHeaders: Record<string, string>;
     }
   | { ok: false; error: string };
@@ -49,10 +51,10 @@ function buildNetworkExtraHeaders(
 }
 
 /**
- * Bearer + cabeceras para GET de red (AINA / `KitePropApi`):
+ * Auth + cabeceras para GET de red (AINA / `KitePropApi`):
  * - JWT: `POST auth/login` → `data.access_token` (cache), o `KITEPROP_ACCESS_TOKEN` / `KITEPROP_API_SECRET`.
  * - `KITEPROP_NETWORK_TOKEN_AS_BEARER=1`: Bearer = token de red.
- * - Defaults AINA: token en path → sin cabeceras `X-Network-*` (solo `Authorization: Bearer …`).
+ * - Fallback: solo `X-API-Key` cuando el path ya incluye networkId/token (contrato del listado de red).
  */
 export async function resolveNetworkRequestContext(
   request?: "organizations" | "properties",
@@ -61,26 +63,31 @@ export async function resolveNetworkRequestContext(
   const ntok = getKitepropNetworkTokenOrNull();
   const idHeader = getKitepropNetworkIdHeaderName();
   const tokHeader = getKitepropNetworkTokenHeaderName();
+  const extra = buildNetworkExtraHeaders(request, nid, ntok, idHeader, tokHeader);
 
   const tokenAsBearer = isNetworkTokenUsedAsBearer();
   if (tokenAsBearer && ntok) {
     return {
       ok: true,
+      auth: "bearer",
       bearer: ntok,
-      extraHeaders: buildNetworkExtraHeaders(request, nid, ntok, idHeader, tokHeader),
+      extraHeaders: extra,
     };
   }
 
-  const extra = buildNetworkExtraHeaders(request, nid, ntok, idHeader, tokHeader);
-
   const login = await kitepropLoginForNetworkBearer();
   if (login.ok) {
-    return { ok: true, bearer: login.token, extraHeaders: extra };
+    return { ok: true, auth: "bearer", bearer: login.token, extraHeaders: extra };
   }
 
   const envBearer = resolveRestBearerTokenOrNull();
   if (envBearer) {
-    return { ok: true, bearer: envBearer, extraHeaders: extra };
+    return { ok: true, auth: "bearer", bearer: envBearer, extraHeaders: extra };
+  }
+
+  // Contrato documentado: path con networkId/token + header `X-API-Key`.
+  if (resolveProfileXApiKeyOrNull()) {
+    return { ok: true, auth: "api_key", bearer: null, extraHeaders: extra };
   }
 
   if (login.error === "MISSING_LOGIN_CREDENTIALS") {

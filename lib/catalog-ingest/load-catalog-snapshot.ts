@@ -4,6 +4,11 @@ import { attachIngestMeta, newCatalogIngestRunId } from "@/lib/catalog-ingest/in
 import type { CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { createEmptyIngestTrace, type CatalogIngestTrace } from "@/lib/catalog-ingest/ingest-trace";
 import { loadJsonFeedSnapshot } from "@/lib/catalog-ingest/json-feed";
+import { buildNetworkDirectoryDraftsFromPropertyPayloads } from "@/lib/kiteprop-network/build-network-advertiser-directory-drafts";
+import {
+  enrichJsonPropertiesFromNetwork,
+  loadNetworkPropertiesNormalized,
+} from "@/lib/kiteprop-network/enrich-json-properties-from-network";
 import { loadNetworkPartnerDirectoryAdvertiserOverlayDrafts } from "@/lib/kiteprop-network/load-network-partner-directory-advertiser-overlay";
 import { loadNetworkPartnerDirectoryDraftsOnly } from "@/lib/kiteprop-network/load-network-partner-directory-drafts";
 import { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public-catalog-from-network";
@@ -182,44 +187,76 @@ async function runNetworkFallbackJsonFlow(trace: CatalogIngestTrace, runId: stri
   return attachIngestMeta(await withPartnerDirectoryNetworkOverlayIfNeeded(trace, json), trace, runId);
 }
 
+export type LoadCatalogSnapshotOptions = {
+  /**
+   * Permite paginar la API de red (organizaciones + propiedades de enrich).
+   * **Solo cron / herramientas ops.** Default `false`: tráfico web = feed JSON (1 request),
+   * sin las ~50–250 llamadas paginadas que tumbaban el upstream (~300 req/min).
+   */
+  allowNetworkEnrichment?: boolean;
+};
+
 /**
  * Carga única del catálogo (sin caché Next).
- * Estrategia híbrida (default de producto): **propiedades = feed JSON** (`getKitepropPropertiesSourceMode` → `json` si la env no fuerza otra);
- * **directorio = red** (`getRedaliaPartnerDirectorySourceMode` default **`network`** + organizaciones/overlay según `network-env` y `docs/redalia-hybrid-catalog-architecture.md`).
- * Caché: `lib/get-properties.ts` y `app/api/cron/catalog/route.ts`.
+ * Estrategia híbrida (default de producto): **propiedades = feed JSON**;
+ * **directorio de red solo si `allowNetworkEnrichment`** (cron cada 2–4 h).
+ * Tráfico público debe usar `getProperties()` → snapshot Redis / memory, no esta ruta con red.
  */
-export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult> {
+export async function loadCatalogSnapshotUncached(
+  options: LoadCatalogSnapshotOptions = {},
+): Promise<GetPropertiesResult> {
   const trace = createEmptyIngestTrace();
   const runId = newCatalogIngestRunId();
   const mode = getKitepropPropertiesSourceMode();
+  const allowNetwork = options.allowNetworkEnrichment === true;
 
   if (mode === "network") {
+    if (!allowNetwork) {
+      // Sin red en request path: el cron debe haber dejado snapshot en Redis.
+      return attachIngestMeta(
+        { ok: true, properties: [], source: "empty" },
+        trace,
+        runId,
+      );
+    }
     return runNetworkOnlyFlow(trace, runId);
   }
 
   if (mode === "network_fallback_json") {
+    if (!allowNetwork) {
+      const json = await loadJsonFeedSnapshot(trace);
+      return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(json), trace, runId);
+    }
     return runNetworkFallbackJsonFlow(trace, runId);
   }
 
-  // Modo "json" (default de producto). Las tres llamadas son independientes:
-  //   1. feed JSON (propiedades),
-  //   2. network organizations overlay (si está habilitado),
-  //   3. advertiser overlay (si el directorio no es 'feed' puro).
-  // En cold start (sin unstable_cache), ejecutarlas en serie agrega latencia
-  // innecesaria. Las disparamos en paralelo y luego aplicamos la misma
-  // semántica de merge / trace que la versión secuencial.
-  const wantsOrganizations = isNetworkOrganizationsMergedWithJsonCatalog();
-  const wantsAdvertiserOverlay = getRedaliaPartnerDirectorySourceMode() !== "feed";
+  // Modo "json" (default de producto):
+  //   1. feed JSON → volumen (siempre),
+  //   2–3. enrich/orgs de red → SOLO con allowNetworkEnrichment (cron).
+  const wantsOrganizations = allowNetwork && isNetworkOrganizationsMergedWithJsonCatalog();
+  const wantsNetworkPropertyPass =
+    allowNetwork && getRedaliaPartnerDirectorySourceMode() !== "feed";
   if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
-  if (wantsAdvertiserOverlay) trace.partnerDirectoryOverlayAttempted = true;
+  if (wantsNetworkPropertyPass) {
+    trace.partnerDirectoryOverlayAttempted = true;
+    trace.networkApiAttempted = true;
+  }
 
-  const [jsonOnly, orgLoadResult, advertiserOverlayResult] = await Promise.all([
+  const [jsonOnly, networkPropsFirst] = await Promise.all([
     loadJsonFeedSnapshot(trace),
-    wantsOrganizations ? loadNetworkPartnerDirectoryDraftsOnly() : Promise.resolve(null),
-    wantsAdvertiserOverlay
-      ? loadNetworkPartnerDirectoryAdvertiserOverlayDrafts()
-      : Promise.resolve(null),
+    wantsNetworkPropertyPass ? loadNetworkPropertiesNormalized() : Promise.resolve(null),
   ]);
+
+  let networkPropsResult = networkPropsFirst;
+  if (networkPropsResult && !networkPropsResult.ok) {
+    await new Promise((r) => setTimeout(r, 3500));
+    networkPropsResult = await loadNetworkPropertiesNormalized();
+  }
+
+  let orgLoadResult: Awaited<ReturnType<typeof loadNetworkPartnerDirectoryDraftsOnly>> | null = null;
+  if (wantsOrganizations) {
+    orgLoadResult = await loadNetworkPartnerDirectoryDraftsOnly();
+  }
 
   let partnerDirectoryExtraDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
   if (orgLoadResult) {
@@ -233,25 +270,37 @@ export async function loadCatalogSnapshotUncached(): Promise<GetPropertiesResult
     }
   }
 
-  let base: CatalogSnapshotSuccess = partnerDirectoryExtraDrafts
-    ? { ...jsonOnly, partnerDirectoryExtraDrafts }
-    : jsonOnly;
+  let properties = jsonOnly.properties;
+  let partnerDirectoryNetworkAdvertiserDrafts: PublicPartnerDirectoryRowDraft[] | undefined;
 
-  if (advertiserOverlayResult) {
-    if (base.partnerDirectoryNetworkAdvertiserDrafts?.length) {
-      // Ya venía poblado: respetamos la misma rama del helper original.
-    } else if (!advertiserOverlayResult.ok) {
-      trace.partnerDirectoryOverlayErrorCode = advertiserOverlayResult.error;
+  if (networkPropsResult) {
+    if (!networkPropsResult.ok) {
+      trace.networkErrorCode = networkPropsResult.error;
+      trace.partnerDirectoryOverlayErrorCode = networkPropsResult.error;
     } else {
+      trace.networkErrorCode = null;
       trace.partnerDirectoryOverlayErrorCode = null;
-      if (advertiserOverlayResult.drafts.length) {
-        base = {
-          ...base,
-          partnerDirectoryNetworkAdvertiserDrafts: advertiserOverlayResult.drafts,
-        };
+      const enriched = enrichJsonPropertiesFromNetwork(jsonOnly.properties, networkPropsResult.properties);
+      properties = enriched.properties;
+      trace.jsonNetworkEnrichCount = enriched.enrichedCount;
+      if (networkPropsResult.properties.length > 0) {
+        const drafts = buildNetworkDirectoryDraftsFromPropertyPayloads(
+          networkPropsResult.rawItems,
+          networkPropsResult.properties,
+        );
+        if (drafts.length) partnerDirectoryNetworkAdvertiserDrafts = drafts;
       }
     }
   }
+
+  const base: CatalogSnapshotSuccess = {
+    ...jsonOnly,
+    properties,
+    ...(partnerDirectoryExtraDrafts ? { partnerDirectoryExtraDrafts } : {}),
+    ...(partnerDirectoryNetworkAdvertiserDrafts
+      ? { partnerDirectoryNetworkAdvertiserDrafts }
+      : {}),
+  };
 
   return attachIngestMeta(keepLastSuccessfulPartnerDirectoryDrafts(base), trace, runId);
 }

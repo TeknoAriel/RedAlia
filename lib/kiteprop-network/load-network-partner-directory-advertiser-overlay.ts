@@ -1,11 +1,8 @@
 import "server-only";
 
 import { buildNetworkDirectoryDraftsFromPropertyPayloads } from "@/lib/kiteprop-network/build-network-advertiser-directory-drafts";
-import { coerceNetworkPropertyRecord } from "@/lib/kiteprop-network/coerce-network-property-record";
-import { getNetworkProperties } from "@/lib/kiteprop-network/get-network-properties";
-import { normalizeKitePropProperty } from "@/lib/kiteprop-adapter";
+import { loadNetworkPropertiesNormalized } from "@/lib/kiteprop-network/enrich-json-properties-from-network";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
-import type { NormalizedProperty } from "@/types/property";
 
 /**
  * Carga **solo** propiedades de red para armar borradores de directorio (`kpnet:*`) cuando el catálogo
@@ -14,25 +11,15 @@ import type { NormalizedProperty } from "@/types/property";
 export async function loadNetworkPartnerDirectoryAdvertiserOverlayDrafts(): Promise<
   { ok: true; drafts: PublicPartnerDirectoryRowDraft[] } | { ok: false; error: string }
 > {
-  const propsRes = await getNetworkProperties();
-  if (!propsRes.ok) {
-    return { ok: false, error: propsRes.error };
+  const loaded = await loadNetworkPropertiesNormalized();
+  if (!loaded.ok) {
+    return { ok: false, error: loaded.error };
   }
 
-  const pairs: { raw: unknown; norm: NormalizedProperty }[] = [];
-  for (const raw of propsRes.items) {
-    const coerced = coerceNetworkPropertyRecord(raw);
-    const norm = normalizeKitePropProperty(coerced);
-    if (norm) pairs.push({ raw: coerced, norm });
-  }
-
-  if (!pairs.length) {
+  if (!loaded.properties.length) {
     return { ok: true, drafts: [] };
   }
 
-  const drafts = buildNetworkDirectoryDraftsFromPropertyPayloads(
-    pairs.map((p) => p.raw),
-    pairs.map((p) => p.norm),
-  );
+  const drafts = buildNetworkDirectoryDraftsFromPropertyPayloads(loaded.rawItems, loaded.properties);
   return { ok: true, drafts };
 }

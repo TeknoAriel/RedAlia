@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
+import { getProperties } from "@/lib/get-properties";
 import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
@@ -45,7 +45,8 @@ export async function GET(request: Request) {
   }
 
   const t0 = Date.now();
-  const result = await loadCatalogSnapshotUncached();
+  // Snapshot cacheado (no ingest live ni paginación de red).
+  const result = await getProperties();
   const ingestMs = Date.now() - t0;
 
   const t1 = Date.now();

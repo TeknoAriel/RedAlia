@@ -12,7 +12,7 @@ export const siteConfig = {
     email: "contacto@redalia.cl",
     schedule: "Lunes a viernes; coordinamos horario según tu disponibilidad.",
     /** WhatsApp comercial Redalia. Sobreescribible con `NEXT_PUBLIC_WHATSAPP_*` en el hosting. */
-    whatsappHref: "https://wa.me/56984553691",
-    whatsappDisplay: "+56 9 8455 3691",
+    whatsappHref: "https://wa.me/56939216679",
+    whatsappDisplay: "+56 9 3921 6679",
   },
 } as const;
