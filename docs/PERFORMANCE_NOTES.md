@@ -14,6 +14,7 @@ Primera carga del catálogo más liviana y navegación por filtros/páginas sin 
 6. **Paginación default** más baja: propiedades 18 / socios 24 (env override).
 7. **Cobertura geográfica** saneada (sin direcciones/calles) para no hinchar HTML del directorio.
 8. **`maxDuration = 60`** en rutas de usuario; 300 solo en crons (ingest de red).
+9. **Request path cache-only:** `getProperties()` no descarga JSON; solo memoria/Upstash. Sync activa vía crons Vercel + GHA `sync-production-cache`.
 
 ## Cómo medir antes/después (manual)
 

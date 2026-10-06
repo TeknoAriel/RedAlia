@@ -26,14 +26,16 @@ Referencia operativa. Arquitectura híbrida fijada: **`docs/redalia-hybrid-catal
 | `merge` | Fusiona feed + red por `advertiser.id` numérico (logos/contacto red primero en match). |
 | `feed` | Sin overlay de anunciantes de red; solo `extractSociosGridCatalog` + extras de orgs si aplica. |
 
-Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`, `CATALOG_INGEST_DISABLE_CACHE=1` (local). Crons (mismo `CRON_SECRET`):
+Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`. Tráfico web = **solo lectura** (memoria → Upstash). Crons (mismo `CRON_SECRET`):
 
 | Ruta | Frecuencia (ver `vercel.json`) | Qué hace |
 |------|-------------------------------|----------|
-| `GET /api/cron/catalog` | Cada **4 h** (`0 */4 * * *`) | Feed JSON + enrich/orgs de red (`allowNetworkEnrichment`); guarda snapshot Upstash |
-| `GET /api/cron/socios` | Cada **4 h** (02/06/10/14/18/22 UTC) | Sync **incremental** del directorio (paginación de red solo aquí) |
+| `GET /api/cron/catalog` | Cada **2 h** (`0 */2 * * *`) | Feed JSON (+ enrich de red si aplica); escribe/renueva snapshot Upstash |
+| `GET /api/cron/socios` | Cada **4 h** (01/05/09/13/17/21 UTC) | Sync **incremental** del directorio (paginación de red solo aquí) |
 
-**Importante:** las visitas a `/`, `/propiedades`, `/socios` **no** deben paginar la API de red. Eso se hace solo en cron (`loadCatalogSnapshotUncached({ allowNetworkEnrichment: true })`).
+Backup: GitHub Action `Sync production cache` (cada 2 h + manual) llama `npm run warm:production`.
+
+**Importante:** las visitas a `/`, `/propiedades`, `/socios` **no** bajan el feed JSON ni paginan red. Si Redis está vacío, el sitio muestra vacío suave hasta el próximo cron. Emergency local: `CATALOG_INGEST_DISABLE_CACHE=1` o `REDALIA_ALLOW_REQUEST_JSON_INGEST=1`.
 
 Sync socios: id ya conocido → no toca la fila; id nuevo → alta; id ausente → baja. Si las bajas superan `max(50, 2% del registro)` se **diferen** (posible corte de red) y se reintenta en la próxima corrida; tras 3 diferidos seguidos, sync completo. Requiere `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` y catálogo precalentado.
 

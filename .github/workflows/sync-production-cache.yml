@@ -1,0 +1,68 @@
+# Backup de sync activo: dispara crons de producción si Vercel no corrió o Redis quedó frío.
+# El tráfico web solo lee cache; este workflow (y vercel.json crons) escriben.
+#
+# Secrets: CRON_SECRET (o REDALIA_SYNC_SECRET)
+# Variables: PRODUCTION_URL (https://… sin barra final)
+
+name: Sync production cache
+
+on:
+  schedule:
+    # Cada 2 h (UTC), alineado al cron de catálogo. Socios va en la misma corrida secuencial.
+    - cron: "15 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Forzar reingesta de catálogo (?force=1)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-production-cache
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Sync Redis vía crons de producción
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REDALIA_SYNC_SECRET: ${{ secrets.REDALIA_SYNC_SECRET }}
+          FORCE_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PRODUCTION_URL:-}" ]; then
+            echo "::notice::PRODUCTION_URL no definida: omitido sync (Settings → Variables)."
+            exit 0
+          fi
+          if [ -z "${CRON_SECRET:-}" ] && [ -z "${REDALIA_SYNC_SECRET:-}" ]; then
+            echo "::notice::Falta secret CRON_SECRET o REDALIA_SYNC_SECRET: omitido sync."
+            exit 0
+          fi
+          export BASE_URL="$PRODUCTION_URL"
+          export DEPLOY_READINESS_URL="$PRODUCTION_URL"
+          if [ "${FORCE_INPUT}" = "true" ]; then
+            export FORCE=1
+          fi
+          echo "## Sync production cache" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: \`$PRODUCTION_URL\`" >> "$GITHUB_STEP_SUMMARY"
+          node scripts/warm-production-cache.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"

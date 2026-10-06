@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
-import { getProperties } from "@/lib/get-properties";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
 export const runtime = "nodejs";
@@ -38,20 +37,15 @@ export async function GET(request: Request) {
       source: "not_available",
       durationMs: Date.now() - startedAtMs,
       warnings: [
-        "Medición pasiva: usa include_data=1 para intentar lectura de conteos desde snapshot estable de socios.",
+        "Medición pasiva: usa include_data=1 para leer snapshot Redis/Data Cache (sin ingest).",
       ],
       errorsRecent: [],
     });
   }
 
   const t0 = Date.now();
-  // Snapshot cacheado (no ingest live ni paginación de red).
-  const result = await getProperties();
-  const ingestMs = Date.now() - t0;
-
-  const t1 = Date.now();
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax: 8 });
-  const resolveMs = Date.now() - t1;
+  const { result, stable, dataSource } = await loadSociosPageData({ featuredMax: 8 });
+  const resolveMs = Date.now() - t0;
 
   const entries = stable.snapshot?.entries ?? [];
   const renderablePartners = entries.filter((entry) => entry.displayName.trim().length > 0).length;
@@ -64,8 +58,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ...base,
     source: stable.source,
-    durationMs: ingestMs + resolveMs,
-    ingestMs,
+    dataSource,
+    durationMs: resolveMs,
+    ingestMs: 0,
     directoryResolveMs: resolveMs,
     totalDirectoryEntries: entries.length,
     renderablePartners,
@@ -85,7 +80,10 @@ export async function GET(request: Request) {
           result.ingestMeta?.networkErrorCode,
         ].filter(Boolean)
       : [result.error],
-    warnings: [],
+    warnings:
+      dataSource === "empty"
+        ? ["Sin snapshot de socios; esperá el cron /api/cron/socios."]
+        : [],
     ingestMeta: result.ok ? result.ingestMeta ?? null : null,
   });
 }

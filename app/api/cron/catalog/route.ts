@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Cron de **propiedades** (cada 4 h en `vercel.json`):
+ * Cron de **propiedades** (cada 2 h en `vercel.json`):
  * 1) HEAD condicional al feed (ETag) → si 304 y hay snapshot chunked, renueva TTL.
  * 2) Si 304 pero falta snapshot en Redis (límite 10 MB histórico), fuerza reingesta + write chunked.
  * 3) Si hay cuerpo nuevo, fingerprint decide invalidación.

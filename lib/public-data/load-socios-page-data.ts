@@ -2,12 +2,7 @@ import "server-only";
 
 import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { readPersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
-import { getProperties } from "@/lib/get-properties";
-import {
-  resolveStablePublicDirectorySnapshot,
-  type StablePartnerDirectoryResult,
-} from "@/lib/public-data/get-stable-partner-directory";
-import { loadCachedPartnerDirectorySnapshot } from "@/lib/public-data/cached-partner-directory-snapshot";
+import type { StablePartnerDirectoryResult } from "@/lib/public-data/get-stable-partner-directory";
 import { readPersistedPartnerDirectorySnapshot } from "@/lib/public-data/partner-directory-snapshot-persist";
 
 function stableFromPersistedDirectory(
@@ -31,16 +26,32 @@ function stableFromPersistedDirectory(
   };
 }
 
+function emptyStable(): StablePartnerDirectoryResult {
+  return {
+    snapshot: {
+      entries: [],
+      featured: [],
+      stats: {
+        totalListings: 0,
+        directoryCount: 0,
+        geographicDistinctCount: 0,
+        geographicPresenceLabels: [],
+      },
+    },
+    source: "none",
+  };
+}
+
 /**
- * Carga datos de `/socios` sin ingestar el feed si ya hay snapshot de directorio en Redis.
- * Evita timeout de 60s+ en cold start (causa del error "This page couldn't load").
+ * Carga datos de `/socios` (y home) **solo desde Redis**.
+ * No dispara ingest ni rearmado del directorio en request: eso es `/api/cron/*`.
  */
 export async function loadSociosPageData(options?: {
   featuredMax?: number;
 }): Promise<{
   result: GetPropertiesResult;
   stable: StablePartnerDirectoryResult;
-  dataSource: "persisted" | "data_cache" | "live";
+  dataSource: "persisted" | "empty";
 }> {
   const featuredMax = options?.featuredMax ?? 8;
 
@@ -61,20 +72,9 @@ export async function loadSociosPageData(options?: {
     };
   }
 
-  const dataCacheDir = await loadCachedPartnerDirectorySnapshot();
-  if (dataCacheDir?.entries.length) {
-    const stable: StablePartnerDirectoryResult = {
-      snapshot: {
-        entries: dataCacheDir.entries,
-        featured: dataCacheDir.featured,
-        stats: dataCacheDir.stats,
-      },
-      source: "live",
-    };
-    return { result: catalogResult, stable, dataSource: "data_cache" };
-  }
-
-  const result = await getProperties();
-  const stable = await resolveStablePublicDirectorySnapshot(result, { featuredMax });
-  return { result, stable, dataSource: "live" };
+  return {
+    result: catalogResult,
+    stable: emptyStable(),
+    dataSource: "empty",
+  };
 }
