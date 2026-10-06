@@ -21,8 +21,11 @@ const REDIS_META_KEY = "redalia:catalog:snapshot:meta:v5";
 const REDIS_CHUNK_PREFIX = "redalia:catalog:snapshot:v5:chunk:";
 const REDIS_ORG_DRAFTS_KEY = "redalia:catalog:snapshot:v5:org-drafts";
 const REDIS_ADV_DRAFTS_KEY = "redalia:catalog:snapshot:v5:adv-drafts";
-/** Props por chunk: deja cada SET bajo el límite de 10 MB del plan Upstash. */
-const PROPS_PER_CHUNK = 60;
+/**
+ * Props por chunk: el REST de Upstash suele fallar cerca de ~1 MB/request.
+ * Con ~60 fichas el primer SET a veces devolvía `chunk_write_failed:0`.
+ */
+const PROPS_PER_CHUNK = 18;
 /** 48 h: el cron de catálogo (cada 2 h) renueva TTL con 304 o reingesta; margen amplio ante fallos puntuales. */
 const TTL_SECONDS = 60 * 60 * 48;
 
