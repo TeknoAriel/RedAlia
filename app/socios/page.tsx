@@ -15,7 +15,7 @@ import {
  * Sin cold ingest de red en request de usuario → `maxDuration` acotado.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export const metadata: Metadata = {
   title: "Socios",

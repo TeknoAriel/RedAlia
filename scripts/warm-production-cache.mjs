@@ -42,10 +42,17 @@ async function hit(path) {
 
 function catalogOk(body) {
   if (!body || typeof body !== "object") return false;
-  if (body.ok !== true) return false;
-  // Si hubo write y falló persist, no dar por caliente.
-  if (body.persistOk === false) return false;
-  return true;
+  if (body.ok === true) return true;
+  // Upstash en cuota: el ingest pudo OK pero persist falló; el sitio usa Data Cache JSON.
+  if (
+    body.propertyCount > 0 &&
+    typeof body.error === "string" &&
+    /chunk_write_failed|plan limits|Upstash/i.test(body.error)
+  ) {
+    console.warn("Aviso: catálogo ingerido pero Redis no persistió (cuota Upstash). Fallback Data Cache activo.");
+    return true;
+  }
+  return false;
 }
 
 async function main() {

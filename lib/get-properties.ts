@@ -26,13 +26,13 @@ function catalogRevalidateSeconds(): number {
     process.env.REDALIA_CATALOG_REVALIDATE_SECONDS?.trim() ||
     process.env.CATALOG_INGEST_REVALIDATE_SECONDS?.trim();
   const n = raw ? parseInt(raw, 10) : NaN;
-  // Default 2 h: alineado al cron de catálogo (actualización por job, no por visita).
+  // Default 2 h: alineado al cron de catálogo.
   if (!Number.isFinite(n) || n < 60) return 7_200;
   return Math.min(86_400, n);
 }
 
-/** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron (deploys con cambio de shape). */
-const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v15-cache-only-request-path";
+/** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron. */
+const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v16-redis-or-json-cache";
 
 const loadCatalogCached = unstable_cache(
   async () => loadCatalogSnapshotUncached(),
@@ -43,31 +43,16 @@ const loadCatalogCached = unstable_cache(
   },
 );
 
-/**
- * Si cambió `KITEPROP_PROPERTIES_SOURCE`, el snapshot Redis de la fuente anterior
- * no debe servirse (p. ej. feed JSON “remote” cuando ahora pedimos “network”).
- */
 function persistedSnapshotMatchesSourceMode(
   snapshot: CatalogSnapshotSuccess,
   mode: ReturnType<typeof getKitepropPropertiesSourceMode>,
 ): boolean {
   if (mode === "network") return snapshot.source === "network";
   if (mode === "json") return snapshot.source === "remote" || snapshot.source === "sample";
-  // network_fallback_json: acepta network o remote
   return snapshot.source === "network" || snapshot.source === "remote" || snapshot.source === "sample";
 }
 
-/**
- * In-memory cache global del catálogo público (TTL 1 h).
- *
- * Vive por proceso lambda: una vez poblado, sucesivas requests al MISMO lambda warm
- * resuelven `getProperties()` en <5 ms. Convive con el snapshot Upstash (cross-lambda,
- * TTL 48 h, renovado por cron cada 2–4 h).
- *
- * Diseño: nada de keys complejas. Solo un slot. El primer hit OK del proceso lo puebla.
- * Bumpeá `MEMORY_CACHE_VERSION` si el shape de `GetPropertiesResult` cambia.
- */
-const MEMORY_CACHE_VERSION = 6;
+const MEMORY_CACHE_VERSION = 7;
 const IN_MEMORY_TTL_MS = 60 * 60 * 1000;
 type CatalogMemoryCacheEntry = { v: number; value: CatalogSnapshotSuccess; expiresAt: number };
 const memoryCacheGlobal = globalThis as unknown as {
@@ -117,7 +102,7 @@ function writeMemoryCache(value: GetPropertiesResult): void {
   if (key) writePropertyIndex(key, value.properties);
 }
 
-/** Persistencia diferida del snapshot. Solo en paths de ingest explícito (dev / emergency). */
+/** Persistencia diferida. Si Upstash está en cuota, falla en silencio. */
 function schedulePersist(value: GetPropertiesResult): void {
   if (!value.ok || value.properties.length === 0) return;
   try {
@@ -129,42 +114,28 @@ function schedulePersist(value: GetPropertiesResult): void {
       }
     });
   } catch {
-    // `after()` solo está disponible en contexto request. En CLI/build queda noop.
+    /* after() no disponible fuera de request */
   }
 }
 
-function emptyCatalogWaitingForCron(): CatalogSnapshotSuccess {
-  return { ok: true, properties: [], source: "empty" };
-}
-
-function allowRequestPathLiveIngest(): boolean {
-  return (
-    process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1" ||
-    process.env.REDALIA_ALLOW_REQUEST_JSON_INGEST?.trim() === "1"
-  );
+function forceLiveIngest(): boolean {
+  return process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1";
 }
 
 /**
- * Catálogo público para tráfico web: **solo lectura de cache**.
+ * Capas de lectura (sin paginar API de red):
+ *  1. Memoria (lambda warm)
+ *  2. Upstash (si el plan responde)
+ *  3. `unstable_cache` + feed JSON (fallback si Redis está en cuota / vacío)
  *
- * Capas (de más rápida a más lenta):
- *  1. In-memory global (TTL 1 h, mismo proceso lambda).
- *  2. Snapshot Upstash (TTL 48 h; lo escribe `/api/cron/catalog`).
- *  3. Si no hay snapshot: vacío suave (sin bajar el feed JSON ni paginar red).
- *
- * La ingesta pesada (JSON ~16 MB / API de red) corre **solo** en:
- *  - `/api/cron/catalog` y `/api/cron/socios` (`allowNetworkEnrichment`)
- *  - Dev/emergency: `CATALOG_INGEST_DISABLE_CACHE=1` o `REDALIA_ALLOW_REQUEST_JSON_INGEST=1`
+ * La paginación de red sigue solo en `/api/cron/*` con `allowNetworkEnrichment`.
  */
 export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   const mem = readMemoryCache();
   if (mem) return mem;
 
-  if (allowRequestPathLiveIngest()) {
-    const fresh =
-      process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1"
-        ? await loadCatalogSnapshotUncached()
-        : await loadCatalogCached();
+  if (forceLiveIngest()) {
+    const fresh = await loadCatalogSnapshotUncached();
     writeMemoryCache(fresh);
     schedulePersist(fresh);
     return fresh;
@@ -181,8 +152,13 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     return persistedFastPath.snapshot;
   }
 
-  // Sin Redis usable: no descargar JSON ni saturar el servidor. El cron repuebla.
-  return emptyCatalogWaitingForCron();
+  // Fallback operativo: Data Cache + JSON (sin red). Cubre Upstash en cuota Fixed.
+  const cached = await loadCatalogCached();
+  if (cached.ok && cached.properties.length > 0) {
+    writeMemoryCache(cached);
+    schedulePersist(cached);
+  }
+  return cached;
 });
 
 export function getPartnerDirectoryExtraDrafts(
@@ -197,7 +173,6 @@ export function getPartnerDirectoryNetworkAdvertiserDrafts(
   return result.ok ? result.partnerDirectoryNetworkAdvertiserDrafts : undefined;
 }
 
-/** Opciones para `buildPublicDirectorySnapshot` / `buildPublicPartnerDirectoryFromFeed` sin acoplar páginas a la forma de `GetPropertiesResult`. */
 export function getPartnerDirectoryBuildOptions(result: GetPropertiesResult): {
   extraDirectoryDrafts: PublicPartnerDirectoryRowDraft[] | null;
   networkAdvertiserDrafts: PublicPartnerDirectoryRowDraft[] | null;
