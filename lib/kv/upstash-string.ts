@@ -37,22 +37,62 @@ export async function upstashGet(key: string): Promise<string | null> {
   return j?.result ?? null;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * SET con TTL. Reintenta ante 429/5xx y valores grandes (límite REST ~1 MB).
+ * Usa pipeline para no meter el JSON en el path URL.
+ */
 export async function upstashSet(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
   const b = baseUrl();
   const tok = token();
   if (!b || !tok) return false;
   const base = b.replace(/\/$/, "");
   const ttl = ttlSeconds && ttlSeconds > 0 ? ttlSeconds : undefined;
-  /** Pipeline evita límites de path en valores JSON grandes (Upstash REST). */
   const cmd: string[] = ttl ? ["SET", key, value, "EX", String(ttl)] : ["SET", key, value];
-  const r = await fetch(`${base}/pipeline`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${tok}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify([cmd]),
-    next: { revalidate: 0 },
-  });
-  return r.ok;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const r = await fetch(`${base}/pipeline`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tok}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([cmd]),
+        next: { revalidate: 0 },
+      });
+      if (r.ok) {
+        // Pipeline OK suele ser `[{ "result": "OK" }]`; rechazar error embebido.
+        try {
+          const j = (await r.json()) as Array<{ result?: unknown; error?: string }>;
+          const first = Array.isArray(j) ? j[0] : null;
+          if (first && typeof first === "object" && first.error) {
+            if (attempt < 3) {
+              await sleep(200 * (attempt + 1));
+              continue;
+            }
+            return false;
+          }
+        } catch {
+          /* body no JSON: si HTTP ok, asumir OK */
+        }
+        return true;
+      }
+      if ((r.status === 429 || r.status >= 500) && attempt < 3) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      return false;
+    } catch {
+      if (attempt < 3) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      return false;
+    }
+  }
+  return false;
 }
