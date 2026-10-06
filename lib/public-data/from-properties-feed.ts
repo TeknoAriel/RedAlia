@@ -1,3 +1,4 @@
+import { sanitizeCoverageLabels } from "@/lib/public-data/coverage-labels";
 import {
   dropDirectoryEntriesWithoutDisplayName,
   normalizePublicDisplayName,
@@ -19,7 +20,7 @@ import type {
 } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
-const MAX_GEOGRAPHIC_PRESENCE_LABELS = 12;
+const MAX_GEOGRAPHIC_PRESENCE_LABELS = 8;
 const DEFAULT_FEATURED_MAX = 8;
 
 function finalizeDirectoryEntries(
@@ -48,17 +49,14 @@ function finalizeDirectoryEntries(
 function buildGeographicPresence(
   entries: PublicPartnerDirectoryEntry[],
 ): Pick<PublicDirectoryStats, "geographicDistinctCount" | "geographicPresenceLabels"> {
-  const set = new Set<string>();
+  const raw: string[] = [];
   for (const e of entries) {
-    for (const l of e.coverageLabels) {
-      const t = l.trim();
-      if (t) set.add(t);
-    }
+    raw.push(...e.coverageLabels);
   }
-  const sorted = [...set].sort((a, b) => a.localeCompare(b, "es"));
+  const cleaned = sanitizeCoverageLabels(raw, 500);
   return {
-    geographicDistinctCount: sorted.length,
-    geographicPresenceLabels: sorted.slice(0, MAX_GEOGRAPHIC_PRESENCE_LABELS),
+    geographicDistinctCount: cleaned.length,
+    geographicPresenceLabels: cleaned.slice(0, MAX_GEOGRAPHIC_PRESENCE_LABELS),
   };
 }
 

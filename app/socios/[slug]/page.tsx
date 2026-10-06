@@ -5,7 +5,7 @@ import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 import { findPartnerEntryByPublicSlug } from "@/lib/public-data/find-partner";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const PREVIEW_LIMIT = 6;
 

@@ -32,12 +32,12 @@ const heroImage =
   "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=82";
 
 /**
- * Render dinámico: las secciones que dependen del catálogo + red AINA viven
- * dentro de un `<Suspense>` (ver `HomeDataSections`) y se streamean cuando los
- * datos están listos. La cáscara (hero, valor, tecnología, planes, CTA) se
- * entrega de inmediato — TTFB de la home no debería depender del cold ingest.
+ * ISR acotado: la cáscara + secciones de datos se cachean en el edge ~1 h.
+ * El catálogo real vive en `getProperties` (memoria/Upstash); el cron invalida
+ * tags. Evita `force-dynamic` (HTML sin CDN) ahora que el cold ingest de red
+ * ya no corre en request de usuario.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default function HomePage() {
   const visiblePortalPublishers = getVisiblePortalPublishers(portalPublishers);

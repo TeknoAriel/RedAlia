@@ -212,7 +212,8 @@ export function catalogPageSize(): number {
   const raw = process.env.REDALIA_PROPERTIES_PAGE_SIZE?.trim();
   const n = raw ? parseInt(raw, 10) : NaN;
   if (Number.isFinite(n) && n >= 12 && n <= 60) return n;
-  return 30;
+  /** Default más bajo: menos HTML RSC por request (~344 KB con 30 cards). */
+  return 18;
 }
 
 export function paginateCatalog<T>(

@@ -1,27 +1,6 @@
-# Actualizaciones automáticas de dependencias (PRs revisables).
+# Dependabot desactivado: el ruido semanal de PRs no aportaba frente al costo de
+# revisión/merge en Hobby. Reactivar cuando haya ventana de mantenimiento.
+# Para reactivar: restaurar entradas bajo `updates` (npm + github-actions).
 
 version: 2
-updates:
-  - package-ecosystem: npm
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    groups:
-      react:
-        patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
-    labels:
-      - dependencies
-
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - github-actions
+updates: []

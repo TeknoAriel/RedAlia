@@ -71,7 +71,8 @@ export function PartnerDirectoryCard({ entry, variant = "default" }: Props) {
       </p>
       {entry.coverageLabels.length > 0 && (
         <p className="mt-1 text-[11px] leading-snug text-muted line-clamp-2">
-          Presencia en catálogo: {entry.coverageLabels.join(" · ")}
+          Presencia en catálogo: {entry.coverageLabels.slice(0, 4).join(" · ")}
+          {entry.coverageLabels.length > 4 ? "…" : ""}
         </p>
       )}
       <PartnerContactPrivacyGate

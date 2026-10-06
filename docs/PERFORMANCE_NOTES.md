@@ -8,8 +8,12 @@ Primera carga del catálogo más liviana y navegación por filtros/páginas sin 
 
 1. **`PropertiesExplorer`** deja de recibir el array completo de propiedades. Recibe solo `pageItems` (subconjunto) + metadatos de totales y opciones de filtro precomputadas en el servidor.
 2. **`PropertyCard`** admite `compactListing`: imagen con `loading="lazy"` y sin bloque de resumen largo en grilla paginada.
-3. **Rutas** `/propiedades` y `/catalogo` comparten `CatalogListingPage` con **ISR** (`revalidate` desde env).
+3. **Rutas** `/propiedades` y `/catalogo` comparten `CatalogListingPage`; HTML por request (`force-dynamic`), cache de datos en `getProperties`.
 4. **Búsqueda por texto (`q`):** debounce ~480 ms + `router.replace` para no disparar una navegación por tecla.
+5. **Home** con `revalidate = 3600` (ISR edge) en lugar de `force-dynamic`.
+6. **Paginación default** más baja: propiedades 18 / socios 24 (env override).
+7. **Cobertura geográfica** saneada (sin direcciones/calles) para no hinchar HTML del directorio.
+8. **`maxDuration = 60`** en rutas de usuario; 300 solo en crons (ingest de red).
 
 ## Cómo medir antes/después (manual)
 

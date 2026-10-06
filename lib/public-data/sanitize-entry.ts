@@ -1,3 +1,4 @@
+import { sanitizeCoverageLabels } from "@/lib/public-data/coverage-labels";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 
 function trimOrNull(s: string | null | undefined): string | null {
@@ -37,6 +38,7 @@ export function sanitizePublicPartnerDirectoryEntry(
   return {
     ...entry,
     displayName: entry.displayName,
+    coverageLabels: sanitizeCoverageLabels(entry.coverageLabels ?? [], 8),
     email: email && isPlausibleEmail(email) ? email : null,
     webUrl: webUrl && isPlausibleWebUrl(webUrl) ? webUrl : null,
     phone: phone && isPlausiblePhoneLike(phone) ? phone : null,
