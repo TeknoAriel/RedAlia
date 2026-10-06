@@ -7,7 +7,8 @@ import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
  * `maxDuration` acotado: sin cold ingest de red en request de usuario.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+/** 120s: cubre cold JSON→Data Cache si Upstash está en cuota (sin paginar red). */
+export const maxDuration = 120;
 
 export const metadata: Metadata = {
   title: "Propiedades",

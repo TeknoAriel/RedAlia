@@ -125,7 +125,10 @@ export async function GET(request: Request) {
           persistChunks = written.chunkCount;
           if (!written.ok) {
             prepopulated = "catalog_error";
-            ingestError = written.error ?? "persist_failed";
+            ingestError =
+              written.error === "chunk_write_failed:0" || written.error?.startsWith("chunk_write_failed")
+                ? `${written.error} (¿Upstash Fixed plan / cuota? Revisá Console → upgrade o liberar storage; el sitio usa fallback JSON en Data Cache.)`
+                : (written.error ?? "persist_failed");
           } else {
             revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
             prepopulated = "catalog_ok";

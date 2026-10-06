@@ -35,7 +35,9 @@ Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`. Tráfico web = **solo lectura** (me
 
 Backup: GitHub Action `Sync production cache` (cada 2 h + manual) llama `npm run warm:production`.
 
-**Importante:** las visitas a `/`, `/propiedades`, `/socios` **no** bajan el feed JSON ni paginan red. Si Redis está vacío, el sitio muestra vacío suave hasta el próximo cron. Emergency local: `CATALOG_INGEST_DISABLE_CACHE=1` o `REDALIA_ALLOW_REQUEST_JSON_INGEST=1`.
+**Importante:** las visitas **no** paginan la API de red. Lectura preferida: memoria → Upstash. Si Upstash falla (cuota Fixed / 403), fallback a `unstable_cache` + feed JSON (sin red). Si Redis está en cuota, liberar storage o upgrade en Upstash Console; mientras tanto el sitio sigue con Data Cache.
+
+Emergency local: `CATALOG_INGEST_DISABLE_CACHE=1`.
 
 Sync socios: id ya conocido → no toca la fila; id nuevo → alta; id ausente → baja. Si las bajas superan `max(50, 2% del registro)` se **diferen** (posible corte de red) y se reintenta en la próxima corrida; tras 3 diferidos seguidos, sync completo. Requiere `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` y catálogo precalentado.
 

@@ -64,12 +64,13 @@ export async function upstashSet(key: string, value: string, ttlSeconds?: number
         body: JSON.stringify([cmd]),
         next: { revalidate: 0 },
       });
+      const text = await r.text();
       if (r.ok) {
-        // Pipeline OK suele ser `[{ "result": "OK" }]`; rechazar error embebido.
         try {
-          const j = (await r.json()) as Array<{ result?: unknown; error?: string }>;
+          const j = JSON.parse(text) as Array<{ result?: unknown; error?: string }>;
           const first = Array.isArray(j) ? j[0] : null;
           if (first && typeof first === "object" && first.error) {
+            if (/plan limits|max requests|quota/i.test(String(first.error))) return false;
             if (attempt < 3) {
               await sleep(200 * (attempt + 1));
               continue;
@@ -81,6 +82,8 @@ export async function upstashSet(key: string, value: string, ttlSeconds?: number
         }
         return true;
       }
+      // Fixed plan / cuota: no reintentar (403 con mensaje de límites).
+      if (r.status === 403 && /plan limits|upgrade|quota/i.test(text)) return false;
       if ((r.status === 429 || r.status >= 500) && attempt < 3) {
         await sleep(300 * (attempt + 1));
         continue;
