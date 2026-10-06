@@ -1,6 +1,5 @@
 import "server-only";
 
-import { after } from "next/server";
 import type { GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { loadCachedPartnerDirectorySnapshot } from "@/lib/public-data/cached-partner-directory-snapshot";
@@ -8,7 +7,6 @@ import { buildPublicDirectorySnapshot } from "@/lib/public-data/from-properties-
 import {
   partnerDirectoryIngestHadNetworkErrors,
   readPersistedPartnerDirectorySnapshot,
-  writePersistedPartnerDirectorySnapshot,
 } from "@/lib/public-data/partner-directory-snapshot-persist";
 import type { PublicDirectorySnapshot } from "@/lib/public-data/types";
 
@@ -146,19 +144,9 @@ function writeDirectoryMemoryCache(key: string, value: StablePartnerDirectoryRes
   };
 }
 
-function scheduleDirectoryPersist(snapshot: PublicDirectorySnapshot): void {
-  if (snapshot.entries.length === 0) return;
-  after(async () => {
-    try {
-      await writePersistedPartnerDirectorySnapshot(snapshot);
-    } catch {
-      /* noop */
-    }
-  });
-}
-
 /**
- * Directorio de socios estable: memoria → Redis → armado live; fallback si red falla.
+ * Directorio de socios estable: memoria → Redis → Data Cache / armado en memoria.
+ * La escritura a Redis la hace solo `/api/cron/socios` (no el tráfico web).
  */
 export async function resolveStablePublicDirectorySnapshot(
   result: GetPropertiesResult,
@@ -201,7 +189,7 @@ export async function resolveStablePublicDirectorySnapshot(
   const rebuilt = await rebuildDirectoryWhenEmpty(result, featuredMax, primary);
   const rebuiltSnapshot = rebuilt?.snapshot;
   if (rebuilt && rebuiltSnapshot) {
-    scheduleDirectoryPersist(rebuiltSnapshot);
+    // Persistencia Redis solo en cron (`/api/cron/socios`); no escribir desde tráfico web.
     if (memKey) writeDirectoryMemoryCache(memKey, rebuilt);
     return rebuilt;
   }
@@ -212,10 +200,6 @@ export async function resolveStablePublicDirectorySnapshot(
     if (persisted?.entries.length) {
       return snapshotFromPersisted(persisted, featuredMax, result.properties.length);
     }
-  }
-
-  if (primary.entries.length > 0) {
-    scheduleDirectoryPersist(primary);
   }
 
   const live: StablePartnerDirectoryResult = { snapshot: primary, source: "live" };

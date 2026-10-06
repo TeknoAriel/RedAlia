@@ -4,40 +4,35 @@ import { ListingPulseStrip } from "@/components/sections/ListingPulseStrip";
 import { NetworkMcpSignalsSection } from "@/components/sections/NetworkMcpSignalsSection";
 import { HomePartnersCarousel } from "@/components/sections/HomePartnersCarousel";
 import { PartnerDirectoryPreview } from "@/components/sections/PartnerDirectoryPreview";
-import { getProperties } from "@/lib/get-properties";
 import { loadPublicMcpNetworkOverlay } from "@/lib/kiteprop-mcp";
-import { resolveStablePublicDirectorySnapshot } from "@/lib/public-data/get-stable-partner-directory";
+import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 
 /**
- * Componente server async que agrupa todo lo que depende de la ingesta de catálogo
- * y red AINA. Se monta dentro de un `<Suspense>` en la home para que la cáscara
- * estática (hero, planes, CTA) se entregue de inmediato y este bloque se
- * streamee cuando los datos estén listos.
+ * Secciones de home que dependen del catálogo / directorio.
+ * Lee Redis (mismo fast-path que `/socios`); no dispara ingest en request.
  */
 export async function HomeDataSections() {
   try {
-    const [catalog, mcpOverlay] = await Promise.all([
-      getProperties(),
+    const [{ result, stable }, mcpOverlay] = await Promise.all([
+      loadSociosPageData({ featuredMax: 8 }),
       loadPublicMcpNetworkOverlay(),
     ]);
 
-    const stable = catalog.ok
-      ? await resolveStablePublicDirectorySnapshot(catalog, { featuredMax: 8 })
-      : null;
-    const directorySnapshot = stable?.snapshot ?? null;
+    const directorySnapshot = stable.snapshot ?? null;
     const carouselEntries = directorySnapshot?.featured ?? [];
-    const listingCount = catalog.ok ? catalog.properties.length : 0;
+    const listingCount = result.ok ? result.properties.length : 0;
+    const feedOk = result.ok && (listingCount > 0 || Boolean(directorySnapshot?.entries.length));
 
     return (
       <>
-        <ListingPulseStrip listingCount={listingCount} feedOk={catalog.ok} />
+        <ListingPulseStrip listingCount={listingCount} feedOk={feedOk} />
 
         {mcpOverlay ? <NetworkMcpSignalsSection overlay={mcpOverlay} /> : null}
 
         <HomePartnersCarousel entries={carouselEntries} />
 
         <PartnerDirectoryPreview
-          feedOk={catalog.ok}
+          feedOk={feedOk}
           snapshot={directorySnapshot}
           showFeaturedGrid={carouselEntries.length === 0}
         />
