@@ -11,15 +11,11 @@ import {
 } from "@/components/socios/SociosPageContent";
 
 /**
- * `force-dynamic` evita que Next intente generar HTML estático para `/socios`
- * (sin query params) y caiga en un flujo ISR donde el primer cold paga 60 s
- * de ingest y termina en 504. Como la página depende de `searchParams` y de
- * `getProperties`, no hay valor real en cachear el HTML por ruta.
- *
- * `maxDuration = 300` evita corte del stream RSC ("This page couldn't load") en cold ingest.
+ * Dinámico por `searchParams` + directorio. Cache real: Redis/`getProperties`.
+ * Sin cold ingest de red en request de usuario → `maxDuration` acotado.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Socios",

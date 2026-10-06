@@ -28,7 +28,7 @@ export async function SociosPageContent({ searchParams }: Props) {
       <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-brand-navy/15 bg-white px-6 py-10 text-center shadow-sm">
         <p className="font-display text-lg font-semibold text-brand-navy">Directorio temporalmente no disponible</p>
         <p className="mt-2 text-sm text-muted">
-          El servidor no alcanzó a preparar la lista. Recargá la página en unos segundos o explorá el catálogo.
+          El servidor no alcanzó a preparar la lista. Recarga la página en unos segundos o explora el catálogo.
         </p>
         <Link
           href="/propiedades"

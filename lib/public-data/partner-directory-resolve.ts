@@ -10,6 +10,7 @@ import {
   canonicalNetworkAdvertiserPartnerKey,
   parseNetworkAdvertiserIdFromPartnerKey,
 } from "@/lib/kiteprop-network/socio-canonical-keys";
+import { coverageLabelsFromLocationFields } from "@/lib/public-data/coverage-labels";
 import { mapSocioCatalogEntryToPublicDirectory } from "@/lib/public-data/map-socio-catalog-to-public";
 import type { RedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
@@ -17,7 +18,7 @@ import { publicPartnerListingCtaLabel, publicPartnerRoleLabelEs } from "@/lib/pu
 import type { PublicPartnerDirectoryRowDraft, PublicPartnerScope } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
-const MAX_COVERAGE = 12;
+const MAX_COVERAGE = 8;
 
 function feedDraftRowsFromProperties(properties: NormalizedProperty[]): PublicPartnerDirectoryRowDraft[] {
   const catalog = extractSociosGridCatalog(properties);
@@ -30,9 +31,8 @@ function feedDraftRowsFromProperties(properties: NormalizedProperty[]): PublicPa
 }
 
 function addPropertyCoverage(set: Set<string>, property: NormalizedProperty): void {
-  for (const label of [property.region, property.city, property.zone, property.zoneSecondary]) {
-    const t = label?.trim();
-    if (t) set.add(t);
+  for (const label of coverageLabelsFromLocationFields(property)) {
+    set.add(label);
   }
 }
 

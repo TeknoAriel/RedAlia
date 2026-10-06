@@ -2,23 +2,21 @@ import "server-only";
 
 import { coerceNetworkPropertyRecord } from "@/lib/kiteprop-network/coerce-network-property-record";
 import { resolveSocioFromNetworkProperty } from "@/lib/kiteprop-network/redalia-socio-network-model";
+import {
+  coverageLabelsFromLocationFields,
+  sanitizeCoverageLabels,
+} from "@/lib/public-data/coverage-labels";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
 import type { NormalizedProperty } from "@/types/property";
 
-const MAX_COVERAGE = 12;
+const MAX_COVERAGE = 8;
 
 function coverageLabelsForProperty(p: NormalizedProperty): string[] {
-  const set = new Set<string>();
-  for (const label of [p.region, p.city, p.zone, p.zoneSecondary]) {
-    const t = label?.trim();
-    if (t) set.add(t);
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, "es"));
+  return coverageLabelsFromLocationFields(p);
 }
 
 function mergeCoverage(a: string[], b: string[]): string[] {
-  const set = new Set<string>([...a, ...b]);
-  return [...set].sort((x, y) => x.localeCompare(y, "es")).slice(0, MAX_COVERAGE);
+  return sanitizeCoverageLabels([...a, ...b], MAX_COVERAGE);
 }
 
 /**

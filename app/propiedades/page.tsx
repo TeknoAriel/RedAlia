@@ -2,15 +2,12 @@ import type { Metadata } from "next";
 import { CatalogListingPage } from "@/components/catalog/CatalogListingPage";
 
 /**
- * `force-dynamic` evita el flujo ISR (que en `/propiedades` sin params tendía
- * a timeoutear 504 en el primer cold). La cache real vive en `getProperties`
- * (in-memory + Upstash) y el rendering de la lista filtrada es siempre por
- * request, según `searchParams`.
- *
- * `maxDuration = 300` cubre cold ingest del feed JSON sin cortar el stream.
+ * Dinámico por `searchParams`. La cache del catálogo vive en `getProperties`
+ * (memoria + Upstash); la red AINA solo corre en cron.
+ * `maxDuration` acotado: sin cold ingest de red en request de usuario.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Propiedades",
