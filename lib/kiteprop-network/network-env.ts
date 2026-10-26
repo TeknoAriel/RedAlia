@@ -11,6 +11,16 @@ export function isKitepropNetworkAuditEnabled(): boolean {
 }
 
 /**
+ * Crawl paginado de `GET properties/network` (cientos de requests).
+ * Default **OFF**: el listado público sale del JSON; el directorio usa organizaciones.
+ * Activar solo a mano: `REDALIA_NETWORK_PROPERTY_CRAWL=1`.
+ */
+export function isNetworkPropertyCrawlEnabled(): boolean {
+  const t = trim("REDALIA_NETWORK_PROPERTY_CRAWL");
+  return t === "1" || t?.toLowerCase() === "true";
+}
+
+/**
  * Origen del **listado de propiedades** del sitio (`getProperties` / `loadCatalogSnapshotUncached`):
  * - **`json` (default si la env está vacía):** feed JSON de difusión KiteProp (`KITEPROP_PROPERTIES_URL`). Es la **fuente de verdad** del catálogo público de propiedades e imágenes; no usa API de red para rellenar el listing.
  * - **`network`:** solo `GET` propiedades de la API de red. Sin feed JSON. Úsalo solo si explícitamente se pide; **no** es el default de producto.

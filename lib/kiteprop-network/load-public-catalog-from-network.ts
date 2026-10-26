@@ -33,12 +33,7 @@ export type LoadPublicCatalogFromNetworkResult =
 export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogFromNetworkResult> {
   const directoryMode = getRedaliaPartnerDirectorySourceMode();
   const includeOrganizations = directoryMode !== "feed";
-  /** Secuencial: dos corridas paginadas en paralelo saturaban upstream y devolvían HTTP_ERROR intermitente. */
-  let propsRes = await getNetworkProperties();
-  if (!propsRes.ok) {
-    await sleep(3500);
-    propsRes = await getNetworkProperties();
-  }
+  const propsRes = await getNetworkProperties();
   if (!propsRes.ok) {
     return { ok: false, error: propsRes.error };
   }
@@ -51,10 +46,6 @@ export async function loadPublicCatalogFromNetwork(): Promise<LoadPublicCatalogF
   if (includeOrganizations) {
     await sleep(getNetworkRequestDelayMs());
     orgsRes = await getNetworkOrganizations();
-    if (!orgsRes.ok) {
-      await sleep(3500);
-      orgsRes = await getNetworkOrganizations();
-    }
   }
 
   const pairs: { raw: unknown; norm: NormalizedProperty }[] = [];

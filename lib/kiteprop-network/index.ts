@@ -11,6 +11,7 @@ export {
   getKitepropNetworkPropertiesPathResolved,
   getKitepropPropertiesSourceMode,
   isKitepropNetworkAuditEnabled,
+  isNetworkPropertyCrawlEnabled,
   pathEmbedsNetworkToken,
 } from "@/lib/kiteprop-network/network-env";
 export {

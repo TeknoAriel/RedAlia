@@ -22,8 +22,8 @@ export const maxDuration = 300;
  * 1) HEAD condicional al feed (ETag) → si 304 y hay snapshot chunked, renueva TTL.
  * 2) Si 304 pero falta snapshot en Redis (límite 10 MB histórico), fuerza reingesta + write chunked.
  * 3) Si hay cuerpo nuevo, fingerprint decide invalidación.
- * 4) Por defecto **no** pagina la API de red (JSON alcanza para el listado).
- *    `?enrich=1` o `?force=1` activa overlay de user/org (cache 12 h).
+ * 4) Nunca pagina `properties/network` salvo `?enrich=1` **y** `REDALIA_NETWORK_PROPERTY_CRAWL=1`.
+ *    `?force=1` solo relee el JSON, no la API REST.
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -46,9 +46,7 @@ export async function GET(request: Request) {
   const force =
     url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
   const enrichNetwork =
-    force ||
-    url.searchParams.get("enrich") === "1" ||
-    url.searchParams.get("enrich") === "true";
+    url.searchParams.get("enrich") === "1" || url.searchParams.get("enrich") === "true";
 
   const startedAt = new Date().toISOString();
   let prepopulated:
@@ -88,13 +86,12 @@ export async function GET(request: Request) {
       sourceMode === "json" &&
       (await probeJsonFeedUnchanged());
 
-    if (feedUnchanged && previous?.propertyCount && hasSnapshot) {
+    if (feedUnchanged) {
       const touched = await touchPersistedCatalogSnapshotTtl();
-      if (touched) {
-        prepopulated = "catalog_feed_not_modified";
-        changed = false;
-        feedNotModified = true;
-      }
+      prepopulated = "catalog_feed_not_modified";
+      changed = false;
+      feedNotModified = true;
+      persistOk = touched;
     }
 
     if (prepopulated === "catalog_error") {
@@ -131,16 +128,15 @@ export async function GET(request: Request) {
           persistOk = written.ok;
           persistChunks = written.chunkCount;
           if (!written.ok) {
-            prepopulated = "catalog_error";
             ingestError =
               written.error === "chunk_write_failed:0" || written.error?.startsWith("chunk_write_failed")
-                ? `${written.error} (¿Upstash Fixed plan / cuota? Revisá Console → upgrade o liberar storage; el sitio usa fallback JSON en Data Cache.)`
+                ? `${written.error} (¿Upstash Fixed plan / cuota? El sitio usa Data Cache JSON; no se reintenta la API.)`
                 : (written.error ?? "persist_failed");
           } else {
             revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
-            prepopulated = "catalog_ok";
-            changed = true;
           }
+          prepopulated = "catalog_ok";
+          changed = true;
         }
       }
     }
