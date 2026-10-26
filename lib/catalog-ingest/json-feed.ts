@@ -163,7 +163,7 @@ async function fetchRemotePayloadOnce(
 
 async function fetchRemotePayload(url: string): Promise<unknown> {
   const validators = await readJsonFeedValidators();
-  let res = await fetchRemotePayloadOnce(url, validators);
+  const res = await fetchRemotePayloadOnce(url, validators);
 
   // 304 = el CDN no cambió. No re-descargar el JSON (~16 MB) aunque Redis esté vacío:
   // el sitio sigue con Data Cache / memoria.
