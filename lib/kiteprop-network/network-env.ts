@@ -187,8 +187,8 @@ export function isNetworkPropertiesPagedFetchEnabled(): boolean {
 }
 
 export function getNetworkPropertiesPageLimit(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "15", 10);
-  return NETWORK_PAGE_LIMITS.has(n) ? n : 15;
+  const n = parseInt(trim("KITEPROP_NETWORK_PROPERTIES_PAGE_LIMIT") || "50", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
 }
 
 export function getNetworkPropertiesMaxPages(): number {
@@ -227,8 +227,8 @@ export function isNetworkOrganizationsPagedFetchEnabled(): boolean {
 }
 
 export function getNetworkOrganizationsPageLimit(): number {
-  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "15", 10);
-  return NETWORK_PAGE_LIMITS.has(n) ? n : 15;
+  const n = parseInt(trim("KITEPROP_NETWORK_ORGANIZATIONS_PAGE_LIMIT") || "50", 10);
+  return NETWORK_PAGE_LIMITS.has(n) ? n : 50;
 }
 
 const NETWORK_ORGANIZATIONS_MAX_PAGES_DEFAULT = 32;

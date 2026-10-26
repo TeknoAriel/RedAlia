@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
+import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
 import { isKitepropNetworkAuditEnabled } from "@/lib/kiteprop-network/network-env";
 import { buildPublicDirectorySnapshot } from "@/lib/public-data";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isKitepropNetworkAuditEnabled()) {
     return new NextResponse(null, { status: 404 });
+  }
+  if (!isRedaliaHealthAuthorized(request)) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const result = await loadCatalogSnapshotUncached();

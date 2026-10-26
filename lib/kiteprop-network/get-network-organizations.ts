@@ -12,6 +12,10 @@ import {
 } from "@/lib/kiteprop-network/network-env";
 import { firstBatchSizeOrKeep, shouldStopNetworkPagination } from "@/lib/kiteprop-network/network-paged-fetch-helpers";
 import { stableIdFromNetworkOrganizationRaw } from "@/lib/kiteprop-network/network-item-stable-id";
+import {
+  type NetworkListCacheOptions,
+  withNetworkListCache,
+} from "@/lib/kiteprop-network/network-list-cache";
 import { resolveNetworkRequestContext } from "@/lib/kiteprop-network/network-request-context";
 
 export type NetworkOrganizationsResult =
@@ -56,7 +60,7 @@ async function fetchNetworkOrganizationsPage(
 
 const PAGE_FAILURE_OUTER_RETRIES = 3;
 
-export async function getNetworkOrganizations(): Promise<NetworkOrganizationsResult> {
+async function fetchNetworkOrganizationsFromApi(): Promise<NetworkOrganizationsResult> {
   const path = getKitepropNetworkOrganizationsPathResolved();
   if (!path) {
     return { ok: false, error: "MISSING_ORGANIZATIONS_PATH_OR_NETWORK_ID_OR_TOKEN", status: null };
@@ -141,4 +145,11 @@ export async function getNetworkOrganizations(): Promise<NetworkOrganizationsRes
   }
 
   return { ok: true, status: lastOkStatus, items: merged };
+}
+
+/** Organizaciones de red: cache 12 h (memoria + Redis) salvo `forceRefresh`. */
+export async function getNetworkOrganizations(
+  options?: NetworkListCacheOptions,
+): Promise<NetworkOrganizationsResult> {
+  return withNetworkListCache("organizations", fetchNetworkOrganizationsFromApi, options);
 }
