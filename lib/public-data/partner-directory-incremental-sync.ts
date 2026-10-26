@@ -99,7 +99,7 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
         "@/lib/catalog-ingest/json-feed-validators"
       );
       await clearJsonFeedValidators();
-      const live = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: true });
+      const live = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: false });
       if (live.ok && live.properties.length > 0) {
         properties = live.properties;
         catalogListings = properties.length;
@@ -119,19 +119,31 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
   }
 
   let orgDrafts: PublicPartnerDirectoryRowDraft[] = [];
+  let advDrafts: PublicPartnerDirectoryRowDraft[] = [];
   const wantsOrgs = isNetworkOrganizationsMergedWithJsonCatalog();
   const dirMode = getRedaliaPartnerDirectorySourceMode();
-  if (wantsOrgs && dirMode !== "feed") {
-    const orgRes = await loadNetworkPartnerDirectoryDraftsOnly();
-    if (!orgRes.ok) errors.push(`network_organizations:${orgRes.error}`);
-    else {
-      orgDrafts = orgRes.drafts;
-      for (const d of orgRes.drafts) keys.add(d.partnerKey);
-    }
-  }
+  const existingDir = await readPersistedPartnerDirectorySnapshot();
+  const dirTtlMs = 12 * 60 * 60 * 1000;
+  const directoryFresh =
+    Boolean(existingDir) && Date.now() - (existingDir?.generatedAtMs ?? 0) < dirTtlMs;
 
-  let advDrafts: PublicPartnerDirectoryRowDraft[] = [];
-  if (dirMode !== "feed") {
+  if (directoryFresh && existingDir) {
+    errors.push("network_lists_skipped_fresh_directory");
+    for (const e of existingDir.entries) keys.add(e.partnerKey);
+    const catalogDrafts = catalogPersisted?.snapshot;
+    orgDrafts = catalogDrafts?.partnerDirectoryExtraDrafts ?? [];
+    advDrafts = catalogDrafts?.partnerDirectoryNetworkAdvertiserDrafts ?? [];
+    for (const d of orgDrafts) keys.add(d.partnerKey);
+    for (const d of advDrafts) keys.add(d.partnerKey);
+  } else if (dirMode !== "feed") {
+    if (wantsOrgs) {
+      const orgRes = await loadNetworkPartnerDirectoryDraftsOnly();
+      if (!orgRes.ok) errors.push(`network_organizations:${orgRes.error}`);
+      else {
+        orgDrafts = orgRes.drafts;
+        for (const d of orgRes.drafts) keys.add(d.partnerKey);
+      }
+    }
     const advRes = await loadNetworkPartnerDirectoryAdvertiserOverlayDrafts();
     if (!advRes.ok) errors.push(`network_advertisers:${advRes.error}`);
     else {

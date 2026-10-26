@@ -22,7 +22,8 @@ export const maxDuration = 300;
  * 1) HEAD condicional al feed (ETag) → si 304 y hay snapshot chunked, renueva TTL.
  * 2) Si 304 pero falta snapshot en Redis (límite 10 MB histórico), fuerza reingesta + write chunked.
  * 3) Si hay cuerpo nuevo, fingerprint decide invalidación.
- * 4) La paginación a la API de red **solo** ocurre aquí (`allowNetworkEnrichment`), no en visitas.
+ * 4) Por defecto **no** pagina la API de red (JSON alcanza para el listado).
+ *    `?enrich=1` o `?force=1` activa overlay de user/org (cache 12 h).
  */
 export async function GET(request: Request) {
   const secret = getCronSecretOrNull();
@@ -41,9 +42,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
+  const url = new URL(request.url);
   const force =
-    new URL(request.url).searchParams.get("force") === "1" ||
-    new URL(request.url).searchParams.get("force") === "true";
+    url.searchParams.get("force") === "1" || url.searchParams.get("force") === "true";
+  const enrichNetwork =
+    force ||
+    url.searchParams.get("enrich") === "1" ||
+    url.searchParams.get("enrich") === "true";
 
   const startedAt = new Date().toISOString();
   let prepopulated:
@@ -97,8 +102,10 @@ export async function GET(request: Request) {
       if (force || !hasSnapshot || snapshotSourceMismatch) {
         await clearJsonFeedValidators();
       }
-      // Único camino web→red paginada: el cron. Tráfico público no llama allowNetworkEnrichment.
-      const snapshot = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: true });
+      // Listado = JSON. Overlay de red solo con ?enrich=1 / force (y además cache 12 h).
+      const snapshot = await loadCatalogSnapshotUncached({
+        allowNetworkEnrichment: enrichNetwork,
+      });
       if (!snapshot.ok || snapshot.properties.length === 0) {
         prepopulated = "catalog_empty";
         ingestError =

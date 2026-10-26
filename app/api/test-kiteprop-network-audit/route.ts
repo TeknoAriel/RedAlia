@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRedaliaHealthAuthorized } from "@/lib/diagnostics/redalia-health-auth";
 import { getPartnerDirectoryBuildOptions, getProperties } from "@/lib/get-properties";
 import { extractAdvertiserIdHints, extractAdvertiserObject } from "@/lib/kiteprop-network/extract-advertiser";
 import { getNetworkOrganizations } from "@/lib/kiteprop-network/get-network-organizations";
@@ -28,9 +29,30 @@ const NESTED_ON_PROPERTY = [
  * Auditoría server-only: red AINA / KiteProp. Sin secretos ni valores de PII en la respuesta.
  * Incluye resumen de shape anidado (anunciante / organización) y prueba de resolución de socio.
  */
-export async function GET() {
+export async function GET(request: Request) {
   if (!isKitepropNetworkAuditEnabled()) {
     return new NextResponse(null, { status: 404 });
+  }
+  if (!isRedaliaHealthAuthorized(request)) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const live = new URL(request.url).searchParams.get("live") === "1";
+  if (!live) {
+    const catalog = await getProperties();
+    return NextResponse.json({
+      ok: true,
+      live: false,
+      note: "Sin paginar la API de red. Agregá ?live=1&secret=… para un crawl (usa cache 12 h).",
+      catalog: catalog.ok
+        ? {
+            ok: true,
+            source: catalog.source,
+            totalProperties: catalog.properties.length,
+            ingestMeta: catalog.ingestMeta ?? null,
+          }
+        : { ok: false, error: catalog.error },
+    });
   }
 
   const authProbe = await resolveNetworkRequestContext();

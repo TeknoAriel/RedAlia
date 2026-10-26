@@ -199,7 +199,7 @@ export type LoadCatalogSnapshotOptions = {
 /**
  * Carga única del catálogo (sin caché Next).
  * Estrategia híbrida (default de producto): **propiedades = feed JSON**;
- * **directorio de red solo si `allowNetworkEnrichment`** (cron cada 2–4 h).
+ * **directorio de red solo si `allowNetworkEnrichment`** (`?enrich=1` en cron de catálogo).
  * Tráfico público debe usar `getProperties()` → snapshot Redis / memory, no esta ruta con red.
  */
 export async function loadCatalogSnapshotUncached(

@@ -68,11 +68,16 @@ async function main() {
   // Pequeña pausa entre jobs para no solapar CPU/Redis en Hobby.
   await delay(3_000);
 
-  const socios = await hit("/api/cron/socios");
-  console.log("socios", socios.status, `${socios.ms}ms`, JSON.stringify(socios.body));
-  if (socios.status !== 200 || socios.body?.ok !== true) {
-    console.error("Cron socios falló.");
-    process.exit(1);
+  // Socios pagina la API de red: no lo disparamos en el warm cada 2 h (ya corre el cron Vercel 4 h).
+  if (process.env.WARM_SOCIOS === "1" || process.env.WARM_SOCIOS === "true") {
+    const socios = await hit("/api/cron/socios");
+    console.log("socios", socios.status, `${socios.ms}ms`, JSON.stringify(socios.body));
+    if (socios.status !== 200 || socios.body?.ok !== true) {
+      console.error("Cron socios falló.");
+      process.exit(1);
+    }
+  } else {
+    console.log("socios omitido (WARM_SOCIOS≠1): evita paginar KiteProp en cada sync de catálogo.");
   }
 
   for (const path of ["/socios", "/propiedades", "/"]) {
