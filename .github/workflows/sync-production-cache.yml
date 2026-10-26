@@ -7,9 +7,6 @@
 name: Sync production cache
 
 on:
-  schedule:
-    # Cada 2 h (UTC), alineado al cron de catálogo JSON. No pagina KiteProp (socios = cron Vercel 4 h).
-    - cron: "15 */2 * * *"
   workflow_dispatch:
     inputs:
       force:

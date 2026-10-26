@@ -15,6 +15,7 @@ import { loadPublicCatalogFromNetwork } from "@/lib/kiteprop-network/load-public
 import {
   getKitepropPropertiesSourceMode,
   isNetworkOrganizationsMergedWithJsonCatalog,
+  isNetworkPropertyCrawlEnabled,
 } from "@/lib/kiteprop-network/network-env";
 import { getRedaliaPartnerDirectorySourceMode } from "@/lib/public-data/partner-directory-source";
 import type { PublicPartnerDirectoryRowDraft } from "@/lib/public-data/types";
@@ -235,7 +236,9 @@ export async function loadCatalogSnapshotUncached(
   //   2–3. enrich/orgs de red → SOLO con allowNetworkEnrichment (cron).
   const wantsOrganizations = allowNetwork && isNetworkOrganizationsMergedWithJsonCatalog();
   const wantsNetworkPropertyPass =
-    allowNetwork && getRedaliaPartnerDirectorySourceMode() !== "feed";
+    allowNetwork &&
+    isNetworkPropertyCrawlEnabled() &&
+    getRedaliaPartnerDirectorySourceMode() !== "feed";
   if (wantsOrganizations) trace.networkOrganizationsAttempted = true;
   if (wantsNetworkPropertyPass) {
     trace.partnerDirectoryOverlayAttempted = true;
@@ -247,11 +250,7 @@ export async function loadCatalogSnapshotUncached(
     wantsNetworkPropertyPass ? loadNetworkPropertiesNormalized() : Promise.resolve(null),
   ]);
 
-  let networkPropsResult = networkPropsFirst;
-  if (networkPropsResult && !networkPropsResult.ok) {
-    await new Promise((r) => setTimeout(r, 3500));
-    networkPropsResult = await loadNetworkPropertiesNormalized();
-  }
+  const networkPropsResult = networkPropsFirst;
 
   let orgLoadResult: Awaited<ReturnType<typeof loadNetworkPartnerDirectoryDraftsOnly>> | null = null;
   if (wantsOrganizations) {

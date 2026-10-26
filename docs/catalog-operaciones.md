@@ -26,14 +26,14 @@ Referencia operativa. Arquitectura híbrida fijada: **`docs/redalia-hybrid-catal
 | `merge` | Fusiona feed + red por `advertiser.id` numérico (logos/contacto red primero en match). |
 | `feed` | Sin overlay de anunciantes de red; solo `extractSociosGridCatalog` + extras de orgs si aplica. |
 
-Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`. Tráfico web = **solo lectura** (memoria → Upstash → Data Cache JSON). Crons (mismo `CRON_SECRET`):
+Caché: `CATALOG_INGEST_REVALIDATE_SECONDS`. Tráfico web = **solo lectura** (memoria → Upstash → Data Cache JSON). **Cero REST a KiteProp en visitas.**
 
-| Ruta | Frecuencia (ver `vercel.json`) | Qué hace |
-|------|-------------------------------|----------|
-| `GET /api/cron/catalog` | Cada **2 h** (`0 */2 * * *`) | Feed JSON. **No** pagina KiteProp salvo `?enrich=1` / `?force=1`. |
-| `GET /api/cron/socios` | Cada **4 h** (01/05/09/13/17/21 UTC) | Sync incremental del directorio. Listas de red con **cache 12 h**. |
+| Ruta | Frecuencia | Qué pega a KiteProp |
+|------|------------|---------------------|
+| `GET /api/cron/catalog` | Cada 2 h | **HEAD** al JSON estático. GET del JSON solo si cambió. Nunca `properties/network`. |
+| `GET /api/cron/socios` | 1× al día (08:00 UTC) | `GET organizations` si el directorio tiene >24 h. Sin crawl de propiedades salvo `REDALIA_NETWORK_PROPERTY_CRAWL=1`. |
 
-Listas `GET properties/network` y `organizations` se cachean 12 h (memoria + Redis, `KITEPROP_NETWORK_LIST_CACHE_TTL_SECONDS`). Backup GitHub `Sync production cache` solo rewarma catálogo JSON (no socios, salvo `WARM_SOCIOS=1`).
+Listas de red cache 24 h. GitHub `Sync production cache` es **manual** (no duplica el cron cada 2 h).
 
 **Importante:** las visitas **no** paginan la API de red. Lectura preferida: memoria → Upstash. Si Upstash falla (cuota Fixed / 403), fallback a `unstable_cache` + feed JSON (sin red). Si Redis está en cuota, liberar storage o upgrade en Upstash Console; mientras tanto el sitio sigue con Data Cache.
 

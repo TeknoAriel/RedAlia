@@ -11,8 +11,8 @@ export type NetworkListCacheOptions = {
 
 type CachedOk = { ok: true; status: number; items: unknown[] };
 
-const MEMORY_TTL_MS = 12 * 60 * 60 * 1000;
-const REDIS_TTL_SECONDS = 12 * 60 * 60;
+const MEMORY_TTL_MS = 24 * 60 * 60 * 1000;
+const REDIS_TTL_SECONDS = 24 * 60 * 60;
 const ITEMS_PER_CHUNK = 20;
 const REDIS_PREFIX = "redalia:network:list:v1:";
 

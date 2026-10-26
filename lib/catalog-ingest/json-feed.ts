@@ -59,6 +59,15 @@ export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<C
               persisted.snapshot.partnerDirectoryNetworkAdvertiserDrafts,
           };
         }
+        // Cold path sin Redis: un GET al CDN (no a la API REST) para no dejar el listing vacío.
+        const res = await fetchRemotePayloadOnce(url, null);
+        if (res.ok) {
+          const json = parseJsonPayload(await res.text());
+          const properties = normalizePropertyList(json);
+          if (properties.length > 0) {
+            return { ok: true, properties, source: "remote" };
+          }
+        }
         throw e;
       }
       return { ok: true, properties: [], source: "empty" };
@@ -156,15 +165,8 @@ async function fetchRemotePayload(url: string): Promise<unknown> {
   const validators = await readJsonFeedValidators();
   let res = await fetchRemotePayloadOnce(url, validators);
 
-  // 304 sin snapshot Redis: no hay cuerpo que reusar → reintentar sin validadores.
-  if (res.status === 304) {
-    const persisted = await readPersistedCatalogSnapshot();
-    if (persisted?.snapshot.ok && persisted.snapshot.properties.length > 0) {
-      throw new JsonFeedNotModifiedError();
-    }
-    res = await fetchRemotePayloadOnce(url, null);
-  }
-
+  // 304 = el CDN no cambió. No re-descargar el JSON (~16 MB) aunque Redis esté vacío:
+  // el sitio sigue con Data Cache / memoria.
   if (res.status === 304) {
     throw new JsonFeedNotModifiedError();
   }

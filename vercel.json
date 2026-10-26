@@ -17,7 +17,7 @@
     },
     {
       "path": "/api/cron/socios",
-      "schedule": "0 1,5,9,13,17,21 * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }

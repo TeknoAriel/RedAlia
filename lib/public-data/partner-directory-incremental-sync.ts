@@ -4,7 +4,10 @@ import { extractSociosGridCatalog } from "@/lib/agencies";
 import { readPersistedCatalogSnapshot } from "@/lib/catalog-ingest/catalog-snapshot-persist";
 import { loadNetworkPartnerDirectoryAdvertiserOverlayDrafts } from "@/lib/kiteprop-network/load-network-partner-directory-advertiser-overlay";
 import { loadNetworkPartnerDirectoryDraftsOnly } from "@/lib/kiteprop-network/load-network-partner-directory-drafts";
-import { isNetworkOrganizationsMergedWithJsonCatalog } from "@/lib/kiteprop-network/network-env";
+import {
+  isNetworkOrganizationsMergedWithJsonCatalog,
+  isNetworkPropertyCrawlEnabled,
+} from "@/lib/kiteprop-network/network-env";
 import { getPartnerDirectoryBuildOptions } from "@/lib/get-properties";
 import { sortPublicDirectoryEntries } from "@/lib/public-data/directory-order";
 import { refreshDirectoryEntryCounts } from "@/lib/public-data/refresh-directory-entry-counts";
@@ -123,7 +126,7 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
   const wantsOrgs = isNetworkOrganizationsMergedWithJsonCatalog();
   const dirMode = getRedaliaPartnerDirectorySourceMode();
   const existingDir = await readPersistedPartnerDirectorySnapshot();
-  const dirTtlMs = 12 * 60 * 60 * 1000;
+  const dirTtlMs = 24 * 60 * 60 * 1000;
   const directoryFresh =
     Boolean(existingDir) && Date.now() - (existingDir?.generatedAtMs ?? 0) < dirTtlMs;
 
@@ -144,11 +147,13 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
         for (const d of orgRes.drafts) keys.add(d.partnerKey);
       }
     }
-    const advRes = await loadNetworkPartnerDirectoryAdvertiserOverlayDrafts();
-    if (!advRes.ok) errors.push(`network_advertisers:${advRes.error}`);
-    else {
-      advDrafts = advRes.drafts;
-      for (const d of advRes.drafts) keys.add(d.partnerKey);
+    if (isNetworkPropertyCrawlEnabled()) {
+      const advRes = await loadNetworkPartnerDirectoryAdvertiserOverlayDrafts();
+      if (!advRes.ok) errors.push(`network_advertisers:${advRes.error}`);
+      else {
+        advDrafts = advRes.drafts;
+        for (const d of advRes.drafts) keys.add(d.partnerKey);
+      }
     }
   }
 
