@@ -2,6 +2,14 @@
 
 Referencia operativa. Arquitectura híbrida fijada: **`docs/redalia-hybrid-catalog-architecture.md`**. Red AINA: `docs/kiteprop-network-aina.md`.
 
+## Espejo Redalia (filtros locales)
+
+El usuario **no** filtra contra KiteProp. `/propiedades?q=&city=&priceMin=` lee el snapshot
+en memoria / Redis / Data Cache y `filterPropertiesCatalog` corre en el server de Redalia.
+
+La API `GET /properties/network` está **apagada** salvo `REDALIA_NETWORK_PROPERTY_CRAWL=1`.
+Los ~50k GET de esa ruta en informes semanales son crawls paginados de crons viejos, no búsquedas.
+
 ## Fuentes (sin ambigüedad)
 
 | Qué | Fuente de verdad | Variable principal |

@@ -31,6 +31,12 @@ export function isNetworkPropertyCrawlEnabled(): boolean {
 export type KitepropPropertiesSourceMode = "json" | "network" | "network_fallback_json";
 
 export function getKitepropPropertiesSourceMode(): KitepropPropertiesSourceMode {
+  const allowNetworkCatalog =
+    trim("REDALIA_ALLOW_NETWORK_CATALOG") === "1" ||
+    trim("REDALIA_ALLOW_NETWORK_CATALOG")?.toLowerCase() === "true";
+  if (!allowNetworkCatalog) {
+    return "json";
+  }
   const v = trim("KITEPROP_PROPERTIES_SOURCE")?.toLowerCase() ?? "";
   if (v === "network" || v === "network_only" || v === "aina") return "network";
   if (

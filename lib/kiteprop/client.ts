@@ -50,7 +50,18 @@ export type KitepropClientErrorCode =
   | "TIMEOUT"
   | "NETWORK"
   | "HTTP_ERROR"
-  | "INVALID_JSON";
+  | "INVALID_JSON"
+  | "CRAWL_DISABLED";
+
+function networkPropertyCrawlAllowed(): boolean {
+  const t = process.env.REDALIA_NETWORK_PROPERTY_CRAWL?.trim();
+  return t === "1" || t?.toLowerCase() === "true";
+}
+
+function isNetworkPropertiesEndpoint(path: string): boolean {
+  const p = path.toLowerCase();
+  return p.includes("/properties/network/") || p.includes("properties/network");
+}
 
 export type KitepropJsonResult<T> =
   | { ok: true; status: number; data: T }
@@ -99,6 +110,10 @@ export async function kitepropGetJson<T = unknown>(
   path: string,
   options?: KitepropGetJsonOptions,
 ): Promise<KitepropJsonResult<T>> {
+  if (isNetworkPropertiesEndpoint(path) && !networkPropertyCrawlAllowed()) {
+    return { ok: false, status: null, errorCode: "CRAWL_DISABLED" };
+  }
+
   const auth: KitepropGetAuth = options?.auth ?? "api_key";
 
   const headers: Record<string, string> = { Accept: "application/json" };

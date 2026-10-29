@@ -39,7 +39,8 @@ type Props = {
 };
 
 /**
- * Bloque async del listado: fetch de catálogo + filtrado server-side.
+ * Bloque async del listado: espejo local (`getProperties`) + filtrado en proceso.
+ * Los `searchParams` (q, ciudad, precio, página) **nunca** se mandan a la API KiteProp.
  * Se monta dentro de `<Suspense>` para que el hero de `CatalogListingPage`
  * se entregue antes de que termine `getProperties()`.
  */
