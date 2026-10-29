@@ -153,9 +153,13 @@ async function fetchNetworkPropertiesFromApi(): Promise<NetworkPropertiesResult>
   return { ok: true, status: lastOkStatus, items: merged };
 }
 
-/** Listado de propiedades de red: cache 12 h (memoria + Redis) salvo `forceRefresh`. */
+/** Listado de propiedades de red: bloqueado salvo `REDALIA_NETWORK_PROPERTY_CRAWL=1`. */
 export async function getNetworkProperties(
   options?: NetworkListCacheOptions,
 ): Promise<NetworkPropertiesResult> {
+  const crawl = process.env.REDALIA_NETWORK_PROPERTY_CRAWL?.trim();
+  if (crawl !== "1" && crawl?.toLowerCase() !== "true") {
+    return { ok: false, error: "NETWORK_PROPERTY_CRAWL_DISABLED", status: null };
+  }
   return withNetworkListCache("properties", fetchNetworkPropertiesFromApi, options);
 }
