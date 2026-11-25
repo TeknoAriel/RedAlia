@@ -45,7 +45,14 @@ type Props = {
  * se entregue antes de que termine `getProperties()`.
  */
 export async function CatalogListingData({ basePath, searchParams }: Props) {
-  const result = await getProperties();
+  let result = await getProperties();
+  // Cinturón de seguridad: si la capa rápida vino vacía, forzar ingest JSON una vez.
+  if (result.ok && result.properties.length === 0) {
+    const { loadCatalogSnapshotUncached } = await import(
+      "@/lib/catalog-ingest/load-catalog-snapshot"
+    );
+    result = await loadCatalogSnapshotUncached();
+  }
   const query = parseCatalogQuery(toURLSearchParams(searchParams));
   const navigationKey = serializeCatalogQuery(query).toString() || "catalog";
   const pageSize = catalogPageSize();

@@ -47,7 +47,8 @@ export async function loadSociosPageData(options?: {
     readPersistedCatalogSnapshot(),
   ]);
 
-  if (persistedDir?.entries.length) {
+  // Ignorar snapshots Redis de 1–2 filas (legacy / solo REDALIA): el Data Cache v6 trae orgs.
+  if (persistedDir && persistedDir.entries.length > 2) {
     const catalogResult: GetPropertiesResult = persistedCat?.snapshot.ok
       ? persistedCat.snapshot
       : await getProperties();
@@ -59,7 +60,9 @@ export async function loadSociosPageData(options?: {
   }
 
   const dataCacheDir = await loadCachedPartnerDirectorySnapshot();
-  if (dataCacheDir?.entries.length) {
+  // Evitar servir un directorio “envenenado” de 1–2 filas (solo REDALIA) cuando el
+  // catálogo tiene volumen: forzar rebuild vía derived abajo.
+  if (dataCacheDir && dataCacheDir.entries.length > 2) {
     const catalogResult = persistedCat?.snapshot.ok ? persistedCat.snapshot : await getProperties();
     return {
       result: catalogResult,
@@ -81,6 +84,21 @@ export async function loadSociosPageData(options?: {
       featuredMax,
       ...getPartnerDirectoryBuildOptions(result),
     });
+    // Si solo hay 1–2 marcas derivadas del JSON, preferir el Data Cache v6 (trae orgs).
+    if (snapshot.entries.length <= 2 && dataCacheDir && dataCacheDir.entries.length > snapshot.entries.length) {
+      return {
+        result,
+        stable: {
+          snapshot: {
+            entries: dataCacheDir.entries,
+            featured: dataCacheDir.featured,
+            stats: dataCacheDir.stats,
+          },
+          source: "live",
+        },
+        dataSource: "data_cache",
+      };
+    }
     return {
       result,
       stable: { snapshot, source: "live" },

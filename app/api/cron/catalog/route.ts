@@ -127,13 +127,14 @@ export async function GET(request: Request) {
           const written = await writePersistedCatalogSnapshot(snapshot);
           persistOk = written.ok;
           persistChunks = written.chunkCount;
+          // Siempre invalidar tag: el listado ya no depende de unstable_cache del snapshot
+          // completo, pero otras capas / health pueden escuchar este tag.
+          revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
           if (!written.ok) {
             ingestError =
               written.error === "chunk_write_failed:0" || written.error?.startsWith("chunk_write_failed")
-                ? `${written.error} (¿Upstash Fixed plan / cuota? El sitio usa Data Cache JSON; no se reintenta la API.)`
+                ? `${written.error} (¿Upstash Fixed plan / cuota? El sitio lee el feed JSON en vivo; Redis es opcional.)`
                 : (written.error ?? "persist_failed");
-          } else {
-            revalidateTag(REDALIA_CATALOG_CACHE_TAG, "max");
           }
           prepopulated = "catalog_ok";
           changed = true;
@@ -171,7 +172,9 @@ export async function GET(request: Request) {
         : feedNotModified
           ? `Feed sin cambios (HTTP 304); caché caliente conservada (${propertyCount} propiedades).`
           : changed
-            ? `Catálogo actualizado (${propertyCount} props, ${persistChunks ?? "?"} chunks); caché invalidada.`
+            ? persistOk
+              ? `Catálogo actualizado (${propertyCount} props, ${persistChunks ?? "?"} chunks); Redis OK.`
+              : `Catálogo actualizado (${propertyCount} props); Redis no persistió (${ingestError ?? "persist_failed"}) — el sitio usa JSON en vivo.`
             : `Sin cambios detectados (${propertyCount} propiedades); caché caliente conservada.`,
     },
     { status: ok ? 200 : 502 },

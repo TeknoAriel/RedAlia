@@ -1,9 +1,7 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { after } from "next/server";
 import { cache } from "react";
-import { REDALIA_CATALOG_CACHE_TAG } from "@/lib/catalog-ingest/cache-tag";
 import type { CatalogSnapshotSuccess, GetPropertiesResult } from "@/lib/catalog-ingest/catalog-result";
 import { loadCatalogSnapshotUncached } from "@/lib/catalog-ingest/load-catalog-snapshot";
 import {
@@ -21,28 +19,6 @@ export type {
   PropertiesSource,
 } from "@/lib/catalog-ingest/catalog-result";
 
-function catalogRevalidateSeconds(): number {
-  const raw =
-    process.env.REDALIA_CATALOG_REVALIDATE_SECONDS?.trim() ||
-    process.env.CATALOG_INGEST_REVALIDATE_SECONDS?.trim();
-  const n = raw ? parseInt(raw, 10) : NaN;
-  // Default 2 h: alineado al cron de catálogo.
-  if (!Number.isFinite(n) || n < 60) return 7_200;
-  return Math.min(86_400, n);
-}
-
-/** Bump manual de esta clave si necesitás invalidar entradas viejas sin esperar al cron. */
-const CATALOG_UNSTABLE_CACHE_KEY = "redalia-catalog-snapshot-v16-redis-or-json-cache";
-
-const loadCatalogCached = unstable_cache(
-  async () => loadCatalogSnapshotUncached(),
-  [CATALOG_UNSTABLE_CACHE_KEY],
-  {
-    revalidate: catalogRevalidateSeconds(),
-    tags: [REDALIA_CATALOG_CACHE_TAG],
-  },
-);
-
 function persistedSnapshotMatchesSourceMode(
   snapshot: CatalogSnapshotSuccess,
   mode: ReturnType<typeof getKitepropPropertiesSourceMode>,
@@ -52,7 +28,8 @@ function persistedSnapshotMatchesSourceMode(
   return snapshot.source === "network" || snapshot.source === "remote" || snapshot.source === "sample";
 }
 
-const MEMORY_CACHE_VERSION = 7;
+/** Bump si hace falta invalidar memoria en lambdas warm tras un deploy crítico. */
+const MEMORY_CACHE_VERSION = 8;
 const IN_MEMORY_TTL_MS = 60 * 60 * 1000;
 type CatalogMemoryCacheEntry = { v: number; value: CatalogSnapshotSuccess; expiresAt: number };
 const memoryCacheGlobal = globalThis as unknown as {
@@ -122,11 +99,24 @@ function forceLiveIngest(): boolean {
   return process.env.CATALOG_INGEST_DISABLE_CACHE?.trim() === "1";
 }
 
+async function loadLiveCatalog(): Promise<GetPropertiesResult> {
+  const fresh = await loadCatalogSnapshotUncached();
+  if (fresh.ok && fresh.properties.length > 0) {
+    writeMemoryCache(fresh);
+    schedulePersist(fresh);
+  }
+  return fresh;
+}
+
 /**
  * Capas de lectura (sin paginar API de red):
  *  1. Memoria (lambda warm)
- *  2. Upstash (si el plan responde)
- *  3. `unstable_cache` + feed JSON (fallback si Redis está en cuota / vacío)
+ *  2. Upstash chunked (si el plan responde)
+ *  3. Feed JSON en vivo (`loadCatalogSnapshotUncached`)
+ *
+ * **No** usamos `unstable_cache` para el snapshot completo: el catálogo (~15–20 MB)
+ * supera el límite práctico del Data Cache de Vercel (~2 MB). Una entrada vacía
+ * envenenaba `/propiedades` mientras los endpoints de diagnóstico veían el feed OK.
  *
  * La paginación de red sigue solo en `/api/cron/*` con `allowNetworkEnrichment`.
  */
@@ -135,10 +125,7 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
   if (mem) return mem;
 
   if (forceLiveIngest()) {
-    const fresh = await loadCatalogSnapshotUncached();
-    writeMemoryCache(fresh);
-    schedulePersist(fresh);
-    return fresh;
+    return loadLiveCatalog();
   }
 
   const sourceMode = getKitepropPropertiesSourceMode();
@@ -152,13 +139,7 @@ export const getProperties = cache(async (): Promise<GetPropertiesResult> => {
     return persistedFastPath.snapshot;
   }
 
-  // Fallback operativo: Data Cache + JSON (sin red). Cubre Upstash en cuota Fixed.
-  const cached = await loadCatalogCached();
-  if (cached.ok && cached.properties.length > 0) {
-    writeMemoryCache(cached);
-    schedulePersist(cached);
-  }
-  return cached;
+  return loadLiveCatalog();
 });
 
 export function getPartnerDirectoryExtraDrafts(

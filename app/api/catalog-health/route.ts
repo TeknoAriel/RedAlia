@@ -4,8 +4,10 @@ import {
   readPersistedCatalogMeta,
   readPersistedCatalogSnapshot,
 } from "@/lib/catalog-ingest/catalog-snapshot-persist";
+import { getProperties } from "@/lib/get-properties";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 export async function GET(request: Request) {
   if (!isRedaliaHealthAuthorized(request)) {
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
       source: "not_available",
       durationMs: Date.now() - startedAtMs,
       warnings: [
-        "Medición pasiva: usa include_data=1 para leer meta/snapshot persistido (sin ingest).",
+        "Medición pasiva: usa include_data=1 para leer meta/snapshot o catálogo vivo.",
       ],
       errorsRecent: [],
     });
@@ -56,31 +58,50 @@ export async function GET(request: Request) {
   }
 
   const persisted = await readPersistedCatalogSnapshot();
-  const queryMs = Date.now() - t0;
   const snapshot = persisted?.snapshot;
-  if (!snapshot?.ok) {
+  if (snapshot?.ok && snapshot.properties.length > 0) {
     return NextResponse.json({
       ...base,
-      ok: false,
-      totalProperties: "not_available",
-      source: "not_available",
+      totalProperties: snapshot.properties.length,
+      source: snapshot.source,
+      durationMs: Date.now() - t0,
+      errorsRecent: [
+        snapshot.ingestMeta?.networkErrorCode,
+        snapshot.ingestMeta?.networkOrganizationsErrorCode,
+        snapshot.ingestMeta?.partnerDirectoryOverlayErrorCode,
+      ].filter(Boolean),
+      warnings: [],
+      ingestMeta: snapshot.ingestMeta ?? null,
+    });
+  }
+
+  // Redis en cuota / vacío: el sitio opera con feed JSON en vivo.
+  const live = await getProperties();
+  const queryMs = Date.now() - t0;
+  if (live.ok && live.properties.length > 0) {
+    return NextResponse.json({
+      ...base,
+      totalProperties: live.properties.length,
+      source: live.source,
+      dataSource: "live_json",
       durationMs: queryMs,
-      errorsRecent: ["persisted_catalog_missing"],
-      warnings: ["Sin snapshot en Redis; esperá el cron /api/cron/catalog."],
+      errorsRecent: [],
+      warnings: [
+        "Sin snapshot en Redis (cuota/plan); catálogo servido desde feed JSON en vivo.",
+      ],
+      ingestMeta: live.ingestMeta ?? null,
     });
   }
 
   return NextResponse.json({
     ...base,
-    totalProperties: snapshot.properties.length,
-    source: snapshot.source,
+    ok: false,
+    totalProperties: 0,
+    source: "empty",
     durationMs: queryMs,
-    errorsRecent: [
-      snapshot.ingestMeta?.networkErrorCode,
-      snapshot.ingestMeta?.networkOrganizationsErrorCode,
-      snapshot.ingestMeta?.partnerDirectoryOverlayErrorCode,
-    ].filter(Boolean),
-    warnings: [],
-    ingestMeta: snapshot.ingestMeta ?? null,
+    errorsRecent: ["persisted_catalog_missing", "live_catalog_empty"],
+    warnings: [
+      "Sin Redis y el feed JSON no devolvió propiedades. Revisá KITEPROP_PROPERTIES_URL y el cron /api/cron/catalog.",
+    ],
   });
 }
