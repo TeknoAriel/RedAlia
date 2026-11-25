@@ -69,7 +69,9 @@ export async function GET(request: Request) {
     activePartners: active,
     emptyPartners: inactive,
     pageSize,
-    estimatedPages: Math.max(1, Math.ceil(renderablePartners / pageSize)),
+    /** Tamaño de lote del scroll infinito en `/socios` (ya no hay paginación por URL). */
+    infiniteScrollBatchSize: pageSize,
+    estimatedBatches: Math.max(1, Math.ceil(renderablePartners / pageSize)),
     ordering: "propertyCount_desc_zero_last_name_asc",
     rotation: "off",
     persistedSnapshot: stable.persistedSnapshotMeta ?? null,

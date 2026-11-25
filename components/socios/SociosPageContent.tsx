@@ -1,22 +1,16 @@
 import "server-only";
 
 import Link from "next/link";
-import { PartnerDirectoryCard } from "@/components/public-directory/PartnerDirectoryCard";
 import { SectionHeader } from "@/components/sections/SectionHeader";
+import { SociosInfiniteGrid } from "@/components/socios/SociosInfiniteGrid";
 import { loadSociosPageData } from "@/lib/public-data/load-socios-page-data";
 import { getSociosPageSize } from "@/lib/public-data/socios-config";
 
-type Props = {
-  searchParams: Record<string, string | string[] | undefined>;
-};
-
 /**
  * Bloque async de `/socios`: catálogo + directorio. Streamea tras el hero estático.
+ * El listado usa scroll infinito en cliente (sin paginación por URL).
  */
-export async function SociosPageContent({ searchParams }: Props) {
-  const rawPage = Array.isArray(searchParams.page) ? searchParams.page[0] : searchParams.page;
-  const parsedPage = rawPage ? parseInt(rawPage, 10) : 1;
-
+export async function SociosPageContent() {
   let result;
   let stable;
   try {
@@ -43,14 +37,9 @@ export async function SociosPageContent({ searchParams }: Props) {
   const snapshot = stable.snapshot;
   const entries = snapshot?.entries ?? [];
   const SOCIOS_PAGE_SIZE = getSociosPageSize();
-  const totalPages = Math.max(1, Math.ceil(entries.length / SOCIOS_PAGE_SIZE));
-  const safePage = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, totalPages) : 1;
-  const pageStart = (safePage - 1) * SOCIOS_PAGE_SIZE;
-  const pagedEntries = entries.slice(pageStart, pageStart + SOCIOS_PAGE_SIZE);
   const stats = snapshot?.stats;
   const listingCount = stats?.totalListings ?? 0;
   const geoCount = stats?.geographicDistinctCount ?? 0;
-  const pageHref = (page: number): string => (page <= 1 ? "/socios" : `/socios?page=${page}`);
 
   return (
     <>
@@ -156,52 +145,11 @@ export async function SociosPageContent({ searchParams }: Props) {
           )}
 
           {entries.length > 0 && (
-            <>
-              <ul className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {pagedEntries.map((entry) => (
-                  <li key={entry.partnerKey}>
-                    <PartnerDirectoryCard entry={entry} variant="default" />
-                  </li>
-                ))}
-              </ul>
-              {totalPages > 1 && (
-                <nav
-                  className="mt-8 flex flex-col items-center gap-4 border-t border-brand-navy/10 pt-6 sm:flex-row sm:justify-between"
-                  aria-label="Paginación socios"
-                >
-                  <p className="text-sm text-muted">
-                    Página <span className="font-semibold text-brand-navy">{safePage}</span> de{" "}
-                    <span className="font-semibold text-brand-navy">{totalPages}</span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {safePage > 1 ? (
-                      <Link
-                        href={pageHref(safePage - 1)}
-                        className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
-                      >
-                        Anterior
-                      </Link>
-                    ) : (
-                      <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
-                        Anterior
-                      </span>
-                    )}
-                    {safePage < totalPages ? (
-                      <Link
-                        href={pageHref(safePage + 1)}
-                        className="inline-flex items-center rounded-full border border-brand-navy/20 bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-sm transition hover:border-brand-gold/40 hover:bg-brand-navy-soft/50"
-                      >
-                        Siguiente
-                      </Link>
-                    ) : (
-                      <span className="inline-flex cursor-not-allowed items-center rounded-full border border-brand-navy/10 px-4 py-2 text-sm font-semibold text-muted opacity-50">
-                        Siguiente
-                      </span>
-                    )}
-                  </div>
-                </nav>
-              )}
-            </>
+            <SociosInfiniteGrid
+              entries={entries}
+              initialCount={SOCIOS_PAGE_SIZE}
+              pageSize={SOCIOS_PAGE_SIZE}
+            />
           )}
         </div>
       </section>

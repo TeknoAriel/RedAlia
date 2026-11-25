@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { PublicPartnerDirectoryEntry } from "@/lib/public-data/types";
 import { PartnerContactPrivacyGate } from "@/components/socios/PartnerContactPrivacyGate";
