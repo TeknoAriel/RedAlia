@@ -11,8 +11,8 @@ import {
 } from "@/components/socios/SociosPageContent";
 
 /**
- * Dinámico por `searchParams` + directorio. Cache real: Redis/`getProperties`.
- * Sin cold ingest de red en request de usuario → `maxDuration` acotado.
+ * Directorio dinámico. Cache real: Redis / Data Cache / `getProperties`.
+ * Listado con scroll infinito en cliente (sin `?page=`).
  */
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -57,13 +57,7 @@ const estandares = [
   },
 ];
 
-export default async function SociosPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = (await searchParams) ?? {};
-
+export default async function SociosPage() {
   return (
     <div className="bg-background">
       <PageHero
@@ -136,7 +130,7 @@ export default async function SociosPage({
       </section>
 
       <Suspense fallback={<SociosPageContentFallback />}>
-        <SociosPageContent searchParams={sp} />
+        <SociosPageContent />
       </Suspense>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
