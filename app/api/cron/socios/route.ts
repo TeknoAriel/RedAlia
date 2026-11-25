@@ -34,16 +34,17 @@ export async function GET(request: Request) {
 
   try {
     const sync = await runPartnerDirectoryIncrementalSync();
+    const ok = sync.status !== "aborted";
     const mutated =
       sync.status === "full" ||
-      sync.status === "applied" && (sync.added > 0 || sync.removed > 0);
+      (sync.status === "applied" && (sync.added > 0 || sync.removed > 0));
 
-    if (mutated) {
+    // Siempre refrescar Data Cache del directorio tras un sync OK (Redis puede estar en cuota).
+    if (ok) {
       revalidateTag(REDALIA_DIRECTORY_CACHE_TAG, "max");
       await loadCachedPartnerDirectorySnapshot();
     }
 
-    const ok = sync.status !== "aborted";
     return NextResponse.json(
       {
         ok,

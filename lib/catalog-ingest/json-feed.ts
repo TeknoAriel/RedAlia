@@ -59,7 +59,9 @@ export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<C
               persisted.snapshot.partnerDirectoryNetworkAdvertiserDrafts,
           };
         }
-        // Cold path sin Redis: un GET al CDN (no a la API REST) para no dejar el listing vacío.
+      }
+      // Cold path: GET completo sin validators (Redis en cuota / 304 sin snapshot / error de red puntual).
+      try {
         const res = await fetchRemotePayloadOnce(url, null);
         if (res.ok) {
           const json = parseJsonPayload(await res.text());
@@ -68,7 +70,8 @@ export async function loadJsonFeedSnapshot(trace: CatalogIngestTrace): Promise<C
             return { ok: true, properties, source: "remote" };
           }
         }
-        throw e;
+      } catch {
+        /* se reporta vacío abajo */
       }
       return { ok: true, properties: [], source: "empty" };
     }

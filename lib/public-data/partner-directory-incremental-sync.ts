@@ -90,19 +90,13 @@ async function collectRemotePartnerKeys(): Promise<RemoteKeyScan> {
     }
   } else {
     errors.push("catalog_snapshot_missing");
-    // Fallback: ingest live (o 304→chunks) para no abortar el sync de socios.
+    // Fallback: getProperties (memoria/JSON vivo) — no depende de Redis.
     try {
-      const { loadCatalogSnapshotUncached } = await import(
-        "@/lib/catalog-ingest/load-catalog-snapshot"
-      );
+      const { getProperties } = await import("@/lib/get-properties");
       const { writePersistedCatalogSnapshot } = await import(
         "@/lib/catalog-ingest/catalog-snapshot-persist"
       );
-      const { clearJsonFeedValidators } = await import(
-        "@/lib/catalog-ingest/json-feed-validators"
-      );
-      await clearJsonFeedValidators();
-      const live = await loadCatalogSnapshotUncached({ allowNetworkEnrichment: false });
+      const live = await getProperties();
       if (live.ok && live.properties.length > 0) {
         properties = live.properties;
         catalogListings = properties.length;
