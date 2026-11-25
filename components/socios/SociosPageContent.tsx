@@ -146,6 +146,7 @@ export async function SociosPageContent() {
 
           {entries.length > 0 && (
             <SociosInfiniteGrid
+              key={`${entries.length}-${SOCIOS_PAGE_SIZE}`}
               entries={entries}
               initialCount={SOCIOS_PAGE_SIZE}
               pageSize={SOCIOS_PAGE_SIZE}

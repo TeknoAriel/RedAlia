@@ -17,7 +17,7 @@ type Props = {
  * Todas las filas ya vienen del servidor; no hay paginación por URL ni requests extra.
  */
 export function SociosInfiniteGrid({ entries, initialCount, pageSize }: Props) {
-  const safeInitial = Math.min(Math.max(initialCount, 1), entries.length || 1);
+  const safeInitial = Math.min(Math.max(initialCount, 1), Math.max(entries.length, 1));
   const step = Math.max(pageSize, 1);
   const [visibleCount, setVisibleCount] = useState(safeInitial);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -28,10 +28,6 @@ export function SociosInfiniteGrid({ entries, initialCount, pageSize }: Props) {
   const loadMore = useCallback(() => {
     setVisibleCount((n) => Math.min(n + step, entries.length));
   }, [entries.length, step]);
-
-  useEffect(() => {
-    setVisibleCount(safeInitial);
-  }, [safeInitial, entries.length]);
 
   useEffect(() => {
     if (!hasMore) return;
